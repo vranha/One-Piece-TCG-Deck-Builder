@@ -1,0 +1,14 @@
+{
+  "name": "op-deckbuilder",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "start:frontend": "npm start --workspace frontend",
+    "start:backend": "npm start --workspace backend",
+    "start": "npm run start:frontend & npm run start:backend"
+  }
+}
