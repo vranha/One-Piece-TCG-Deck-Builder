@@ -38,13 +38,17 @@ const registerUserController = async (req, res) => {
 const loginUserController = async (req, res) => {
   const { email, password } = req.body;
   try {
-    const user = await loginUser(email, password);
-    res.status(200).json(user);
+    const { user, access_token } = await loginUser(email, password);
+    res.status(200).json({
+      user,
+      access_token,  // Incluir el token en la respuesta
+    });
   } catch (error) {
     console.error(error);
     res.status(401).send('Credenciales incorrectas');
   }
 };
+
 
 // Obtener la sesión del usuario
 const getSessionController = async (req, res) => {

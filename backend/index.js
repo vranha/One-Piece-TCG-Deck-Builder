@@ -1,6 +1,8 @@
 const dotenv = require('dotenv');
 const express = require('express');
-const routes = require('./routes/routes');
+const publicRoutes = require('./routes/publicRoutes');
+const privateRoutes = require('./routes/privateRoutes');
+const { swaggerUi, swaggerSpec } = require('./config/swagger'); // Importar Swagger
 
 dotenv.config();
 
@@ -9,8 +11,17 @@ const port = process.env.PORT || 5000;
 
 app.use(express.json());
 
-// Usar las rutas del archivo `routes.js`
-app.use('/api', routes); // Todas las rutas estarán bajo el prefijo /api
+// Ruta para servir la documentación de la API generada por Swagger
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec)); // Esta línea sirve la UI de Swagger
+
+app.get('/swagger.json', (req, res) => {
+  res.json(swaggerSpec); // Devuelve la especificación Swagger como JSON
+});
+
+
+// Usar las rutas
+app.use('/private', privateRoutes); 
+app.use('/public', publicRoutes);
 
 app.listen(port, () => {
   console.log(`Servidor corriendo en http://localhost:${port}`);

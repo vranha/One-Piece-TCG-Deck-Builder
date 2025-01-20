@@ -45,12 +45,32 @@ const registerUser = async (email, password) => {
 
 // Autenticación: Iniciar sesión (con correo y contraseña)
 const loginUser = async (email, password) => {
-  const { user, error } = await supabase.auth.signInWithPassword({ email, password });
+  // Primero, verificamos si hay una sesión activa
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  if (session) {
+    console.log("Sesión activa encontrada:", session);
+    return { user: session.user, access_token: session.access_token };
+  }
+
+  // Si no hay sesión activa, procedemos con el inicio de sesión
+  const { user, session: newSession, error } = await supabase.auth.signInWithPassword({ email, password });
+
   if (error) {
     throw new Error(error.message);
   }
-  return user;
+  if (!newSession) {
+    throw new Error("No se pudo obtener un token de sesión.");
+  }
+  
+  return {
+    user,
+    access_token: newSession.access_token,
+  };
 };
+
+
+
+
 
 // Obtener la sesión activa del usuario
 const getSession = async () => {
@@ -81,4 +101,5 @@ module.exports = {
   loginUser,
   getSession,
   handleEmailConfirmation,
+  supabase
 };
