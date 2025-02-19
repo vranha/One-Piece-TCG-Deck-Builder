@@ -10,5 +10,11 @@
     "start:frontend": "npm start --workspace frontend",
     "start:backend": "npm start --workspace backend",
     "start": "npm run start:frontend & npm run start:backend"
+  },
+  "dependencies": {
+    "expo": "52.0.35",
+    "expo-constants": "17.0.6",
+    "expo-splash-screen": "0.29.22",
+    "jest-expo": "52.0.4"
   }
 }
