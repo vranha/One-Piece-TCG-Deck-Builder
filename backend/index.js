@@ -1,4 +1,5 @@
 const dotenv = require('dotenv');
+const cors = require('cors');
 const express = require('express');
 const publicRoutes = require('./routes/publicRoutes');
 const privateRoutes = require('./routes/privateRoutes');
@@ -9,6 +10,7 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 5000;
 
+app.use(cors());
 app.use(express.json());
 
 // Ruta para servir la documentación de la API generada por Swagger

@@ -4,6 +4,7 @@ const { addCardToDeckSchema, editDeckSchema, createDeckSchema } = require('../va
 const { loginUserSchema, registerUserSchema } = require('../validators/userValidator');
 const userController = require('../controllers/userController');
 const deckController = require('../controllers/deckController');
+const cardController = require('../controllers/cardController');
 const authenticate = require('../middlewares/authMiddleware');
 
 const router = express.Router();
@@ -243,5 +244,149 @@ router.post('/decks/cards', validate(addCardToDeckSchema), deckController.addCar
  *         description: Mazo no encontrado
  */
 router.delete('/decks/:deckId', deckController.deleteDeck);
+
+/**
+ * @swagger
+ * /cards:
+ *   get:
+ *     summary: Buscar cartas con paginación y filtros
+ *     tags: [Cards]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         description: Número de página (por defecto es 1)
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         description: Número de elementos por página (por defecto es 10)
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *       - in: query
+ *         name: search
+ *         required: false
+ *         description: Texto de búsqueda para filtrar las cartas por nombre o código
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: rarity
+ *         required: false
+ *         description: Filtrar por rareza
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: type
+ *         required: false
+ *         description: Filtrar por tipo
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: cost
+ *         required: false
+ *         description: Filtrar por costo
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: power
+ *         required: false
+ *         description: Filtrar por poder
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: counter
+ *         required: false
+ *         description: Filtrar por contador
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: color
+ *         required: false
+ *         description: Filtrar por color
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: family
+ *         required: false
+ *         description: Filtrar por familia
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: trigger
+ *         required: false
+ *         description: Filtrar por trigger (booleano)
+ *         schema:
+ *           type: boolean
+ *     responses:
+ *       200:
+ *         description: Lista de cartas con la información de paginación
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       code:
+ *                         type: string
+ *                       rarity:
+ *                         type: string
+ *                       type:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       images_small:
+ *                         type: string
+ *                       images_large:
+ *                         type: string
+ *                       cost:
+ *                         type: integer
+ *                       attribute_name:
+ *                         type: string
+ *                       attribute_image:
+ *                         type: string
+ *                       power:
+ *                         type: integer
+ *                       counter:
+ *                         type: string
+ *                       color:
+ *                         type: string
+ *                       family:
+ *                         type: string
+ *                       ability:
+ *                         type: string
+ *                       trigger:
+ *                         type: string
+ *                       set_name:
+ *                         type: string
+ *                       notes:
+ *                         type: object
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *       400:
+ *         description: Parámetros incorrectos (por ejemplo, página o límite fuera de rango)
+ */
+router.get('/cards', cardController.searchCards);
+
+// Obtener una carta por ID
+router.get('/cards/:id', cardController.getCardById);
 
 module.exports = router;

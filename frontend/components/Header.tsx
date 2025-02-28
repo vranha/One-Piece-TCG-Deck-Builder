@@ -9,7 +9,7 @@ interface HeaderProps {
     title: string;
 }
 
-export default function Header({ title }: HeaderProps)  {
+export default function Header({ title }: HeaderProps) {
     const { theme } = useTheme();
 
     return (
@@ -42,6 +42,15 @@ Header.RightButton = function RightButton({ onPress }: any) {
     return (
         <TouchableOpacity onPress={onPress} style={{ marginRight: 16 }}>
             <IconSymbol size={28} name="gearshape.fill" color={Colors[theme].text} />
+        </TouchableOpacity>
+    );
+};
+
+Header.RightButtonSearch = function RightButtonSearch({ onPress }: any) {
+    const { theme } = useTheme();
+    return (
+        <TouchableOpacity onPress={onPress} style={{ marginRight: 16 }}>
+            <IconSymbol size={28} name="magnifyingglass" color={Colors[theme].text} />
         </TouchableOpacity>
     );
 };

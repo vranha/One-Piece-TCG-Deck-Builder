@@ -18,7 +18,7 @@ export const Colors = {
     },
     dark: {
         text: "#EAEAEA", // Gris claro en lugar de blanco puro, menos fatiga visual.
-        background: "#121212", // Negro carbón, sofisticado y envolvente.
+        background: "#212020", // Negro carbón, sofisticado y envolvente.
         tint: tintColorDark, // Azul neón apagado, resalta sin ser chillón.
         icon: "#717782", // Gris humo oscuro, sutil y moderno.
         tabIconDefault: "#5E626A", // Gris acero, para neutralidad en elementos no seleccionados.

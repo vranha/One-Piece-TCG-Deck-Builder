@@ -90,7 +90,12 @@ export default function TabLayout() {
                             headerTitleAlign: "center",
                             headerTitle: () => <Header title="OP Lab" />,
                             headerLeft: () => <Header.LeftButton />,
-                            headerRight: () => <Header.RightButton onPress={() => router.push("../settings")} />,
+                            headerRight: () => (
+                                <>
+                                    <Header.RightButtonSearch onPress={() => router.push("../search")} />
+                                    <Header.RightButton onPress={() => router.push("../settings")} />
+                                </>
+                            ),
                             tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
                         }}
                     />

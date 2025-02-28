@@ -33,7 +33,6 @@ const registerUserController = async (req, res) => {
   }
 };
 
-
 // Iniciar sesión
 const loginUserController = async (req, res) => {
   const { email, password } = req.body;
@@ -48,7 +47,6 @@ const loginUserController = async (req, res) => {
     res.status(401).send('Credenciales incorrectas');
   }
 };
-
 
 // Obtener la sesión del usuario
 const getSessionController = async (req, res) => {
