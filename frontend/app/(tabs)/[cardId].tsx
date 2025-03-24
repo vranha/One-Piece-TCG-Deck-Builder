@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Image, StyleSheet, ActivityIndicator, TouchableOpacity, LogBox } from "react-native";
-import { useNavigation, useLocalSearchParams } from "expo-router";
+import { useNavigation, useLocalSearchParams, useRouter } from "expo-router";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
 import useApi from "@/hooks/useApi";
@@ -37,7 +37,8 @@ export default function CardDetailScreen() {
     const { cardId, cardName } = useLocalSearchParams();
     const [cardDetail, setCardDetail] = useState<CardDetail | null>(null);
     const [loading, setLoading] = useState(true);
-    const router = useNavigation();
+    const navigation = useNavigation();
+    const router = useRouter();
 
     useEffect(() => {
         const fetchCardDetail = async () => {
@@ -55,20 +56,20 @@ export default function CardDetailScreen() {
     }, [cardId]);
 
     useEffect(() => {
-        router.setOptions({
+        navigation.setOptions({
             headerShown: true,
             title: cardName,
             headerLeft: () => (
-                <TouchableOpacity onPress={() => router.goBack()} style={styles.backButton}>
+                <TouchableOpacity onPress={() => router.push("/search")} style={styles.backButton}>
                     <MaterialIcons name="arrow-back" size={24} color={Colors[theme].text} />
                 </TouchableOpacity>
             ),
             headerTitle: () => (
-                <View style={{ flex: 1, justifyContent: "center", alignItems: "center", marginLeft: -40 }}>
-                    <ThemedText style={[styles.cardName, { color: Colors[theme].text }]}>{cardName}</ThemedText>    )
+                <View style={{ flex: 1, justifyContent: "center", alignItems: "center"}}>
+                    <ThemedText style={[styles.cardName, { color: Colors[theme].text }]}>{cardName}</ThemedText>
                 </View>
     )});
-    }, [router, cardName, theme]);
+    }, [navigation, cardName, theme]);
 
     const hasPower = cardDetail?.type === "CHARACTER" || cardDetail?.type === "LEADER";
     const dividerStyle = useDividerStyle(cardDetail?.color || "");
@@ -133,17 +134,6 @@ export default function CardDetailScreen() {
                 <Image source={{ uri: cardDetail.images_large }} style={styles.cardImage} />
             </View>
 
-            {/* {dividerStyle.type === "gradient" ? (
-                <LinearGradient
-                    colors={dividerStyle.colors as [string, string, ...string[]]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.divider}
-                />
-            ) : (
-                <View style={[styles.divider, { backgroundColor: dividerStyle.color }]} />
-            )} */}
-
             <ThemedText
                 type="title"
                 style={{
@@ -169,13 +159,19 @@ export default function CardDetailScreen() {
                 <View style={[styles.divider, { backgroundColor: dividerStyle.color }]} />
             )}
                 {cardDetail.ability !== "-" ? (
-                    <FormattedAbility text={cardDetail.ability} />
+                    <View style={{ alignItems: "flex-start", backgroundColor: Colors[theme].TabBarBackground, borderRadius: 5, padding: 12 }}>
+                        <FormattedAbility text={cardDetail.ability} />
+                    </View>
                 ) : (
                     <ThemedText style={{ textAlign: "center", width: "100%" }} type="subtitle">
                         --No Effect--
                     </ThemedText>
                 )}
-                {cardDetail.trigger ? <FormattedAbility trigger text={cardDetail.trigger} /> : null}
+                {cardDetail.trigger ? (
+                <View style={{ alignItems: "flex-start", backgroundColor: Colors[theme].icon, borderRadius: 5, padding: 12 }}>
+                    <FormattedAbility trigger text={cardDetail.trigger} /> 
+                </View>
+                ) : null}
                 {dividerStyle.type === "gradient" ? (
                     <LinearGradient
                         colors={dividerStyle.colors as [string, string, ...string[]]}
@@ -191,6 +187,10 @@ export default function CardDetailScreen() {
     );
 }
 
+export const options = {
+    tabBarItemStyle: { display: "none" },
+  };
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -198,6 +198,7 @@ const styles = StyleSheet.create({
     },
     backButton: {
         marginRight: 12,
+        marginLeft: 12,
     },
     cardName: {
         fontSize: 24,

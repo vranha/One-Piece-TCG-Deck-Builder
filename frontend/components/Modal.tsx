@@ -4,15 +4,16 @@ import { Modalize } from "react-native-modalize";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/ThemeContext";
 import { Colors } from "@/constants/Colors";
+import { useTranslation } from "react-i18next";
 
 const Modal = React.forwardRef((props, ref) => {
     const { theme } = useTheme();
-
+    const { t } = useTranslation();
     return (
         <Modalize ref={ref} snapPoint={500} modalStyle={{ backgroundColor: Colors[theme].TabBarBackground }}>
             <View style={styles.container}>
                 <ThemedText type="subtitle" style={[styles.text, { color: Colors[theme].text }]}>
-                    ¿En que puedo ayudarte?..
+                    {t("welcome_chat")}
                 </ThemedText>
             </View>
         </Modalize>

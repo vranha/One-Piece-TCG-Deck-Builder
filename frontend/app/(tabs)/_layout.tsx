@@ -13,6 +13,8 @@ import TabBarButton from "@/components/TabBarButton";
 import Bubbles from "@/components/Bubbles";
 import Modal from "@/components/Modal";
 import { IconSymbol } from "@/components/ui/IconSymbol";
+import NewDeckModal from "@/components/NewDeckModal";
+import { Portal } from "react-native-paper";
 
 export default function TabLayout() {
     const { theme } = useTheme();
@@ -28,6 +30,7 @@ export default function TabLayout() {
         new Animated.Value(0),
     ]);
     const modalizeRef = useRef<Modalize>(null);
+    const [isNewDeckModalVisible, setIsNewDeckModalVisible] = useState(false);
 
     const toggleBubbles = () => {
         if (showBubbles) {
@@ -52,9 +55,22 @@ export default function TabLayout() {
         }
     };
 
-    const openModal = (e: any) => {
-        e.persist();
-        e.preventDefault();
+    const handleBubblePress = (index: number) => {
+        if (index === 4) {
+            // Index for "Nuevo Mazo"
+            setIsNewDeckModalVisible(true);
+            toggleBubbles();
+        }
+    };
+
+    const handleCreateDeck = (leader: string, name: string, description: string) => {
+        // Logic to create a new deck
+        console.log("Creating deck:", leader, name, description);
+    };
+
+    const openModal = (event: any) => {
+        event.persist(); // Persistir el evento
+        event.preventDefault();
         modalizeRef.current?.open();
     };
 
@@ -92,8 +108,8 @@ export default function TabLayout() {
                             headerLeft: () => <Header.LeftButton />,
                             headerRight: () => (
                                 <>
-                                    <Header.RightButtonSearch onPress={() => router.push("../search")} />
-                                    <Header.RightButton onPress={() => router.push("../settings")} />
+                                    <Header.RightButtonSearch onPress={() => router.push("/search")} />
+                                    <Header.RightButton onPress={() => router.push("/settings")} />
                                 </>
                             ),
                             tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
@@ -117,6 +133,18 @@ export default function TabLayout() {
                             ),
                         }}
                     />
+                    <Tabs.Screen
+                        name="[cardId]"
+                        options={{
+                            href: null,
+                        }}
+                    />
+                    <Tabs.Screen
+                        name="deck"
+                        options={{
+                            href: null,
+                        }}
+                    />
                 </Tabs>
 
                 {showBubbles && (
@@ -125,9 +153,18 @@ export default function TabLayout() {
                         bubbleAnim={bubbleAnim}
                         bubbleRefs={bubbleRefs}
                         toggleBubbles={toggleBubbles}
+                        onBubblePress={handleBubblePress}
                     />
                 )}
                 <Modal ref={modalizeRef} />
+                <Portal>
+
+                <NewDeckModal
+                    visible={isNewDeckModalVisible}
+                    onClose={() => setIsNewDeckModalVisible(false)}
+                    onCreate={handleCreateDeck}
+                />
+                </Portal>
             </View>
         </GestureHandlerRootView>
     );

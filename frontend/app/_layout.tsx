@@ -11,6 +11,8 @@ import { ThemeProvider, useTheme } from "@/hooks/ThemeContext";
 import { supabase } from "@/supabaseClient";
 import AuthCheck from "@/components/AuthCheck"; // Asegúrate de la ruta correcta
 import { AuthProvider } from "@/contexts/AuthContext";
+import { Provider as PaperProvider } from "react-native-paper";
+import "../i18n"; // Import i18n configuration
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -42,16 +44,15 @@ export default function RootLayout() {
         checkAuth();
 
         const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-          console.log("Auth State Change Event:", event, "Session:", session);
-          if (session) {
-            setIsAuthenticated(true);
-            router.replace('/(tabs)');
-          } else {
-            setIsAuthenticated(false);
-            router.replace('/login');
-          }
+            console.log("Auth State Change Event:", event, "Session:", session);
+            if (session) {
+                setIsAuthenticated(true);
+                router.replace("/(tabs)");
+            } else {
+                setIsAuthenticated(false);
+                router.replace("/login");
+            }
         });
-        
 
         return () => {
             authListener.subscription.unsubscribe();
@@ -65,10 +66,12 @@ export default function RootLayout() {
     return (
         <AuthProvider>
             <ThemeProvider>
-                <GestureHandlerRootView style={{ flex: 1 }}>
-                    <AuthCheck />
-                    <ThemeConsumer isAuthenticated={isAuthenticated}/>
-                </GestureHandlerRootView>
+                <PaperProvider>
+                    <GestureHandlerRootView style={{ flex: 1 }}>
+                        <AuthCheck />
+                        <ThemeConsumer isAuthenticated={isAuthenticated} />
+                    </GestureHandlerRootView>
+                </PaperProvider>
             </ThemeProvider>
         </AuthProvider>
     );
@@ -83,8 +86,8 @@ function ThemeConsumer({ isAuthenticated }: { isAuthenticated: boolean }) {
                 {isAuthenticated ? (
                     <>
                         <Stack.Screen name="(tabs)" />
-                        <Stack.Screen name="settings"  />
-                        <Stack.Screen name="search"  />
+                        <Stack.Screen name="settings" />
+                        <Stack.Screen name="search" />
                         <Stack.Screen name="+not-found" />
                     </>
                 ) : (

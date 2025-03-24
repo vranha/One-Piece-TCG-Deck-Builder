@@ -2,9 +2,9 @@ const deckService = require('../services/deckService');
 
 // Crear un nuevo mazo con colores
 const createDeck = async (req, res) => {
-    const { userId, name, description, colors } = req.body;
+    const { userId, name, description, colors, leaderCardId } = req.body;
     try {
-        const deck = await deckService.createDeck(userId, name, description, colors);
+        const deck = await deckService.createDeck(userId, name, description, colors, leaderCardId);
         res.status(201).json(deck);
     } catch (err) {
         console.error(err);
@@ -28,6 +28,7 @@ const editDeck = async (req, res) => {
 // Obtener los mazos de un usuario con paginación y búsqueda
 const getUserDecks = async (req, res) => {
     const { userId } = req.params;
+    console.log(userId);
     const { page = 1, limit = 10, search = '' } = req.query;  // Recibir parámetros de consulta
 
     try {
@@ -50,6 +51,17 @@ const getUserDecks = async (req, res) => {
     }
 };
 
+// Obtener un mazo por ID con todas sus cartas
+const getDeckById = async (req, res) => {
+    const { deckId } = req.params;
+    try {
+        const deck = await deckService.getDeckById(deckId);
+        res.status(200).json(deck);
+    } catch (err) {
+        console.error('Error en getDeckById:', err);
+        res.status(500).json({ error: err.message });
+    }
+};
 
 // Añadir cartas a un mazo
 const addCardToDeck = async (req, res) => {
@@ -81,4 +93,5 @@ module.exports = {
     deleteDeck,
     getUserDecks,
     addCardToDeck,
+    getDeckById, // Añadir la nueva función al módulo exportado
 };

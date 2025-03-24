@@ -1,43 +1,112 @@
+// controllers/cardController.js
 const cardService = require('../services/cardService');
+
+// Helper para limpiar parámetros: si vienen como "undefined" se convierten a undefined real
+const sanitizeParam = (param) => (param === "undefined" ? undefined : param);
 
 // Buscar cartas con paginación y filtros
 const searchCards = async (req, res) => {
-    const { page = 1, limit = 10, search = '', rarity, type, cost, power, counter, color, family, trigger } = req.query;  // Recibir parámetros de consulta
+  const {
+    page = 1,
+    limit = 10,
+    search = '',
+    rarity,
+    type,
+    cost,
+    cost_gte,
+    cost_lte,
+    power,
+    power_gte,
+    power_lte,
+    counter,
+    counter_gte,
+    counter_lte,
+    color,
+    family,
+    trigger,
+    life,
+    life_gte,
+    life_lte,
+    set_name,
+    ability,
+  } = req.query;
 
-    try {
-        // Llamar al servicio con los parámetros de paginación y búsqueda
-        const { data, count } = await cardService.searchCards(page, limit, search, { rarity, type, cost, power, counter, color, family, trigger });
+  try {
+    const filters = {
+      rarity: rarity ? rarity.split(',').map(sanitizeParam) : undefined,
+      type: type ? type.split(',').map(sanitizeParam) : undefined,
+      cost: sanitizeParam(cost),
+      cost_gte: sanitizeParam(cost_gte),
+      cost_lte: sanitizeParam(cost_lte),
+      power: sanitizeParam(power),
+      power_gte: sanitizeParam(power_gte),
+      power_lte: sanitizeParam(power_lte),
+      counter: sanitizeParam(counter),
+      counter_gte: sanitizeParam(counter_gte),
+      counter_lte: sanitizeParam(counter_lte),
+      color: sanitizeParam(color),
+      family: sanitizeParam(family),
+      trigger: trigger === "true" ? true : undefined,
+      life: sanitizeParam(life),
+      life_gte: sanitizeParam(life_gte),
+      life_lte: sanitizeParam(life_lte),
+      set_name: sanitizeParam(set_name),
+      ability: ability ? ability.split(',').map(sanitizeParam) : undefined,
+    };
 
-        // Responder con los datos y la información de paginación
-        res.status(200).json({
-            data,
-            pagination: {
-                total: count,  // Total de registros
-                page,
-                limit,
-                totalPages: Math.ceil(count / limit),  // Número total de páginas
-            },
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: err.message });
-    }
+    const { data, count } = await cardService.searchCards(page, limit, search, filters);
+
+    res.status(200).json({
+      data,
+      pagination: {
+        total: count,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(count / limit),
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 };
 
 // Obtener una carta por ID
 const getCardById = async (req, res) => {
-    const { id } = req.params;
+  const { id } = req.params;
+  try {
+    const card = await cardService.getCardById(id);
+    res.status(200).json(card);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};
 
-    try {
-        const card = await cardService.getCardById(id);
-        res.status(200).json(card);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: err.message });
-    }
+// Obtener todos los valores únicos de set_name
+const getAllSetNames = async (req, res) => {
+  try {
+    const setNames = await cardService.getAllSetNames();
+    res.status(200).json(setNames);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};
+// Obtener todos los valores únicos de set_name
+const getAllFamilies = async (req, res) => {
+  try {
+    const setNames = await cardService.getAllFamilies();
+    res.status(200).json(setNames);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 };
 
 module.exports = {
-    searchCards,
-    getCardById,
+  searchCards,
+  getCardById,
+  getAllSetNames,
+  getAllFamilies,
 };

@@ -1,21 +1,19 @@
-const express = require('express');
-const validate = require('../middlewares/validate');
-const { addCardToDeckSchema, editDeckSchema, createDeckSchema } = require('../validators/deckValidator');
-const { loginUserSchema, registerUserSchema } = require('../validators/userValidator');
-const userController = require('../controllers/userController');
-const deckController = require('../controllers/deckController');
-const cardController = require('../controllers/cardController');
-const authenticate = require('../middlewares/authMiddleware');
+const express = require("express");
+const validate = require("../middlewares/validate");
+const { addCardToDeckSchema, editDeckSchema, createDeckSchema } = require("../validators/deckValidator");
+const { loginUserSchema, registerUserSchema } = require("../validators/userValidator");
+const userController = require("../controllers/userController");
+const deckController = require("../controllers/deckController");
+const cardController = require("../controllers/cardController");
+const authenticate = require("../middlewares/authMiddleware");
 
 const router = express.Router();
 
 router.use(authenticate);
 
-
 // EJEMPLLO DE USO DE ROLE con authorize:
 // Editar mazo (solo administradores)
 // router.put('/decks/:deckId',validate(editDeckSchema),authorize(['admin']),deckController.editDeck);
-
 
 /**
  * @swagger
@@ -27,8 +25,7 @@ router.use(authenticate);
  *       200:
  *         description: Lista de usuarios
  */
-router.get('/users', userController.getAllUsers);
-
+router.get("/users", userController.getAllUsers);
 
 /**
  * @swagger
@@ -59,7 +56,10 @@ router.get('/users', userController.getAllUsers);
  *       400:
  *         description: Datos incorrectos
  */
-router.post('/decks', validate(createDeckSchema), deckController.createDeck);
+router.post("/decks", validate(createDeckSchema), deckController.createDeck);
+
+// Obtener un mazo por ID con todas sus cartas
+router.get("/deckById/:deckId", deckController.getDeckById);
 
 /**
  * @swagger
@@ -95,7 +95,7 @@ router.post('/decks', validate(createDeckSchema), deckController.createDeck);
  *       404:
  *         description: Mazo no encontrado
  */
-router.put('/decks/:deckId', validate(editDeckSchema), deckController.editDeck);
+router.put("/deck/:deckId", validate(editDeckSchema), deckController.editDeck);
 
 /**
  * @swagger
@@ -170,8 +170,7 @@ router.put('/decks/:deckId', validate(editDeckSchema), deckController.editDeck);
  *       404:
  *         description: Usuario no encontrado
  */
-router.get('/decks/:userId', deckController.getUserDecks);
-
+router.get("/decks/:userId", deckController.getUserDecks);
 
 /**
  * @swagger
@@ -221,8 +220,7 @@ router.get('/decks/:userId', deckController.getUserDecks);
  *       500:
  *         description: Error interno del servidor
  */
-router.post('/decks/cards', validate(addCardToDeckSchema), deckController.addCardToDeck);
-
+router.post("/decks/cards", validate(addCardToDeckSchema), deckController.addCardToDeck);
 
 /**
  * @swagger
@@ -243,7 +241,7 @@ router.post('/decks/cards', validate(addCardToDeckSchema), deckController.addCar
  *       404:
  *         description: Mazo no encontrado
  */
-router.delete('/decks/:deckId', deckController.deleteDeck);
+router.delete("/decks/:deckId", deckController.deleteDeck);
 
 /**
  * @swagger
@@ -384,9 +382,17 @@ router.delete('/decks/:deckId', deckController.deleteDeck);
  *       400:
  *         description: Parámetros incorrectos (por ejemplo, página o límite fuera de rango)
  */
-router.get('/cards', cardController.searchCards);
+router.get("/cards", cardController.searchCards);
 
 // Obtener una carta por ID
-router.get('/cards/:id', cardController.getCardById);
+router.get("/cards/:id", cardController.getCardById);
+
+// Nueva ruta para obtener todos los valores únicos de set_name
+router.get("/set_names", cardController.getAllSetNames);
+
+// Nueva ruta para obtener todos los valores únicos de family
+router.get("/families", cardController.getAllFamilies);
+
+
 
 module.exports = router;

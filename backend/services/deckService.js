@@ -1,7 +1,18 @@
 const { supabase } = require('../services/supabaseClient');
 
-// Validar colores (mínimo 1, máximo 2, y deben existir en la tabla colors)
-// Validar colores (mínimo 1, máximo 2, y deben existir en la tabla colors)
+const colorNameToId = {
+    red: 1,
+    blue: 2,
+    green: 3,
+    yellow: 4,
+    purple: 5,
+    black: 6,
+};
+
+const normalizeColors = (colors) => {
+    return colors.map(color => typeof color === 'string' ? colorNameToId[color.toLowerCase()] : color);
+};
+
 const validateColors = async (colors) => {
     if (!Array.isArray(colors) || colors.length < 1 || colors.length > 2) {
         throw new Error('Debes seleccionar entre 1 y 2 colores.');
@@ -20,12 +31,11 @@ const validateColors = async (colors) => {
     return validColors;
 };
 
-// Crear un nuevo mazo con colores
-const createDeck = async (userId, name, description, colors) => {
-    // Validar los colores (debe existir al menos 1 color, máximo 2)
-    const validColors = await validateColors(colors);
+const createDeck = async (userId, name, description, colors, leaderCardId) => {
+    const normalizedColors = normalizeColors(colors);
+    const validColors = await validateColors(normalizedColors);
+    console.log('Colores válidos:', validColors);
 
-    // Insertar el mazo en la tabla 'decks'
     const { data: deck, error: deckError } = await supabase
         .from('decks')
         .insert([{ user_id: userId, name, description }])
@@ -39,7 +49,6 @@ const createDeck = async (userId, name, description, colors) => {
 
     console.log('Mazo insertado:', deck);
 
-    // Asociar los colores al mazo en la tabla 'deck_colors'
     const colorAssociations = validColors.map((color) => ({
         deck_id: deck.id,
         color_id: color.id,
@@ -54,10 +63,18 @@ const createDeck = async (userId, name, description, colors) => {
         throw new Error('Error al asociar colores al mazo: ' + colorError.message);
     }
 
+    // Añadir la carta LEADER a la tabla deck_cards
+    const { error: cardError } = await supabase
+        .from('deck_cards')
+        .insert([{ deck_id: deck.id, card_id: leaderCardId, quantity: 1, is_leader: true }]);
+
+    if (cardError) {
+        console.error('Error al añadir la carta LEADER al mazo:', cardError);
+        throw new Error('Error al añadir la carta LEADER al mazo: ' + cardError.message);
+    }
+
     return deck;
 };
-
-
 
 // Editar un mazo (nombre, descripción, y colores)
 const editDeck = async (deckId, name, description, colors) => {
@@ -98,23 +115,83 @@ const editDeck = async (deckId, name, description, colors) => {
     return updatedDeck;
 };
 
-// Obtener los mazos de un usuario con sus colores
+// Obtener los mazos de un usuario con sus colores y datos de la carta líder
 const getUserDecks = async (userId, page = 1, limit = 10, search = '') => {
-    const offset = (page - 1) * limit;  // Calcular el desplazamiento para la paginación
+    const offset = (page - 1) * limit;
 
     const { data: decks, error, count } = await supabase
         .from('decks')
-        .select('*, deck_colors(color_id)', { count: 'exact' }) // Contamos el total de registros
-        .eq('user_id', userId) // Filtramos por el ID del usuario
-        .ilike('name', `%${search}%`) // Filtrado por nombre (búsqueda parcial)
-        .range(offset, offset + limit - 1);  // Limitamos los resultados con paginación
+        .select(`
+            *,
+            deck_colors(color_id),
+            deck_cards(
+                card_id,
+                is_leader,
+                cards!inner(id, images_small)
+            )
+        `)
+        .eq('user_id', userId)
+        .ilike('name', `%${search}%`)
+        .range(offset, offset + limit - 1);
 
     if (error) throw new Error('Error al obtener los mazos.');
 
+    // Filtrar y obtener la imagen de la carta líder
+    const decksWithLeader = decks.map(deck => {
+        const leaderCard = deck.deck_cards.find(card => card.is_leader);
+        return {
+            ...deck,
+            leaderCardImage: leaderCard?.cards?.images_small || null,
+        };
+    });
+
     return {
-        data: decks,
-        count: count,  // Total de registros (para calcular la paginación)
+        data: decksWithLeader,
+        count,
     };
+};
+
+// Obtener un mazo por ID con todas sus cartas
+const getDeckById = async (deckId) => {
+    try {
+        console.log('Obteniendo mazo con ID:', deckId);
+        const { data: deck, error: deckError } = await supabase
+            .from('decks')
+            .select('*')
+            .eq('id', deckId)
+            .single();
+
+        if (deckError) {
+            console.error('Error al obtener el mazo:', deckError);
+            throw new Error('Error al obtener el mazo.');
+        }
+
+        console.log('Mazo obtenido:', deck);
+
+        const { data: deckCards, error: deckCardsError } = await supabase
+            .from('deck_cards')
+            .select('card_id, quantity, is_leader, cards!inner(*)')
+            .eq('deck_id', deckId);
+
+        if (deckCardsError) {
+            console.error('Error al obtener las cartas del mazo:', deckCardsError);
+            throw new Error('Error al obtener las cartas del mazo.');
+        }
+
+        console.log('Cartas del mazo obtenidas:', deckCards);
+
+        return {
+            ...deck,
+            cards: deckCards.map(dc => ({
+                ...dc.cards,
+                quantity: dc.quantity,
+                is_leader: dc.is_leader,
+            })),
+        };
+    } catch (error) {
+        console.error('Error en getDeckById:', error);
+        throw new Error('Error al obtener el mazo.');
+    }
 };
 
 
@@ -147,4 +224,5 @@ module.exports = {
     deleteDeck,
     getUserDecks,
     addCardToDeck,
+    getDeckById
 };

@@ -22,8 +22,14 @@ const createDeckSchema = Joi.object({
         'string.empty': 'El nombre del mazo es obligatorio.',
     }),
     description: Joi.string().allow('').optional(), // Permite descripción vacía
-    colors: Joi.array().items(Joi.number().integer()).required().messages({
-        'array.base': 'Los colores deben ser un array de números.',
+    colors: Joi.array().items(Joi.alternatives().try(
+        Joi.number().integer(),
+        Joi.string().lowercase().valid('red', 'blue', 'green', 'yellow', 'purple', 'black')
+    )).required().messages({
+        'array.base': 'Los colores deben ser un array de números o nombres válidos de colores.',
+    }),
+    leaderCardId: Joi.string().required().messages({
+        'string.empty': 'El ID de la carta LEADER es obligatorio.',
     }),
 });
 

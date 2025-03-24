@@ -4,12 +4,14 @@ import { ThemedText } from "@/components/ThemedText";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 interface BubblesProps {
     blurAnim: Animated.Value;
     bubbleAnim: Animated.Value;
     bubbleRefs: React.MutableRefObject<Animated.Value[]>;
     toggleBubbles: () => void;
+    onBubblePress: (index: number) => void;
 }
 
 type CustomIconNames =
@@ -20,8 +22,9 @@ type CustomIconNames =
     | "plus.square.fill"
     | "questionmark";
 
-export default function Bubbles({ blurAnim, bubbleAnim, bubbleRefs, toggleBubbles }: BubblesProps) {
+export default function Bubbles({ blurAnim, bubbleAnim, bubbleRefs, toggleBubbles, onBubblePress }: BubblesProps) {
     const { theme } = useTheme();
+    const { t } = useTranslation();
 
     return (
         <>
@@ -69,14 +72,20 @@ export default function Bubbles({ blurAnim, bubbleAnim, bubbleRefs, toggleBubble
                             },
                         ]}
                     >
-                        <IconSymbol name={getBubbleIconName(index)} size={24} color={Colors[theme].tint} />
-                        <ThemedText
-                            type="defaultSemiBold"
-                            lightColor={Colors[theme].text}
-                            darkColor={Colors[theme].text}
+                        <TouchableOpacity
+                            onPress={() => onBubblePress(index)}
+                            style={{ flexDirection: "row", alignItems: "center" }}
                         >
-                            {getBubbleText(index)}
-                        </ThemedText>
+                            <IconSymbol name={getBubbleIconName(index)} size={24} color={Colors[theme].tint} />
+                            <ThemedText
+                                type="defaultSemiBold"
+                                lightColor={Colors[theme].text}
+                                darkColor={Colors[theme].text}
+                                style={{ marginLeft: 8 }}
+                            >
+                                {t(getBubbleText(index))}
+                            </ThemedText>
+                        </TouchableOpacity>
                     </Animated.View>
                 ))}
             </Animated.View>
@@ -104,17 +113,17 @@ function getBubbleIconName(index: number): CustomIconNames {
 function getBubbleText(index: number): string {
     switch (index) {
         case 0:
-            return " Importar Mazo";
+            return "import_deck";
         case 1:
-            return " Nueva Nota";
+            return "new_note";
         case 2:
-            return " Nueva Colección";
+            return "new_collection";
         case 3:
-            return " Nueva WishList";
+            return "new_wishlist";
         case 4:
-            return " Nuevo Mazo";
+            return "new_deck_bubble";
         default:
-            return " Desconocido";
+            return "unknown";
     }
 }
 

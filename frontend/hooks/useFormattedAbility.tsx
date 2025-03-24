@@ -63,7 +63,7 @@ const formatCardDetail = (text: string, theme: keyof typeof Colors, trigger?: bo
       `<badge data-bg="#FDEF3A" >Trigger</badge>`
     );
     // Envolver el texto completo en un span con backgroundColor TabBarBackground
-    text = `<div style="background-color: ${themeColors.icon}; font-size: 16px; font-weight: 600; padding: 5px 5px; border-radius: 5px; line-height: 22px; color: ${themeColors.background};">${text}</div>`;
+    text = `<div style=" font-size: 16px; font-weight: 600; line-height: 22px; color: ${themeColors.background};">${text}</div>`;
     return text;
   }
 
@@ -112,7 +112,7 @@ const formatCardDetail = (text: string, theme: keyof typeof Colors, trigger?: bo
   text = text.replace(
     /\[DON!! x(\d+)\]/g,
     (match: string) =>
-      `<badge data-bg="${themeColors.TabBarBackground}" data-color="${themeColors.text}">${match.replace(
+      `<badge data-bg="${themeColors.icon}" data-color="${themeColors.text}">${match.replace(
         "[",
         ""
       ).replace("]", "")}</badge>`

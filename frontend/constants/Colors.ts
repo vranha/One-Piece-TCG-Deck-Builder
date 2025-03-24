@@ -7,23 +7,36 @@ const tintColorDark = "#87B5BD"; // Azul neón suave, futurista y minimalista.
 
 export const Colors = {
     light: {
-        text: "#2D2D2D", // Gris carbón, legible sin ser agresivo.
-        background: "#F4F4F4", // Gris perla, más suave que blanco puro.
-        tint: tintColorLight, // Azul neominimalista.
-        icon: "#6C6F7D", // Gris humo, discreto y moderno.
-        tabIconDefault: "#9EA1A9", // Gris apagado para elementos secundarios.
-        TabBarBackground: "#e4e8eb", // Gris perla, más suave que blanco puro.
-        tabIconSelected: tintColorLight, // Azul acento cuando está activo.
-        highlight: "#A94438", // Rojo terracota, elegante y no estridente.
+        text: "#2D2D2D",
+        background: "#F4F4F4",
+        tint: tintColorLight,
+        icon: "#6C6F7D",
+        tabIconDefault: "#9EA1A9",
+        TabBarBackground: "#e4e8eb",
+        tabIconSelected: tintColorLight,
+        close: "#A94438",
+        highlight: "#816bff",
+        disabled: "#d2d4d8",
+        triggerActive: "#FFD700", // Amarillo brillante para estado activo
+        triggerInactive: "#C0B283", // Amarillo apagado para estado inactivo
+        triggerActiveText: "#000000", // Texto negro cuando está activo
+        triggerInactiveText: "#6C6F7D", // Texto gris apagado cuando está inactivo
     },
     dark: {
-        text: "#EAEAEA", // Gris claro en lugar de blanco puro, menos fatiga visual.
-        background: "#212020", // Negro carbón, sofisticado y envolvente.
-        tint: tintColorDark, // Azul neón apagado, resalta sin ser chillón.
-        icon: "#717782", // Gris humo oscuro, sutil y moderno.
-        tabIconDefault: "#5E626A", // Gris acero, para neutralidad en elementos no seleccionados.
-        tabIconSelected: tintColorDark, // Azul futurista para destacar lo importante.
-        TabBarBackground: "#3e3f42", // Gris
-        highlight: "#8D3A3A", // Rojo vino, elegante sin saturar la vista.
+        text: "#EAEAEA",
+        background: "#212020",
+        tint: tintColorDark,
+        icon: "#717782",
+        tabIconDefault: "#5E626A",
+        tabIconSelected: tintColorDark,
+        TabBarBackground: "#3e3f42",
+        close: "#8D3A3A",
+        highlight: "#816bff",
+        disabled: "#555353",
+        triggerActive: "#FFC107", // Amarillo dorado para estado activo
+        triggerInactive: "#7A6F4F", // Amarillo oscuro apagado para estado inactivo
+        triggerActiveText: "#000000", // Texto negro cuando está activo
+        triggerInactiveText: "#A9A9A9", // Texto gris oscuro cuando está inactivo
     },
 };
+
