@@ -45,7 +45,7 @@ export default function LoginScreen() {
 
     return (
         <View style={[styles.container, { backgroundColor: Colors[theme].background }]}>
-            <Image source={require("@/assets/images/react-logo.png")} style={styles.logo} />
+            <Image source={require("@/assets/images/OPLAB-logo.png")} style={styles.logo} />
             <ThemedText type="title" style={[styles.title, { color: Colors[theme].text }]}>
                 Iniciar Sesión
             </ThemedText>
@@ -103,8 +103,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
     },
     logo: {
-        width: 180,
-        height: 100,
+        width: 220,
+        height: 220,
         marginBottom: 30,
     },
     title: {

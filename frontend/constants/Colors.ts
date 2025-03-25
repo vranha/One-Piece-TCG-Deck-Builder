@@ -2,41 +2,41 @@
  * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
  * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
  */
-const tintColorLight = "#175676"; // Azul marino apagado, sobrio y elegante.
-const tintColorDark = "#87B5BD"; // Azul neón suave, futurista y minimalista.
+const tintColorLight = "#D32F2F"; // Rojo vibrante
+const tintColorDark = "#a84848"; // Rojo más suave para modo oscuro
+const secondaryColor = "#edc398"; // Beige cálido
 
 export const Colors = {
     light: {
         text: "#2D2D2D",
-        background: "#F4F4F4",
+        background: "#FFFFFF",
         tint: tintColorLight,
-        icon: "#6C6F7D",
-        tabIconDefault: "#9EA1A9",
-        TabBarBackground: "#e4e8eb",
+        icon: tintColorLight,
+        tabIconDefault: "#BDBDBD",
         tabIconSelected: tintColorLight,
-        close: "#A94438",
-        highlight: "#816bff",
-        disabled: "#d2d4d8",
-        triggerActive: "#FFD700", // Amarillo brillante para estado activo
-        triggerInactive: "#C0B283", // Amarillo apagado para estado inactivo
-        triggerActiveText: "#000000", // Texto negro cuando está activo
-        triggerInactiveText: "#6C6F7D", // Texto gris apagado cuando está inactivo
+        TabBarBackground: "#F5F5F5",
+        close: "#B71C1C", // Rojo más oscuro para botones de cierre
+        highlight: secondaryColor,
+        disabled: "#BDBDBD",
+        triggerActive: "#F8E92B",
+        triggerInactive: "#757575",
+        triggerActiveText: "#2D2D2D",
+        triggerInactiveText: "#5A5A5A",
     },
     dark: {
         text: "#EAEAEA",
-        background: "#212020",
+        background: "#121212",
         tint: tintColorDark,
-        icon: "#717782",
-        tabIconDefault: "#5E626A",
+        icon: tintColorDark,
+        tabIconDefault: "#757575",
         tabIconSelected: tintColorDark,
-        TabBarBackground: "#3e3f42",
-        close: "#8D3A3A",
-        highlight: "#816bff",
-        disabled: "#555353",
-        triggerActive: "#FFC107", // Amarillo dorado para estado activo
-        triggerInactive: "#7A6F4F", // Amarillo oscuro apagado para estado inactivo
-        triggerActiveText: "#000000", // Texto negro cuando está activo
-        triggerInactiveText: "#A9A9A9", // Texto gris oscuro cuando está inactivo
+        TabBarBackground: "#1E1E1E",
+        close: "#FF1744", // Rojo más vivo en modo oscuro
+        highlight: secondaryColor,
+        disabled: "#616161",
+        triggerActive: "#F8E92B",
+        triggerInactive: "#424242",
+        triggerActiveText: "#2D2D2D",
+        triggerInactiveText: "#9E9E9E",
     },
 };
-

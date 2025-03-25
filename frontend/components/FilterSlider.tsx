@@ -28,7 +28,7 @@ const FilterSlider: React.FC<FilterSliderProps> = ({ label, range, min, max, ste
                 max={max}
                 step={step}
                 onValuesChangeFinish={(values) => onValuesChangeFinish(values as [number, number])}
-                selectedStyle={{ backgroundColor: "#816bff" }}
+                selectedStyle={{ backgroundColor: Colors[theme].highlight }}
                 unselectedStyle={{ backgroundColor: "#888" }}
                 trackStyle={{ height: 5 }}
                 isMarkersSeparated={true}
@@ -37,7 +37,7 @@ const FilterSlider: React.FC<FilterSliderProps> = ({ label, range, min, max, ste
                         <ThemedText style={{ fontWeight: "bold", color: Colors[theme].icon }}>
                             {e.currentValue}
                         </ThemedText>
-                        <View style={styles.marker} />
+                        <View style={[styles.marker, {backgroundColor: Colors[theme].icon}]} />
                     </View>
                 )}
                 customMarkerRight={(e) => (
@@ -45,7 +45,7 @@ const FilterSlider: React.FC<FilterSliderProps> = ({ label, range, min, max, ste
                         <ThemedText style={{ fontWeight: "bold", color: Colors[theme].icon }}>
                             {e.currentValue}
                         </ThemedText>
-                        <View style={styles.marker} />
+                        <View style={[styles.marker, {backgroundColor: Colors[theme].icon}]} />
                     </View>
                 )}
                 allowOverlap
@@ -72,7 +72,6 @@ const styles = StyleSheet.create({
         top: -32,
     },
     marker: {
-        backgroundColor: "#84ff6b",
         width: 20,
         height: 20,
         borderRadius: 10,

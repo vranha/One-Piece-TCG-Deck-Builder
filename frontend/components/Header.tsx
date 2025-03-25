@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Button, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Button, TouchableOpacity, StyleSheet, Image } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { Colors } from "@/constants/Colors";
@@ -18,12 +18,20 @@ export default function Header({ title }: HeaderProps) {
                 type="title"
                 lightColor={Colors[theme].tint}
                 darkColor={Colors[theme].tint}
+                style={{ fontSize: 30, position: "relative", bottom: 5, left: 5 }}
+            >
+                {title.split(" ")[0][0].toLowerCase()}
+            </ThemedText>
+            <ThemedText
+                type="title"
+                lightColor={Colors[theme].tint}
+                darkColor={Colors[theme].tint}
                 style={{ fontSize: 28 }}
             >
-                {title.split(" ")[0]}
+                {title.split(" ")[0].slice(1).toUpperCase()}
             </ThemedText>
-            <ThemedText type="title" style={{ fontSize: 28 }}>
-                {title.split(" ")[1]}
+            <ThemedText type="title" style={{ fontSize: 28,position: "relative", right: 2 }}>
+                {title.split(" ")[1].toLowerCase()}
             </ThemedText>
         </View>
     );
@@ -32,7 +40,7 @@ export default function Header({ title }: HeaderProps) {
 Header.LeftButton = function LeftButton() {
     return (
         <View style={{ marginLeft: 16 }}>
-            <Button onPress={() => alert("Left button!")} title="Left" />
+            <Image source={require("@/assets/images/icon-round.png")} style={styles.logo} />
         </View>
     );
 };
@@ -54,3 +62,10 @@ Header.RightButtonSearch = function RightButtonSearch({ onPress }: any) {
         </TouchableOpacity>
     );
 };
+
+const styles = StyleSheet.create({
+    logo: {
+        width: 40,
+        height: 40,
+    },
+});

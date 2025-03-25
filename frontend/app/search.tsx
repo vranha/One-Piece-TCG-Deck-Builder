@@ -28,6 +28,15 @@ import useFormattedSetNames from "@/hooks/useFormattedSetNames";
 import DropDownPicker from "react-native-dropdown-picker";
 import { Animated, Easing } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
+import SearchBar from "@/components/SearchBar";
+import ColorFilters from "@/components/ColorFilters";
+import RarityFilters from "@/components/RarityFilters";
+import TypeFilters from "@/components/TypeFilters";
+import AbilityAccordion from "@/components/AbilityAccordion";
+import ApplyFiltersButton from "@/components/ApplyFiltersButton";
+import DropdownsContainer from "@/components/DropdownsContainer";
+import TriggerFilter from "@/components/TriggerFilter";
+import CardItem from "@/components/CardItem";
 
 interface Card {
     id: string;
@@ -362,59 +371,20 @@ export default function SearchScreen() {
 
     const screenHeight = Dimensions.get("window").height;
 
+    const [cargando, setCargando] = useState(true);
+
     return (
         <View style={[styles.container, { backgroundColor: Colors[theme].background }]}>
-            {/* Barra de búsqueda */}
-            <View style={styles.headerContainer}>
-                <TouchableOpacity onPress={() => router.push("/")} style={styles.backButton}>
-                    <MaterialIcons name="arrow-back" size={24} color={Colors[theme].text} />
-                </TouchableOpacity>
-                <TextInput
-                    ref={searchInputRef}
-                    style={[styles.searchBar, { color: Colors[theme].text }]}
-                    placeholder={t("search_cards")}
-                    placeholderTextColor={Colors[theme].icon}
-                    value={searchQuery}
-                    onChangeText={handleSearchChange}
-                    autoCorrect={false}
-                />
-
-                {!isBaseRoute && (
-                    <TouchableOpacity onPress={clearAllFilters}>
-                        <MaterialIcons name="close" size={24} color={Colors[theme].close} />
-                    </TouchableOpacity>
-                )}
-
-                <TouchableOpacity onPress={openFilterModal} style={styles.filterButton}>
-                    <MaterialIcons name="filter-list" size={24} color={Colors[theme].highlight} />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={toggleCardSize} style={styles.cardSizeToggle}>
-                    <MaterialIcons
-                        name={cardSizeOption === 0 ? "view-module" : cardSizeOption === 1 ? "view-agenda" : "view-list"}
-                        size={24}
-                        color={Colors[theme].text}
-                    />
-                </TouchableOpacity>
-            </View>
-
-            {/* Filtros de colores */}
-            <View style={styles.colorFilters}>
-                {["blue", "red", "green", "yellow", "purple", "black"].map((color) => (
-                    <TouchableOpacity
-                        key={color}
-                        style={[
-                            styles.colorCircleContainer,
-                            { borderColor: Colors[theme].icon },
-                            selectedColors.includes(capitalizeFirstLetter(color))
-                                ? [styles.selectedColorCircle, { borderColor: Colors[theme].text }]
-                                : "",
-                        ]}
-                        onPress={() => handleColorSelect(capitalizeFirstLetter(color))}
-                    >
-                        <View style={[styles.colorCircle, { backgroundColor: color }]} />
-                    </TouchableOpacity>
-                ))}
-            </View>
+            <SearchBar
+                searchQuery={searchQuery}
+                onSearchChange={handleSearchChange}
+                onClearFilters={clearAllFilters}
+                onOpenFilterModal={openFilterModal}
+                onToggleCardSize={toggleCardSize}
+                isBaseRoute={isBaseRoute}
+                cardSizeOption={cardSizeOption}
+            />
+            <ColorFilters selectedColors={selectedColors} onColorSelect={handleColorSelect} />
 
             {initialLoading ? (
                 <View style={styles.loadingContainer}>
@@ -425,52 +395,14 @@ export default function SearchScreen() {
                     data={cards}
                     keyExtractor={(item) => item.id}
                     renderItem={({ item }) => (
-                        <TouchableOpacity onPress={() => handleCardPress(item)}>
-                            <View
-                                style={[
-                                    styles.cardContainer,
-                                    cardSizeOption === 2 && [
-                                        styles.detailedCardContainer,
-                                        { backgroundColor: Colors[theme].TabBarBackground },
-                                    ],
-                                ]}
-                            >
-                                <Image
-                                    source={{ uri: item.images_small }}
-                                    style={[
-                                        styles.cardImage,
-                                        cardSizeOption === 0
-                                            ? styles.smallCard
-                                            : cardSizeOption === 1
-                                            ? styles.largeCard
-                                            : styles.smallCard,
-                                    ]}
-                                />
-                                {cardSizeOption === 2 && (
-                                    <View style={styles.cardDetails}>
-                                        <View style={[styles.cardRarityContainer, { backgroundColor: Colors[theme].background}]}>
-                                            <ThemedText style={[styles.cardRarity, { color: Colors[theme].icon }]}>
-                                                {item.rarity}
-                                            </ThemedText>
-                                        </View>
-                                        <View style={styles.cardHeader}>
-                                            <ThemedText style={styles.cardName} numberOfLines={1} ellipsizeMode="tail">
-                                                {item.name}
-                                            </ThemedText>
-                                            <ThemedText style={styles.cardCode}>{item.code}</ThemedText>
-                                        </View>
-                                        <View style={styles.cardFooter}>
-                                            <ThemedText style={[styles.cardType, { color: Colors[theme].icon }]}>
-                                                {item.type}
-                                            </ThemedText>
-                                            <ThemedText style={[styles.cardSet, { color: Colors[theme].icon }]}>
-                                                {item.set_name}
-                                            </ThemedText>
-                                        </View>
-                                    </View>
-                                )}
-                            </View>
-                        </TouchableOpacity>
+                        <CardItem
+                            item={item}
+                            handleCardPress={handleCardPress}
+                            cardSizeOption={cardSizeOption}
+                            styles={styles}
+                            Colors={Colors}
+                            theme={theme}
+                        />
                     )}
                     contentContainerStyle={[
                         styles.cardList,
@@ -504,152 +436,36 @@ export default function SearchScreen() {
             <Modalize ref={modalizeRef} adjustToContentHeight>
                 <ScrollView ref={scrollViewRef}>
                     <View style={[styles.modalContent, { backgroundColor: Colors[theme].TabBarBackground }]}>
-                        <View style={styles.dropdownsContainer}>
-                            <View style={styles.pickerContainer}>
-                                <ThemedText style={[styles.pickerLabel, { color: Colors[theme].text }]}>Set</ThemedText>
-                                <DropDownPicker
-                                    items={[
-                                        { label: t("all_sets"), value: undefined },
-                                        ...formattedSetNames.map(({ original, formatted }) => ({
-                                            label: formatted,
-                                            value: original,
-                                        })),
-                                    ]}
-                                    value={selectedSet}
-                                    setValue={setSelectedSet}
-                                    onChangeValue={(value) => setSelectedSet(value)}
-                                    style={[styles.picker, { backgroundColor: Colors[theme].background }]}
-                                    labelStyle={{ color: Colors[theme].text }}
-                                    selectedItemLabelStyle={{ fontWeight: "bold" }}
-                                    placeholder={t("select_set")}
-                                    placeholderStyle={{ color: Colors[theme].text }}
-                                    searchable={true}
-                                    searchPlaceholder={t("search_set")}
-                                    multiple={false}
-                                    open={openSet}
-                                    setOpen={setOpenSet}
-                                    modalProps={{
-                                        animationType: "slide",
-                                    }}
-                                    modalContentContainerStyle={{
-                                        padding: 10,
-                                        shadowColor: Colors[theme].background,
-                                    }}
-                                />
-                            </View>
-                            <View style={styles.pickerContainer}>
-                                <ThemedText style={[styles.pickerLabel, { color: Colors[theme].text }]}>
-                                    {t("family")}
-                                </ThemedText>
-                                <DropDownPicker
-                                    items={[
-                                        { label: t("all_families"), value: undefined },
-                                        ...families.map((family) => ({
-                                            label: family,
-                                            value: family,
-                                        })),
-                                    ]}
-                                    value={selectedFamily}
-                                    setValue={setSelectedFamily}
-                                    onChangeValue={(value) => setSelectedFamily(value)}
-                                    style={[styles.picker, { backgroundColor: Colors[theme].background }]}
-                                    labelStyle={{ color: Colors[theme].text }}
-                                    selectedItemLabelStyle={{ fontWeight: "bold" }}
-                                    placeholder={t("select_family")}
-                                    placeholderStyle={{ color: Colors[theme].text }}
-                                    searchable={true}
-                                    searchPlaceholder={t("search_family")}
-                                    multiple={false}
-                                    open={openFamily}
-                                    setOpen={setOpenFamily}
-                                    modalProps={{
-                                        animationType: "slide",
-                                    }}
-                                    modalContentContainerStyle={{
-                                        padding: 10,
-                                        shadowColor: Colors[theme].background,
-                                    }}
-                                />
-                            </View>
-                        </View>
-
-                        <View style={styles.triggerFilterContainer}>
-                            <TouchableOpacity
-                                style={[
-                                    styles.triggerButton,
-                                    {
-                                        backgroundColor: triggerFilter
-                                            ? Colors[theme].triggerActive
-                                            : Colors[theme].triggerInactive,
-                                    },
-                                ]}
-                                onPress={handleTriggerFilterToggle}
-                            >
-                                <ThemedText
-                                    style={[
-                                        styles.triggerButtonText,
-                                        {
-                                            color: triggerFilter
-                                                ? Colors[theme].triggerActiveText
-                                                : Colors[theme].triggerInactiveText,
-                                        },
-                                    ]}
-                                >
-                                    Trigger
-                                </ThemedText>
-                            </TouchableOpacity>
-                        </View>
-                        <View style={[styles.separator, { backgroundColor: Colors[theme].icon }]} />
+                        <DropdownsContainer
+                            formattedSetNames={formattedSetNames}
+                            families={families}
+                            selectedSet={selectedSet}
+                            setSelectedSet={setSelectedSet}
+                            openSet={openSet}
+                            setOpenSet={setOpenSet}
+                            selectedFamily={selectedFamily}
+                            setSelectedFamily={setSelectedFamily}
+                            openFamily={openFamily}
+                            setOpenFamily={setOpenFamily}
+                        />
+                        <TriggerFilter triggerFilter={triggerFilter} onToggle={handleTriggerFilterToggle} />
+                        <View style={[styles.separator, { backgroundColor: Colors[theme].tabIconDefault }]} />
                         <ThemedText style={styles.label}>
                             {t("rarity")}{" "}
                             <ThemedText style={{ color: Colors[theme].icon }}>
                                 ({selectedRarities.length ? selectedRarities.length : t("all_f")})
                             </ThemedText>
                         </ThemedText>
-                        <View style={styles.rarityFilters}>
-                            {["C", "UC", "R", "SR", "L", "P", "SEC", "TR"].map((rarity) => (
-                                <TouchableOpacity
-                                    key={rarity}
-                                    style={[
-                                        styles.rarityButton,
-                                        selectedRarities.includes(rarity)
-                                            ? { backgroundColor: Colors[theme].icon }
-                                            : { backgroundColor: Colors[theme].disabled },
-                                    ]}
-                                    onPress={() => handleRaritySelect(rarity)}
-                                >
-                                    <ThemedText style={[styles.rarityButtonText, { color: Colors[theme].background }]}>
-                                        {rarity}
-                                    </ThemedText>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                        <View style={[styles.separator, { backgroundColor: Colors[theme].icon }]} />
+                        <RarityFilters selectedRarities={selectedRarities} onRaritySelect={handleRaritySelect} />
+                        <View style={[styles.separator, { backgroundColor: Colors[theme].tabIconDefault }]} />
                         <ThemedText style={styles.label}>
                             {t("type")}{" "}
                             <ThemedText style={{ color: Colors[theme].icon }}>
                                 ({selectedTypes.length ? selectedTypes.length : t("all_m")})
                             </ThemedText>
                         </ThemedText>
-                        <View style={styles.typeFilters}>
-                            {["LEADER", "CHARACTER", "EVENT", "STAGE"].map((type) => (
-                                <TouchableOpacity
-                                    key={type}
-                                    style={[
-                                        styles.typeButton,
-                                        selectedTypes.includes(type)
-                                            ? { backgroundColor: Colors[theme].icon }
-                                            : { backgroundColor: Colors[theme].disabled },
-                                    ]}
-                                    onPress={() => handleTypeSelect(type)}
-                                >
-                                    <ThemedText style={[styles.typeButtonText, { color: Colors[theme].background }]}>
-                                        {type}
-                                    </ThemedText>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                        <View style={[styles.separator, { backgroundColor: Colors[theme].icon }]} />
+                        <TypeFilters selectedTypes={selectedTypes} onTypeSelect={handleTypeSelect} />
+                        <View style={[styles.separator, { backgroundColor: Colors[theme].tabIconDefault }]} />
                         <FilterSlider
                             label="Cost"
                             range={costRange}
@@ -659,7 +475,7 @@ export default function SearchScreen() {
                             onValuesChangeFinish={(values) => setCostRange(values as [number, number])}
                         />
                         {/* Separator */}
-                        <View style={[styles.separator, { backgroundColor: Colors[theme].icon }]} />
+                        <View style={[styles.separator, { backgroundColor: Colors[theme].tabIconDefault }]} />
                         <FilterSlider
                             label="Power"
                             range={powerRange}
@@ -669,7 +485,7 @@ export default function SearchScreen() {
                             onValuesChangeFinish={(values) => setPowerRange(values as [number, number])}
                         />
                         {/* Separator */}
-                        <View style={[styles.separator, { backgroundColor: Colors[theme].icon }]} />
+                        <View style={[styles.separator, { backgroundColor: Colors[theme].tabIconDefault }]} />
                         <FilterSlider
                             label="Counter"
                             range={counterRange}
@@ -678,84 +494,15 @@ export default function SearchScreen() {
                             step={1000}
                             onValuesChangeFinish={(values) => setCounterRange(values as [number, number])}
                         />
-                        <TouchableOpacity
-                            onPress={toggleAbilityAccordion}
-                            style={[styles.accordionHeader, { backgroundColor: Colors[theme].background }]}
-                        >
-                            <View style={styles.abilityHeader}>
-                                <ThemedText style={[styles.accordionHeaderText, { color: Colors[theme].text }]}>
-                                    Ability
-                                </ThemedText>
-                                <MaterialIcons
-                                    name={isAbilityAccordionOpen ? "expand-less" : "expand-more"}
-                                    size={24}
-                                    color={Colors[theme].text}
-                                />
-                            </View>
-                            {abilityFilters.length > 0 && (
-                                <TouchableOpacity
-                                    onPress={() => setAbilityFilters([])}
-                                    style={[styles.clearButton, { backgroundColor: Colors[theme].TabBarBackground }]}
-                                >
-                                    <ThemedText style={[styles.abilityCount, { color: Colors[theme].text }]}>
-                                        {abilityFilters.length}
-                                    </ThemedText>
-                                    <MaterialIcons name="close" size={16} color={Colors[theme].text} />
-                                </TouchableOpacity>
-                            )}
-                        </TouchableOpacity>
-
-                        <Animated.View style={{ height: abilityAccordionHeight, overflow: "hidden" }}>
-                            <View style={styles.abilityFilters}>
-                                {[
-                                    "[Blocker]",
-                                    "[Activate: Main]",
-                                    "[On Play]",
-                                    "[Rush]",
-                                    "[Main]",
-                                    "[Once Per Turn]",
-                                    "[When Attacking]",
-                                    "[Opponent's Turn]",
-                                    "[On K.O.]",
-                                    "[Your Turn]",
-                                    "[On Your Opponent's Attack]",
-                                    "[Counter]",
-                                ].map((ability) => {
-                                    const abilityColor = abilityColorMap[ability]; // Obtiene el color de fondo basado en la habilidad
-
-                                    return (
-                                        <TouchableOpacity
-                                            key={ability}
-                                            style={[
-                                                styles.abilityButton,
-                                                abilityFilters.includes(ability)
-                                                    ? { backgroundColor: abilityColor } // Usamos el color de la habilidad cuando está clicado
-                                                    : {
-                                                          backgroundColor: abilityColor,
-                                                          opacity: 0.4, // Reducimos la opacidad cuando no está clicado
-                                                      },
-                                            ]}
-                                            onPress={() => handleAbilityFilterToggle(ability)}
-                                        >
-                                            <ThemedText
-                                                style={[styles.abilityButtonText, { color: Colors[theme].background }]}
-                                            >
-                                                {ability.replace(/[\[\]]/g, "")}
-                                            </ThemedText>
-                                        </TouchableOpacity>
-                                    );
-                                })}
-                            </View>
-                        </Animated.View>
-
-                        {/* <View style={[styles.separator, { backgroundColor: Colors[theme].icon }]} /> */}
-                        {/* Botón "Aplicar" para filtrar */}
-                        <TouchableOpacity
-                            style={[styles.applyButton, { backgroundColor: Colors[theme].highlight }]}
-                            onPress={applyFilters}
-                        >
-                            <ThemedText style={styles.applyButtonText}>{t("filter")}</ThemedText>
-                        </TouchableOpacity>
+                        <AbilityAccordion
+                            isAbilityAccordionOpen={isAbilityAccordionOpen}
+                            toggleAbilityAccordion={toggleAbilityAccordion}
+                            abilityAccordionHeight={abilityAccordionHeight}
+                            abilityFilters={abilityFilters}
+                            handleAbilityFilterToggle={handleAbilityFilterToggle}
+                            abilityColorMap={abilityColorMap}
+                        />
+                        <ApplyFiltersButton onPress={applyFilters} label={t("filter")} />
                     </View>
                 </ScrollView>
             </Modalize>
@@ -767,24 +514,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         padding: 16,
-    },
-    headerContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        marginBottom: 16,
-        marginTop: 30,
-    },
-    searchBar: {
-        paddingHorizontal: 8,
-        fontSize: 18,
-        flex: 1,
-    },
-    backButton: {
-        paddingLeft: 10,
-    },
-    cardSizeToggle: {
-        marginLeft: 10,
     },
     cardList: {
         flexDirection: "row",
@@ -853,7 +582,7 @@ const styles = StyleSheet.create({
         shadowRadius: 6,
         elevation: 5, // Sombra para resaltar el componente
     },
-    
+
     cardDetails: {
         flex: 1, // Permite que el contenido se expanda dentro del contenedor
         paddingHorizontal: 16,
@@ -866,7 +595,7 @@ const styles = StyleSheet.create({
         position: "absolute",
         right: -5,
         top: -5,
-        width:40,
+        width: 40,
         height: 40,
         justifyContent: "center",
         alignItems: "center",
@@ -879,44 +608,16 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
     },
 
-    cardHeader: {
-  
-    },
-    
-    cardFooter: {
+    cardHeader: {},
 
-    },
-    
+    cardFooter: {},
+
     cardName: {
         fontSize: 20, // Tamaño más grande para destacar el nombre
         fontWeight: "bold",
         overflow: "hidden",
         textOverflow: "ellipsis",
         width: "90%",
-    },
-    
-    colorFilters: {
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "center",
-        marginBottom: 15,
-    },
-    colorCircle: {
-        width: 24,
-        height: 24,
-        borderRadius: 15,
-    },
-    colorCircleContainer: {
-        padding: 2,
-        borderWidth: 2,
-        borderRadius: 25,
-        marginHorizontal: 5,
-    },
-    selectedColorCircle: {
-        borderWidth: 2,
-    },
-    filterButton: {
-        marginLeft: 10,
     },
     modalContent: {
         padding: 20,
@@ -972,147 +673,9 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: Colors.light.icon,
     },
-    dropdownsContainer: {
-        flexDirection: "row",
-        // justifyContent: 'space-between',
-        marginBottom: 10,
-        gap: 10,
-    },
-    pickerContainer: {
-        flex: 1,
-        flexDirection: "column",
-        alignItems: "center",
-        marginHorizontal: 5,
-        gap: 5,
-    },
-    pickerLabel: {
-        flex: 1,
-        fontSize: 16,
-        fontWeight: "bold",
-        textAlign: "center",
-    },
-    picker: {
-        flex: 1,
-        height: 50,
-        borderWidth: 2,
-        borderColor: Colors.light.icon,
-        borderRadius: 8,
-        fontSize: 16,
-        paddingHorizontal: 10,
-        color: Colors.light.icon,
-        width: "100%",
-    },
-    typeFilters: {
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "center",
-        marginBottom: 5,
-        gap: 10,
-    },
-    typeButton: {
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 8,
-    },
-    typeButtonText: {
-        color: "#fff",
-        fontWeight: "bold",
-        fontSize: 16,
-    },
-    rarityFilters: {
-        flex: 1,
-        width: "100%",
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 5,
-    },
-    rarityButton: {
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 8,
-    },
-    rarityButtonText: {
-        color: "#fff",
-        fontWeight: "bold",
-        fontSize: 16,
-    },
     label: {
         fontSize: 16,
         fontWeight: "600",
         marginBottom: 10,
-    },
-    triggerFilterContainer: {
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "center",
-        marginVertical: 10,
-    },
-    triggerButton: {
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 8,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    triggerButtonText: {
-        fontSize: 16,
-        fontWeight: "bold",
-    },
-    accordionHeader: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        paddingVertical: 10,
-        paddingHorizontal: 15,
-        backgroundColor: Colors.light.background,
-        borderRadius: 8,
-        marginBottom: 10,
-    },
-    accordionHeaderText: {
-        fontSize: 16,
-        fontWeight: "bold",
-    },
-    abilityFilters: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        justifyContent: "center",
-        alignItems: "center",
-        marginBottom: 10,
-        gap: 5,
-    },
-    abilityButton: {
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 8,
-        margin: 5,
-        borderWidth: 2,
-        borderColor: "white",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 3.84,
-        elevation: 5,
-    },
-    abilityButtonText: {
-        fontSize: 16,
-        fontWeight: "bold",
-    },
-    abilityHeader: {
-        flexDirection: "row",
-        alignItems: "center",
-    },
-    abilityCount: {
-        fontSize: 12,
-        fontWeight: "bold",
-        position: "absolute",
-        top: -10,
-        right: -10,
-    },
-    clearButton: {
-        marginLeft: 10,
-        padding: 5,
-        borderRadius: 10,
-        fontWeight: "bold",
     },
 });
