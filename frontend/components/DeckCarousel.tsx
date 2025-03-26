@@ -27,9 +27,9 @@ const DeckCarousel: React.FC<DeckCarouselProps> = ({ decks, onNewDeckPress, onDe
     const renderDeckItem = ({ item, index }: { item: Deck; index: number }) => {
         if (item.id === "new") {
             return (
-                <TouchableOpacity style={styles.newDeckItem} onPress={onNewDeckPress}>
+                <TouchableOpacity style={[styles.newDeckItem, {borderColor: Colors[theme].tint}]} onPress={onNewDeckPress}>
                     <Ionicons name="add-circle-outline" size={50} color={Colors[theme].tint} />
-                    <ThemedText style={styles.newDeckText}>{t("new_deck")}</ThemedText>
+                    <ThemedText style={[styles.newDeckText]}>{t("new_deck")}</ThemedText>
                 </TouchableOpacity>
             );
         }
@@ -38,7 +38,7 @@ const DeckCarousel: React.FC<DeckCarouselProps> = ({ decks, onNewDeckPress, onDe
             <TouchableOpacity onPress={() => onDeckPress(item.id)}>
                 <View style={styles.deckItem}>
                     {item.leaderCardImage ? (
-                        <Image source={{ uri: item.leaderCardImage }} style={styles.deckImage} />
+                        <Image source={{ uri: item.leaderCardImage }} style={[styles.deckImage, {borderColor: Colors[theme].tint}]} />
                     ) : null}
                     <ThemedText style={styles.deckName}>{item.name}</ThemedText>
                 </View>
@@ -92,7 +92,6 @@ const styles = StyleSheet.create({
         height: 145,
         borderRadius: 5,
         borderWidth: 4,
-        borderColor: Colors.light.tint,
         marginHorizontal: 10,
         paddingHorizontal: 5,
         gap: 10,
@@ -107,7 +106,6 @@ const styles = StyleSheet.create({
         boxSizing: "content-box",
         borderRadius: 5,
         borderWidth: 4,
-        borderColor: Colors.light.tint,
     },
     deckName: {
         fontSize: 16,

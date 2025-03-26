@@ -116,10 +116,10 @@ const editDeck = async (deckId, name, description, colors) => {
 };
 
 // Obtener los mazos de un usuario con sus colores y datos de la carta líder
-const getUserDecks = async (userId, page = 1, limit = 10, search = '') => {
+const getUserDecks = async (userId, page = 1, limit = 10, search = '', color) => {
     const offset = (page - 1) * limit;
 
-    const { data: decks, error, count } = await supabase
+    let query = supabase
         .from('decks')
         .select(`
             *,
@@ -129,10 +129,22 @@ const getUserDecks = async (userId, page = 1, limit = 10, search = '') => {
                 is_leader,
                 cards!inner(id, images_small)
             )
-        `)
+        `, { count: 'exact' }) // Añadir count: 'exact' para obtener el número total de registros
         .eq('user_id', userId)
         .ilike('name', `%${search}%`)
         .range(offset, offset + limit - 1);
+
+    if (color) {
+        const colorId = colorNameToId[color.toLowerCase()];
+        console.log('Filtrando por color:', colorId);
+        query = query.in('id', supabase
+            .from('deck_colors')
+            .select('deck_id')
+            .eq('color_id', colorId)
+        );
+    }
+
+    const { data: decks, error, count } = await query;
 
     if (error) throw new Error('Error al obtener los mazos.');
 

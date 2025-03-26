@@ -28,12 +28,11 @@ const editDeck = async (req, res) => {
 // Obtener los mazos de un usuario con paginación y búsqueda
 const getUserDecks = async (req, res) => {
     const { userId } = req.params;
-    console.log(userId);
-    const { page = 1, limit = 10, search = '' } = req.query;  // Recibir parámetros de consulta
+    const { page = 1, limit = 10, search = '', color } = req.query;  // Recibir parámetros de consulta
 
     try {
-        // Llamar al servicio con los parámetros de paginación y búsqueda
-        const { data, count } = await deckService.getUserDecks(userId, page, limit, search);
+        // Llamar al servicio con los parámetros de paginación, búsqueda y color
+        const { data, count } = await deckService.getUserDecks(userId, page, limit, search, color);
 
         // Responder con los datos y la información de paginación
         res.status(200).json({

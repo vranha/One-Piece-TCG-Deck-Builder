@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { View, Image, StyleSheet, ActivityIndicator, TouchableOpacity, TextInput, LogBox } from "react-native";
+import React, { useEffect, useState, useRef } from "react";
+import { View, Image, StyleSheet, ActivityIndicator, TouchableOpacity, LogBox } from "react-native";
 import { useNavigation, useLocalSearchParams, useRouter } from "expo-router";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
@@ -11,6 +11,8 @@ import useDividerStyle from "@/hooks/useDividerStyle";
 import useResponsiveFontSize from "@/hooks/useResponsiveFontSize";
 import { LinearGradient } from "expo-linear-gradient";
 import CustomNumericInput from "@/components/CustomNumericInput";
+import { Modalize } from "react-native-modalize";
+import { supabase } from "@/supabaseClient";
 
 LogBox.ignoreLogs(["TNodeChildrenRenderer: Support for defaultProps will be removed"]);
 
@@ -42,6 +44,22 @@ export default function CardDetailScreen() {
     const [quantity, setQuantity] = useState(0);
     const navigation = useNavigation();
     const router = useRouter();
+    const modalizeRef = useRef<Modalize>(null);
+    const [userDecks, setUserDecks] = useState([]);
+    const [userId, setUserId] = useState<string | null>(null);
+
+    useEffect(() => {
+        async function fetchUser() {
+            const {
+                data: { session },
+            } = await supabase.auth.getSession();
+            if (session && session.user) {
+                setUserId(session.user.id);
+            }
+        }
+
+        fetchUser();
+    }, []);
 
     useEffect(() => {
         const fetchCardDetail = async () => {
@@ -85,6 +103,30 @@ export default function CardDetailScreen() {
         }
     };
 
+    const fetchUserDecks = async () => {
+        if (!userId || !cardDetail) return;
+        try {
+            const response = await api.get(`/decks/${userId}`);
+            const allDecks = response.data.data;
+            const colorNameToId = { red: 1, blue: 2, green: 3, yellow: 4, purple: 5, black: 6 };
+            const cardColorId = colorNameToId[cardDetail.color.toLowerCase() as keyof typeof colorNameToId];
+            const filteredDecks = allDecks.filter((deck: { deck_colors: { color_id: number }[] }) => 
+                deck.deck_colors.some(color => color.color_id === cardColorId)
+            );
+            setUserDecks(filteredDecks);
+            console.log(filteredDecks);
+        } catch (error: any) {
+            console.error("Error fetching user decks:", error.response?.data || error.message);
+        }
+    };
+
+    const handleAddButtonPress = () => {
+        if (selectedButton === "Deck") {
+            fetchUserDecks();
+            modalizeRef.current?.open();
+        }
+    };
+
     if (loading) {
         return (
             <View style={[styles.container, { backgroundColor: Colors[theme].background }]}>
@@ -105,42 +147,51 @@ export default function CardDetailScreen() {
         <>
             <View style={{ padding: 4, backgroundColor: Colors[theme].background }}>
                 {/* Contenedor de botones y input de números */}
-                <View style={styles.buttonContainer}>
+                <View style={[styles.buttonContainer, { backgroundColor: Colors[theme].TabBarBackground }]}>
                     <TouchableOpacity
                         style={[
                             styles.optionButton,
                             styles.firstOptionButton,
-                            {backgroundColor: '#edc398'},
-                            selectedButton !== "Deck" && { backgroundColor: '#645140'},
+                            { backgroundColor: "#edc398" },
+                            selectedButton !== "Deck" && { backgroundColor: "#645140" },
                         ]}
                         onPress={() => setSelectedButton("Deck")}
                     >
-                        <ThemedText style={[styles.optionButtonText, {color: Colors[theme].background}]}>Deck</ThemedText>
+                        <ThemedText style={[styles.optionButtonText, { color: Colors[theme].background }]}>
+                            Deck
+                        </ThemedText>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={[
                             styles.optionButton,
-                            {backgroundColor: '#edc398'},
-                            selectedButton !== "WishList" && { backgroundColor: '#645140'},
+                            { backgroundColor: "#edc398" },
+                            selectedButton !== "WishList" && { backgroundColor: "#645140" },
                         ]}
                         onPress={() => setSelectedButton("WishList")}
                     >
-                        <ThemedText style={[styles.optionButtonText, {color: Colors[theme].background}]}>Wish</ThemedText>
+                        <ThemedText style={[styles.optionButtonText, { color: Colors[theme].background }]}>
+                            Wish
+                        </ThemedText>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={[
                             styles.optionButton,
                             styles.lastOptionButton,
-                            {backgroundColor: '#edc398'},
-                            selectedButton !== "Collection" && { backgroundColor: '#645140'},
+                            { backgroundColor: "#edc398" },
+                            selectedButton !== "Collection" && { backgroundColor: "#645140" },
                         ]}
                         onPress={() => setSelectedButton("Collection")}
                     >
-                        <ThemedText style={[styles.optionButtonText, {color: Colors[theme].background}]}>Collect</ThemedText>
+                        <ThemedText style={[styles.optionButtonText, { color: Colors[theme].background }]}>
+                            Collect
+                        </ThemedText>
                     </TouchableOpacity>
                     <CustomNumericInput value={quantity} onChange={handleQuantityChange} />
-                    <TouchableOpacity style={[styles.addButton, {backgroundColor: Colors[theme].tint}]}>
-                    <Ionicons name="checkmark" size={24} color={Colors[theme].text} />
+                    <TouchableOpacity
+                        style={[styles.addButton, { backgroundColor: Colors[theme].tint }]}
+                        onPress={handleAddButtonPress}
+                    >
+                        <Ionicons name="checkmark" size={24} color={Colors[theme].text} />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -247,6 +298,23 @@ export default function CardDetailScreen() {
                     )}
                 </View>
             </View>
+            <Modalize ref={modalizeRef} adjustToContentHeight>
+    <View style={[styles.containerModalize, { backgroundColor: Colors[theme].TabBarBackground }]}>
+        {userDecks.length > 0 ? (
+            <View style={styles.deckGrid}>
+                {userDecks.map((deck: { id: string, name: string, leaderCardImage: string, deck_cards: any[] }, index) => (
+                    <View key={deck.id} style={[styles.deckItem,{backgroundColor: Colors[theme].triggerActiveText}, ,index % 2 !== 0 && { marginLeft: 10 }]}>
+                        <ThemedText style={styles.deckName}>{deck.name}</ThemedText>
+                        <Image source={{ uri: deck.leaderCardImage }} style={styles.smallCard} />
+                        <ThemedText style={styles.deckCards}>Cards: <ThemedText style={{color: Colors[theme].tint}}>{deck.deck_cards.length}</ThemedText>/51</ThemedText>
+                    </View>
+                ))}
+            </View>
+        ) : (
+            <ThemedText style={styles.noDecksText}>No decks available</ThemedText>
+        )}
+    </View>
+</Modalize>
         </>
     );
 }
@@ -273,6 +341,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         marginBottom: 10,
+        padding: 10,
+        borderRadius: 5,
     },
     optionButton: {
         paddingHorizontal: 10,
@@ -392,5 +462,45 @@ const styles = StyleSheet.create({
     cardDescription: {
         fontSize: 16,
         color: "#FFFFFF",
+    },
+    containerModalize: { 
+        padding: 20,
+        marginBottom: 65,
+    },
+    deckGrid: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        justifyContent: "space-between",
+    },
+    deckItem: {
+        width: "48%",
+        borderRadius: 5,
+        marginBottom: 10,
+        padding: 10,
+        alignItems: "center",
+    },
+    smallCard: {
+        width: 90,
+        height: 125,
+        borderRadius: 5,
+        marginVertical: 10,
+    },
+    deckName: {
+        fontSize: 20,
+        fontWeight: "bold",
+        textAlign: "center",
+        // color: Colors[theme].text,
+    },
+    deckCards: {
+        fontSize: 14,
+        fontWeight: "bold",
+        textAlign: "center",
+        // color: Colors[theme].text,
+    },
+    noDecksText: {
+        textAlign: "center",
+        fontSize: 22,
+        fontWeight: "bold",
+        marginBottom: 200,
     },
 });
