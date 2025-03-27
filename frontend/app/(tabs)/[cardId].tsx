@@ -13,6 +13,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import CustomNumericInput from "@/components/CustomNumericInput";
 import { Modalize } from "react-native-modalize";
 import { supabase } from "@/supabaseClient";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { ScrollView } from "react-native-gesture-handler";
+import { useTranslation } from "react-i18next";
+import { showMessage } from "react-native-flash-message";
+import CardOptions from "@/components/CardOptions";
+import CardStats from "@/components/CardStats";
+import CardDescription from "@/components/CardDescription";
+import UserDecksModal from "@/components/UserDecksModal";
 
 LogBox.ignoreLogs(["TNodeChildrenRenderer: Support for defaultProps will be removed"]);
 
@@ -37,11 +45,12 @@ interface CardDetail {
 export default function CardDetailScreen() {
     const { theme } = useTheme();
     const api = useApi();
+    const { t } = useTranslation();
     const { cardId, cardName } = useLocalSearchParams();
     const [cardDetail, setCardDetail] = useState<CardDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [selectedButton, setSelectedButton] = useState("Deck");
-    const [quantity, setQuantity] = useState(0);
+    const [quantity, setQuantity] = useState(1);
     const navigation = useNavigation();
     const router = useRouter();
     const modalizeRef = useRef<Modalize>(null);
@@ -65,6 +74,7 @@ export default function CardDetailScreen() {
         const fetchCardDetail = async () => {
             try {
                 const response = await api.get(`/cards/${cardId}`);
+                console.log("cardId", cardId);
                 setCardDetail(response.data);
             } catch (error: any) {
                 console.error("Error fetching card detail:", error.response?.data || error.message);
@@ -98,7 +108,7 @@ export default function CardDetailScreen() {
     const familyFontSize = useResponsiveFontSize(cardDetail?.family || "");
 
     const handleQuantityChange = (value: number) => {
-        if (value >= 0 && value <= 4) {
+        if (value >= 1 && value <= 4) {
             setQuantity(value);
         }
     };
@@ -110,8 +120,8 @@ export default function CardDetailScreen() {
             const allDecks = response.data.data;
             const colorNameToId = { red: 1, blue: 2, green: 3, yellow: 4, purple: 5, black: 6 };
             const cardColorId = colorNameToId[cardDetail.color.toLowerCase() as keyof typeof colorNameToId];
-            const filteredDecks = allDecks.filter((deck: { deck_colors: { color_id: number }[] }) => 
-                deck.deck_colors.some(color => color.color_id === cardColorId)
+            const filteredDecks = allDecks.filter((deck: { deck_colors: { color_id: number }[] }) =>
+                deck.deck_colors.some((color) => color.color_id === cardColorId)
             );
             setUserDecks(filteredDecks);
             console.log(filteredDecks);
@@ -124,6 +134,40 @@ export default function CardDetailScreen() {
         if (selectedButton === "Deck") {
             fetchUserDecks();
             modalizeRef.current?.open();
+        }
+    };
+
+    const handleAddCardToDeck = async (deckId: string, totalQuantity: number, deckName: string) => {
+        try {
+            console.log("dadasda", deckId, cardId, totalQuantity); // Hacer el POST a /decks/cards
+            const response = await api.post("/decks/cards", {
+                deckId: deckId.toString(),
+                cardId: cardId,
+                quantity: totalQuantity,
+            });
+
+            if (response.status === 200 || response.status === 201) {
+                // Mostrar un mensaje de éxito
+                showMessage({
+                    message: `😆 ${t("cardAdded")}`,
+                    description: t("cardAddedToDeck", { deckName }),
+                    type: "success",
+                    duration: 3000,
+                });
+
+                // Cerrar el modal
+                modalizeRef.current?.close();
+            }
+        } catch (error: any) {
+            console.error("Error adding card to deck:", error.response?.data || error.message);
+
+            // Mostrar un mensaje de error
+            showMessage({
+                message: `😅 ${t("error")}`,
+                description: t("errorAddingCard"),
+                type: "danger",
+                duration: 3000,
+            });
         }
     };
 
@@ -144,178 +188,52 @@ export default function CardDetailScreen() {
     }
 
     return (
-        <>
-            <View style={{ padding: 4, backgroundColor: Colors[theme].background }}>
-                {/* Contenedor de botones y input de números */}
-                <View style={[styles.buttonContainer, { backgroundColor: Colors[theme].TabBarBackground }]}>
-                    <TouchableOpacity
-                        style={[
-                            styles.optionButton,
-                            styles.firstOptionButton,
-                            { backgroundColor: "#edc398" },
-                            selectedButton !== "Deck" && { backgroundColor: "#645140" },
-                        ]}
-                        onPress={() => setSelectedButton("Deck")}
-                    >
-                        <ThemedText style={[styles.optionButtonText, { color: Colors[theme].background }]}>
-                            Deck
-                        </ThemedText>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[
-                            styles.optionButton,
-                            { backgroundColor: "#edc398" },
-                            selectedButton !== "WishList" && { backgroundColor: "#645140" },
-                        ]}
-                        onPress={() => setSelectedButton("WishList")}
-                    >
-                        <ThemedText style={[styles.optionButtonText, { color: Colors[theme].background }]}>
-                            Wish
-                        </ThemedText>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[
-                            styles.optionButton,
-                            styles.lastOptionButton,
-                            { backgroundColor: "#edc398" },
-                            selectedButton !== "Collection" && { backgroundColor: "#645140" },
-                        ]}
-                        onPress={() => setSelectedButton("Collection")}
-                    >
-                        <ThemedText style={[styles.optionButtonText, { color: Colors[theme].background }]}>
-                            Collect
-                        </ThemedText>
-                    </TouchableOpacity>
-                    <CustomNumericInput value={quantity} onChange={handleQuantityChange} />
-                    <TouchableOpacity
-                        style={[styles.addButton, { backgroundColor: Colors[theme].tint }]}
-                        onPress={handleAddButtonPress}
-                    >
-                        <Ionicons name="checkmark" size={24} color={Colors[theme].text} />
-                    </TouchableOpacity>
-                </View>
-            </View>
-            <View style={[styles.container, { backgroundColor: Colors[theme].background }]}>
-                {/* Contenedor principal con stats e imagen */}
-                <View style={styles.cardContainer}>
-                    {/* Columna Izquierda (Stats) */}
-                    <View style={[styles.statsContainer, { backgroundColor: Colors[theme].TabBarBackground }]}>
-                        <View style={{ alignItems: "center" }}>
-                            <Image source={{ uri: cardDetail.attribute_image }} style={styles.attributeImage} />
-                            <ThemedText style={styles.attributeText}>{cardDetail.attribute_name}</ThemedText>
-                            <ThemedText type="subtitle" style={styles.statType}>
-                                {cardDetail.type}
-                            </ThemedText>
-                        </View>
-                        <View style={{ alignItems: "center" }}>
-                            <ThemedText style={[styles.statTitle, { color: Colors[theme].icon }]}>Cost</ThemedText>
-                            <ThemedText style={styles.statText}>{cardDetail.cost}</ThemedText>
-                        </View>
-                        {hasPower && (
-                            <View style={{ alignItems: "center" }}>
-                                <ThemedText style={[styles.statTitle, { color: Colors[theme].icon }]}>Power</ThemedText>
-                                <ThemedText style={styles.statText}>{cardDetail.power}</ThemedText>
-                            </View>
-                        )}
-                        <View style={{ alignItems: "center" }}>
-                            <ThemedText style={[styles.statTitle, { color: Colors[theme].icon }]}>Counter</ThemedText>
-                            <ThemedText style={styles.statText}>
-                                {cardDetail.counter !== "-" ? `+${cardDetail.counter}` : ""}
-                            </ThemedText>
-                        </View>
-                        <View style={styles.codeRarityContainer}>
-                            <ThemedText style={styles.codeText}>{cardDetail.code}</ThemedText>
-                            <ThemedText style={[styles.rarityText, { backgroundColor: dividerStyle.color }]}>
-                                {cardDetail.rarity}
-                            </ThemedText>
-                        </View>
-                    </View>
-
-                    {/* Columna Derecha (Imagen) */}
-                    <Image source={{ uri: cardDetail.images_large }} style={styles.cardImage} />
-                </View>
-
-                <ThemedText
-                    type="title"
-                    style={{
-                        textAlign: "center",
-                        width: "100%",
-                        fontSize: familyFontSize,
-                    }}
-                >
-                    {cardDetail.family}
-                </ThemedText>
-
-                {/* Descripción */}
-                <View style={styles.descriptionContainer}>
-                    {dividerStyle.type === "gradient" ? (
-                        <LinearGradient
-                            colors={dividerStyle.colors as [string, string, ...string[]]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={styles.divider}
+        <SafeAreaView style={{ flex: 1, backgroundColor: Colors[theme].background }}>
+            <ScrollView
+                contentContainerStyle={{ flexGrow: 1, paddingBottom: 80 }}
+                style={{ backgroundColor: Colors[theme].background }}
+            >
+                <View style={{ padding: 4, backgroundColor: Colors[theme].background }}>
+                    {cardDetail.type !== "LEADER" && (
+                        <CardOptions
+                            selectedButton={selectedButton}
+                            setSelectedButton={setSelectedButton}
+                            quantity={quantity}
+                            onQuantityChange={handleQuantityChange}
+                            onAddButtonPress={handleAddButtonPress}
                         />
-                    ) : (
-                        <View style={[styles.divider, { backgroundColor: dividerStyle.color }]} />
-                    )}
-                    {cardDetail.ability !== "-" ? (
-                        <View
-                            style={{
-                                alignItems: "flex-start",
-                                backgroundColor: Colors[theme].TabBarBackground,
-                                borderRadius: 5,
-                                padding: 12,
-                            }}
-                        >
-                            <FormattedAbility text={cardDetail.ability} />
-                        </View>
-                    ) : (
-                        <ThemedText style={{ textAlign: "center", width: "100%" }} type="subtitle">
-                            --No Effect--
-                        </ThemedText>
-                    )}
-                    {cardDetail.trigger ? (
-                        <View
-                            style={{
-                                alignItems: "flex-start",
-                                backgroundColor: Colors[theme].icon,
-                                borderRadius: 5,
-                                padding: 12,
-                            }}
-                        >
-                            <FormattedAbility trigger text={cardDetail.trigger} />
-                        </View>
-                    ) : null}
-                    {dividerStyle.type === "gradient" ? (
-                        <LinearGradient
-                            colors={dividerStyle.colors as [string, string, ...string[]]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={styles.divider}
-                        />
-                    ) : (
-                        <View style={[styles.divider, { backgroundColor: dividerStyle.color }]} />
                     )}
                 </View>
-            </View>
-            <Modalize ref={modalizeRef} adjustToContentHeight>
-    <View style={[styles.containerModalize, { backgroundColor: Colors[theme].TabBarBackground }]}>
-        {userDecks.length > 0 ? (
-            <View style={styles.deckGrid}>
-                {userDecks.map((deck: { id: string, name: string, leaderCardImage: string, deck_cards: any[] }, index) => (
-                    <View key={deck.id} style={[styles.deckItem,{backgroundColor: Colors[theme].triggerActiveText}, ,index % 2 !== 0 && { marginLeft: 10 }]}>
-                        <ThemedText style={styles.deckName}>{deck.name}</ThemedText>
-                        <Image source={{ uri: deck.leaderCardImage }} style={styles.smallCard} />
-                        <ThemedText style={styles.deckCards}>Cards: <ThemedText style={{color: Colors[theme].tint}}>{deck.deck_cards.length}</ThemedText>/51</ThemedText>
-                    </View>
-                ))}
-            </View>
-        ) : (
-            <ThemedText style={styles.noDecksText}>No decks available</ThemedText>
-        )}
-    </View>
-</Modalize>
-        </>
+                <View style={[styles.container, { backgroundColor: Colors[theme].background }]}>
+                    <CardStats
+                        cardDetail={cardDetail}
+                        hasPower={hasPower}
+                        dividerStyle={{ color: dividerStyle.color || "#000" }}
+                    />
+                    <ThemedText
+                        type="title"
+                        style={{
+                            textAlign: "center",
+                            width: "100%",
+                            fontSize: familyFontSize,
+                        }}
+                    >
+                        {cardDetail.family}
+                    </ThemedText>
+                    <CardDescription
+                        cardDetail={cardDetail}
+                        dividerStyle={{ ...dividerStyle, color: dividerStyle.color || "#000" }}
+                    />
+                </View>
+            </ScrollView>
+            <UserDecksModal
+                modalizeRef={modalizeRef}
+                userDecks={userDecks}
+                cardId={Array.isArray(cardId) ? cardId[0] : cardId}
+                quantity={quantity}
+                handleAddCardToDeck={handleAddCardToDeck}
+            />
+        </SafeAreaView>
     );
 }
 
@@ -335,172 +253,5 @@ const styles = StyleSheet.create({
     cardName: {
         fontSize: 24,
         fontWeight: "bold",
-    },
-    buttonContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        marginBottom: 10,
-        padding: 10,
-        borderRadius: 5,
-    },
-    optionButton: {
-        paddingHorizontal: 10,
-        paddingVertical: 8,
-        borderRadius: 5,
-        borderTopLeftRadius: 0,
-        borderBottomLeftRadius: 0,
-        borderTopRightRadius: 0,
-        borderBottomRightRadius: 0,
-        transform: [{ skewX: "-20deg" }],
-        borderWidth: 2,
-    },
-    optionButtonText: {
-        fontSize: 16,
-        fontWeight: "bold",
-        transform: [{ skewX: "20deg" }],
-    },
-    firstOptionButton: {
-        borderTopLeftRadius: 10,
-        borderBottomLeftRadius: 10,
-        borderTopRightRadius: 0,
-        borderBottomRightRadius: 0,
-    },
-    lastOptionButton: {
-        borderTopRightRadius: 10,
-        borderBottomRightRadius: 10,
-    },
-    addButton: {
-        paddingHorizontal: 10,
-        paddingVertical: 7,
-        borderRadius: 5,
-    },
-    cardContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        marginBottom: 16,
-        gap: 10,
-    },
-    statsContainer: {
-        flex: 1,
-        justifyContent: "space-between",
-        alignItems: "center",
-        height: 320, // Hace que ocupe todo el alto del contenedor
-        paddingTop: 12,
-        paddingBottom: 8,
-        paddingHorizontal: 12,
-        borderRadius: 10,
-    },
-    attributeImage: {
-        width: 24,
-        height: 24,
-    },
-    statTitle: {
-        fontSize: 18,
-        fontWeight: "600",
-        // paddingHorizontal: 10,
-        // paddingVertical: 0,
-        marginVertical: 2,
-        // borderRadius: 5,
-    },
-    statText: {
-        fontSize: 22,
-        fontWeight: "600",
-
-        // padding: 2,
-        letterSpacing: 2,
-    },
-    statType: {
-        fontSize: 18,
-        fontWeight: "600",
-    },
-    codeRarityContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        width: "100%",
-    },
-    codeText: {
-        fontSize: 16,
-        fontWeight: "600",
-        textAlign: "center",
-    },
-    rarityText: {
-        fontSize: 12,
-        fontWeight: "600",
-        color: "#FFFFFF",
-        position: "absolute",
-        bottom: 0,
-        right: 0,
-        paddingHorizontal: 6,
-        paddingVertical: 0,
-        borderRadius: 5,
-    },
-    attributeText: {
-        marginTop: -6,
-        marginBottom: -6,
-        fontSize: 10,
-    },
-    cardImage: {
-        width: 224,
-        height: 320,
-        borderRadius: 10,
-    },
-    descriptionContainer: {
-        marginTop: 0,
-        paddingVertical: 10,
-        paddingHorizontal: 15,
-        gap: 10,
-    },
-    divider: {
-        paddingHorizontal: 3,
-        paddingVertical: 1,
-        borderRadius: 5,
-        marginVertical: 5,
-    },
-    cardDescription: {
-        fontSize: 16,
-        color: "#FFFFFF",
-    },
-    containerModalize: { 
-        padding: 20,
-        marginBottom: 65,
-    },
-    deckGrid: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        justifyContent: "space-between",
-    },
-    deckItem: {
-        width: "48%",
-        borderRadius: 5,
-        marginBottom: 10,
-        padding: 10,
-        alignItems: "center",
-    },
-    smallCard: {
-        width: 90,
-        height: 125,
-        borderRadius: 5,
-        marginVertical: 10,
-    },
-    deckName: {
-        fontSize: 20,
-        fontWeight: "bold",
-        textAlign: "center",
-        // color: Colors[theme].text,
-    },
-    deckCards: {
-        fontSize: 14,
-        fontWeight: "bold",
-        textAlign: "center",
-        // color: Colors[theme].text,
-    },
-    noDecksText: {
-        textAlign: "center",
-        fontSize: 22,
-        fontWeight: "bold",
-        marginBottom: 200,
     },
 });

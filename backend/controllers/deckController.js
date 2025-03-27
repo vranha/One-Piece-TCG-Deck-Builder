@@ -28,25 +28,27 @@ const editDeck = async (req, res) => {
 // Obtener los mazos de un usuario con paginación y búsqueda
 const getUserDecks = async (req, res) => {
     const { userId } = req.params;
-    const { page = 1, limit = 10, search = '', color } = req.query;  // Recibir parámetros de consulta
+    const { page = 1, limit = 10, search = '', color } = req.query; // Recibir parámetros de consulta
 
     try {
-        // Llamar al servicio con los parámetros de paginación, búsqueda y color
-        const { data, count } = await deckService.getUserDecks(userId, page, limit, search, color);
+        // Llamar al servicio para obtener los mazos
+        const { data: decks, count } = await deckService.getUserDecks(userId, page, limit, search, color);
 
-        // Responder con los datos y la información de paginación
+        // Devolver los mazos junto con la cantidad total
         res.status(200).json({
-            data,
-            pagination: {
-                total: count,  // Total de registros
-                page,
-                limit,
-                totalPages: Math.ceil(count / limit),  // Número total de páginas
-            },
+            success: true,
+            data: decks,
+            total: count,
+            page: parseInt(page, 10),
+            limit: parseInt(limit, 10),
         });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: err.message });
+        console.error('Error en getUserDecks:', err.message);
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener los mazos.',
+            error: err.message,
+        });
     }
 };
 

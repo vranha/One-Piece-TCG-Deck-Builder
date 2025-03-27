@@ -126,6 +126,7 @@ const getUserDecks = async (userId, page = 1, limit = 10, search = '', color) =>
             deck_colors(color_id),
             deck_cards(
                 card_id,
+                quantity,
                 is_leader,
                 cards!inner(id, images_small)
             )
@@ -146,19 +147,25 @@ const getUserDecks = async (userId, page = 1, limit = 10, search = '', color) =>
 
     const { data: decks, error, count } = await query;
 
-    if (error) throw new Error('Error al obtener los mazos.');
+    if (error) {
+        console.error("Supabase error:", error.message);
+        throw new Error(error.message); // Muestra el mensaje real de Supabase
+    }
 
-    // Filtrar y obtener la imagen de la carta líder
-    const decksWithLeader = decks.map(deck => {
+    // Procesar los mazos para incluir la cantidad total de cartas
+    const decksWithLeaderAndTotalCards = decks.map(deck => {
         const leaderCard = deck.deck_cards.find(card => card.is_leader);
+        const totalCards = deck.deck_cards.reduce((sum, card) => sum + card.quantity, 0); // Sumar todas las quantities
+
         return {
             ...deck,
             leaderCardImage: leaderCard?.cards?.images_small || null,
+            totalCards, // Añadir la cantidad total de cartas al mazo
         };
     });
 
     return {
-        data: decksWithLeader,
+        data: decksWithLeaderAndTotalCards,
         count,
     };
 };
@@ -209,13 +216,49 @@ const getDeckById = async (deckId) => {
 
 // Añadir cartas a un mazo
 const addCardToDeck = async (deckId, cardId, quantity) => {
-    const { data, error } = await supabase
-        .from('deck_cards')
-        .insert([{ deck_id: deckId, card_id: cardId, quantity }]);
+    try {
+        // Verificar si ya existe un registro con el mismo deck_id y card_id
+        const { data: existingCard, error: fetchError } = await supabase
+            .from('deck_cards')
+            .select('id, quantity')
+            .eq('deck_id', deckId)
+            .eq('card_id', cardId)
+            .single();
 
-    if (error) throw new Error('Error al añadir la carta al mazo.');
+        if (fetchError && fetchError.code !== 'PGRST116') { // Ignorar error si no se encuentra el registro
+            throw new Error('Error al verificar la existencia de la carta en el mazo.');
+        }
 
-    return data;
+        if (existingCard) {
+            // Si ya existe, actualizar la cantidad sumando la existente con la nueva
+            const newQuantity = existingCard.quantity + quantity;
+
+            const { error: updateError } = await supabase
+                .from('deck_cards')
+                .update({ quantity: newQuantity })
+                .eq('id', existingCard.id);
+
+            if (updateError) {
+                throw new Error('Error al actualizar la cantidad de la carta en el mazo.');
+            }
+
+            return { message: 'Cantidad actualizada correctamente', newQuantity };
+        } else {
+            // Si no existe, insertar un nuevo registro
+            const { data, error: insertError } = await supabase
+                .from('deck_cards')
+                .insert([{ deck_id: deckId, card_id: cardId, quantity }]);
+
+            if (insertError) {
+                throw new Error('Error al añadir la carta al mazo.');
+            }
+
+            return { message: 'Carta añadida correctamente', data };
+        }
+    } catch (error) {
+        console.error('Error en addCardToDeck:', error.message);
+        throw new Error(error.message);
+    }
 };
 
 // Eliminar un mazo y sus asociaciones

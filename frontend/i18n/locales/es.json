@@ -41,5 +41,17 @@
     "rarity": "Rareza",
     "all_m": "Todos",
     "all_f": "Todas",
-    "filter": "Filtrar"
+    "filter": "Filtrar",
+    "previouslyHad": "{{quantity}} en el mazo",
+    "cardAddedToDeck": "Carta añadida a {{deckName}}",
+    "no_decks_available": "No hay mazos disponibles",
+    "cards": "Cartas",
+    "add_to_deck": "Añadir al mazo",
+    "total_cards": "Total de cartas",
+    "deck_updated": "Mazo actualizado",
+    "deck": "Mazo",
+    "wish": "Wish",
+    "collect": "Colección",
+    "error": "Ups!",
+    "errorAddingCard": "Algo ha salido mal añadiendo la carta al mazo."
 }

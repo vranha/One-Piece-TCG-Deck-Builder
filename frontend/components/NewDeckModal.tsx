@@ -156,7 +156,7 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
                                 placeholder={t("deck_name")}
                                 placeholderTextColor={Colors[theme].icon}
                                 value={name}
-                                onChangeText={setName}
+                                onChangeText={(text) => setName(text.slice(0, 9))}
                             />
                             <TextInput
                                 style={[styles.input, { color: Colors[theme].text }]}
