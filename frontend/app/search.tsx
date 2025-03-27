@@ -98,21 +98,46 @@ export default function SearchScreen() {
     const [isAbilityAccordionOpen, setIsAbilityAccordionOpen] = useState(false);
     const abilityAccordionHeight = useRef(new Animated.Value(0)).current;
     const scrollViewRef = useRef<ScrollView>(null);
+    const [isSelectionEnabled, setIsSelectionEnabled] = useState(false);
+    const [selectedCards, setSelectedCards] = useState<{ cardId: string; quantity: number }[]>([]);
 
     DropDownPicker.setListMode("MODAL");
 
     const formattedSetNames = useFormattedSetNames(setNames);
 
     // Método de debounce para manejar la búsqueda
-    const debouncedSearch = useCallback(
-        debounce(async (query: string) => {
-            setLoading(true);
-            setPage(1); // Resetear la página para nuevas búsquedas
-            setHasMore(true);
-            await fetchCards(query, 1);
-        }, 300),
-        []
-    );
+    // const debouncedSearch = useCallback(
+    //     debounce(async (query: string) => {
+    //         setLoading(true);
+    //         setPage(1); // Resetear la página para nuevas búsquedas
+    //         setHasMore(true);
+    //         await fetchCards(query, 1);
+    //     }, 300),
+    //     []
+    // );
+
+    const toggleSelectionMode = () => {
+        setIsSelectionEnabled((prev) => !prev);
+    };
+
+    const updateCardQuantity = (cardId: string, change: number) => {
+        setSelectedCards((prevSelectedCards) => {
+            const existingCard = prevSelectedCards.find((card) => card.cardId === cardId);
+            if (existingCard) {
+                const updatedQuantity = Math.min(Math.max(existingCard.quantity + change, 0), 4);
+                if (updatedQuantity === 0) {
+                    return prevSelectedCards.filter((card) => card.cardId !== cardId);
+                }
+                return prevSelectedCards.map((card) =>
+                    card.cardId === cardId ? { ...card, quantity: updatedQuantity } : card
+                );
+            } else if (change > 0) {
+                return [...prevSelectedCards, { cardId, quantity: 1 }];
+            }
+            return prevSelectedCards;
+        });
+    };
+
 
     // Manejamos el campo de búsqueda fuera de useEffect
     const handleSearchChange = (text: string) => {
@@ -383,6 +408,8 @@ export default function SearchScreen() {
                 onToggleCardSize={toggleCardSize}
                 isBaseRoute={isBaseRoute}
                 cardSizeOption={cardSizeOption}
+                isSelectionEnabled={isSelectionEnabled}
+                toggleSelectionMode={toggleSelectionMode}
             />
             <ColorFilters selectedColors={selectedColors} onColorSelect={handleColorSelect} />
 
@@ -402,6 +429,11 @@ export default function SearchScreen() {
                             styles={styles}
                             Colors={Colors}
                             theme={theme}
+                            isSelectionEnabled={isSelectionEnabled}
+                            selectedQuantity={
+                                selectedCards.find((card) => card.cardId === item.id)?.quantity || 0
+                            }
+                            updateCardQuantity={updateCardQuantity}
                         />
                     )}
                     contentContainerStyle={[
@@ -568,7 +600,6 @@ const styles = StyleSheet.create({
         height: 50,
     },
     detailedCardContainer: {
-        flex: 1,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
@@ -678,4 +709,23 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         marginBottom: 10,
     },
+    quantityControls: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 10,
+        padding: 8,
+        backgroundColor: "#000000ca",
+        position: "absolute",
+        bottom: 8,
+        borderBottomEndRadius: 5,
+        borderBottomStartRadius: 5,
+        // marginTop: 8,
+    },
+    quantityText: {
+        marginHorizontal: 8,
+        fontSize: 16,
+        fontWeight: "bold",
+    },
+    
 });

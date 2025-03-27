@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, ActivityIndicator, TouchableOpacity } from "react-native";
+import { View, StyleSheet, ActivityIndicator, TouchableOpacity, FlatList, Image, Text } from "react-native";
 import { useNavigation, useLocalSearchParams, useRouter } from "expo-router";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
@@ -28,7 +28,7 @@ export default function DeckDetailScreen() {
         const fetchDeckDetail = async () => {
             try {
                 const response = await api.get(`/deckById/${deckId}`);
-                console.log('AAAA', response.data);
+                console.log("AAAA", response.data);
                 setDeckDetail(response.data);
             } catch (error: any) {
                 console.error("Error fetching deck detail:", error.response?.data || error.message);
@@ -74,7 +74,29 @@ export default function DeckDetailScreen() {
             <ThemedText style={[styles.description, { color: Colors[theme].text }]}>
                 {deckDetail.description}
             </ThemedText>
-            {/* Render deck cards here */}
+            <View style={styles.containerCards  }>
+                           <FlatList
+                data={deckDetail.cards}
+                keyExtractor={(item) => item.id}
+                numColumns={3}
+                renderItem={({ item }) => (
+                    <View
+                        style={[
+                            styles.cardContainer,
+                            { borderColor: Colors[theme].TabBarBackground },
+                            item.is_leader ? { borderColor: Colors[theme].tint, transform: "scale(1.1)"  } : {},
+                        ]}
+                    >
+                        <Image source={{ uri: item.images_small }} style={styles.cardImage} />
+                        <View style={[styles.quantityContainer, { backgroundColor: Colors[theme].tint }]}>
+                            <Text style={styles.quantityText}>{item.quantity}</Text>
+                        </View>
+                    </View>
+                )}
+                contentContainerStyle={[styles.cardList, { backgroundColor: Colors[theme].TabBarBackground }]}
+            />
+            </View>
+ 
         </View>
     );
 }
@@ -98,5 +120,44 @@ const styles = StyleSheet.create({
         fontSize: 16,
         textAlign: "center",
         marginBottom: 20,
+    },
+    containerCards: {
+        alignItems: "center",
+        borderRadius: 10,
+    },
+    cardList: {
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: 5,
+        padding: 15,
+        borderRadius: 10,
+    },
+    cardContainer: {
+        // flex: 1,
+        margin: 5,
+        position: "relative",
+        borderWidth: 4,
+        borderRadius: 5,
+        
+    },
+    cardImage: {
+        width: 100,
+        height: 140,
+        borderRadius: 5,
+    },
+    quantityContainer: {
+        position: "absolute",
+        bottom: -8,
+        right: -8,
+        borderRadius: 50,
+        width: 28,
+        height: 28,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    quantityText: {
+        color: "#fff",
+        fontSize: 16,
+        fontWeight: "bold",
     },
 });

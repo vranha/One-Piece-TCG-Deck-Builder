@@ -14,6 +14,8 @@ interface SearchBarProps {
     onToggleCardSize: () => void;
     isBaseRoute: boolean;
     cardSizeOption: number;
+    isSelectionEnabled: boolean;
+    toggleSelectionMode: () => void;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({
@@ -24,6 +26,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
     onToggleCardSize,
     isBaseRoute,
     cardSizeOption,
+    isSelectionEnabled,
+    toggleSelectionMode,
 }) => {
     const { theme } = useTheme();
     const { t } = useTranslation();
@@ -42,10 +46,17 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 autoCorrect={false}
             />
             {!isBaseRoute && (
-                <TouchableOpacity onPress={onClearFilters}>
+                <TouchableOpacity onPress={onClearFilters} style={styles.closeButton}>
                     <MaterialIcons name="close" size={24} color={Colors[theme].close} />
                 </TouchableOpacity>
             )}
+                        <TouchableOpacity onPress={toggleSelectionMode}>
+                <MaterialIcons
+                    name={isSelectionEnabled ? "check-circle" : "check-circle-outline"}
+                    size={24}
+                    color={Colors.light.highlight}
+                />
+            </TouchableOpacity>
             <TouchableOpacity onPress={onOpenFilterModal} style={styles.filterButton}>
                 <MaterialIcons name="filter-list" size={24} color={Colors[theme].highlight} />
             </TouchableOpacity>
@@ -81,6 +92,9 @@ const styles = StyleSheet.create({
     },
     filterButton: {
         marginLeft: 10,
+    },
+    closeButton: {
+        marginHorizontal: 5,
     },
 });
 
