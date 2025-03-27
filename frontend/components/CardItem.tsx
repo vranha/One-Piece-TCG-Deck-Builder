@@ -13,6 +13,7 @@ interface Card {
     set_name: string;
     type: string;
     rarity: string;
+    color: string;
 }
 
 interface CardItemProps {
@@ -24,7 +25,7 @@ interface CardItemProps {
     theme: string;
     isSelectionEnabled: boolean;
     selectedQuantity: number;
-    updateCardQuantity: (cardId: string, change: number) => void;
+    updateCardQuantity: (cardId: string, change: number, color:string) => void;
 }
 
 export default function CardItem({
@@ -59,7 +60,7 @@ export default function CardItem({
             case 0: // Small card
                 return { bottom: 4, padding: 8 };
             case 1: // Large card
-                return { bottom: 8, paddingHorizontal: 38 };
+                return { bottom: 7, paddingHorizontal: 38 };
             case 2: // Detailed card
                 return { bottom: 12, padding: 8, left: 15};
             default:
@@ -127,13 +128,13 @@ export default function CardItem({
                     )}
                 </View>
             </TouchableOpacity>
-            {isSelectionEnabled && (
+            {(isSelectionEnabled && item.type !== 'LEADER') && (
                 <View style={[styles.quantityControls, getQuantityControlsStyle()]}>
-                    <TouchableOpacity onPress={() => updateCardQuantity(item.id, -1)}>
+                    <TouchableOpacity onPress={() => updateCardQuantity(item.id, -1,item.color )}>
                         <MaterialIcons name="remove-circle-outline" size={24} color={Colors[theme].icon} />
                     </TouchableOpacity>
                     <ThemedText style={styles.quantityText}>{selectedQuantity}</ThemedText>
-                    <TouchableOpacity onPress={() => updateCardQuantity(item.id, 1)}>
+                    <TouchableOpacity onPress={() => updateCardQuantity(item.id, 1, item.color)}>
                         <MaterialIcons name="add-circle-outline" size={24} color={Colors[theme].icon} />
                     </TouchableOpacity>
                 </View>

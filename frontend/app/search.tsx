@@ -9,6 +9,7 @@ import {
     ActivityIndicator,
     Platform,
     Dimensions,
+    Modal,
 } from "react-native";
 import { useNavigation, useRouter } from "expo-router";
 import { Colors } from "@/constants/Colors";
@@ -46,6 +47,7 @@ interface Card {
     set_name: string;
     type: string;
     rarity: string;
+    color: string
 }
 
 const abilityColorMap: { [key: string]: string } = {
@@ -99,7 +101,8 @@ export default function SearchScreen() {
     const abilityAccordionHeight = useRef(new Animated.Value(0)).current;
     const scrollViewRef = useRef<ScrollView>(null);
     const [isSelectionEnabled, setIsSelectionEnabled] = useState(false);
-    const [selectedCards, setSelectedCards] = useState<{ cardId: string; quantity: number }[]>([]);
+    const [selectedCards, setSelectedCards] = useState<{ cardId: string; quantity: number, color: string }[]>([]);
+    const [isModalVisible, setIsModalVisible] = useState(false);
 
     DropDownPicker.setListMode("MODAL");
 
@@ -120,24 +123,31 @@ export default function SearchScreen() {
         setIsSelectionEnabled((prev) => !prev);
     };
 
-    const updateCardQuantity = (cardId: string, change: number) => {
+    const updateCardQuantity = (cardId: string, change: number, color: string) => {
         setSelectedCards((prevSelectedCards) => {
             const existingCard = prevSelectedCards.find((card) => card.cardId === cardId);
+    
             if (existingCard) {
                 const updatedQuantity = Math.min(Math.max(existingCard.quantity + change, 0), 4);
+    
                 if (updatedQuantity === 0) {
+                    // Si la cantidad llega a 0, eliminamos la carta de la lista
                     return prevSelectedCards.filter((card) => card.cardId !== cardId);
                 }
+    
+                // Actualizamos la cantidad y el color de la carta existente
                 return prevSelectedCards.map((card) =>
-                    card.cardId === cardId ? { ...card, quantity: updatedQuantity } : card
+                    card.cardId === cardId ? { ...card, quantity: updatedQuantity, color } : card
                 );
             } else if (change > 0) {
-                return [...prevSelectedCards, { cardId, quantity: 1 }];
+                // Si la carta no existe y el cambio es positivo, la añadimos
+                return [...prevSelectedCards, { cardId, quantity: 1, color }];
             }
+    
+            // Si el cambio es negativo y la carta no existe, no hacemos nada
             return prevSelectedCards;
         });
     };
-
 
     // Manejamos el campo de búsqueda fuera de useEffect
     const handleSearchChange = (text: string) => {
@@ -195,7 +205,7 @@ export default function SearchScreen() {
             );
 
             if (page === 1) {
-                setCards(response.data.data);
+                setCards(response.data.data.map((card: Card) => ({ ...card, color: card.color || "unknown" })));
                 setInitialLoading(false);
             } else {
                 setCards((prevCards) => [...prevCards, ...response.data.data]);
@@ -365,6 +375,15 @@ export default function SearchScreen() {
         fetchCards(searchQuery, 1);
     };
 
+    const handleAddSelectedCards = () => {
+        console.log("Selected",selectedCards)
+        setIsModalVisible(true);
+    };
+
+    const closeModal = () => {
+        setIsModalVisible(false);
+    };
+
     const [filtersCleared, setFiltersCleared] = useState(false);
 
     const clearAllFilters = () => {
@@ -411,6 +430,11 @@ export default function SearchScreen() {
                 isSelectionEnabled={isSelectionEnabled}
                 toggleSelectionMode={toggleSelectionMode}
             />
+            {isSelectionEnabled && (
+                <TouchableOpacity style={styles.addButton} onPress={handleAddSelectedCards}>
+                    <ThemedText style={styles.addButtonText}>Añadir</ThemedText>
+                </TouchableOpacity>
+            )}
             <ColorFilters selectedColors={selectedColors} onColorSelect={handleColorSelect} />
 
             {initialLoading ? (
@@ -430,9 +454,7 @@ export default function SearchScreen() {
                             Colors={Colors}
                             theme={theme}
                             isSelectionEnabled={isSelectionEnabled}
-                            selectedQuantity={
-                                selectedCards.find((card) => card.cardId === item.id)?.quantity || 0
-                            }
+                            selectedQuantity={selectedCards.find((card) => card.cardId === item.id)?.quantity || 0}
                             updateCardQuantity={updateCardQuantity}
                         />
                     )}
@@ -538,6 +560,40 @@ export default function SearchScreen() {
                     </View>
                 </ScrollView>
             </Modalize>
+
+            <Modal visible={isModalVisible} animationType="slide" transparent={true} onRequestClose={closeModal}>
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContainer, { backgroundColor: Colors[theme].background }]}>
+                        <ThemedText style={styles.modalTitle}>Cartas Seleccionadas</ThemedText>
+                        <FlatList
+                            data={selectedCards}
+                            keyExtractor={(item) => item.cardId}
+                            renderItem={({ item }) => {
+                                const card = cards.find((c) => c.id === item.cardId);
+                                return (
+                                    <View style={styles.selectedCardItem}>
+                                        <Image source={{ uri: card?.images_small }} style={styles.selectedCardImage} />
+                                        <View style={styles.selectedCardDetails}>
+                                            <ThemedText style={styles.selectedCardName}>
+                                                {card?.name && card.name.length > 20 ? `${card.name.slice(0, 20)}...` : card?.name ?? ""}
+                                            </ThemedText>
+                                            <ThemedText style={styles.selectedCardQuantity}>
+                                                Cantidad: {item.quantity}
+                                            </ThemedText>
+                                            <ThemedText style={styles.selectedCardColor}>
+                                                Color: {item.color}
+                                            </ThemedText>
+                                        </View>
+                                    </View>
+                                );
+                            }}
+                        />
+                        <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
+                            <ThemedText style={styles.closeButtonText}>Cerrar</ThemedText>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -715,7 +771,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         gap: 10,
         padding: 8,
-        backgroundColor: "#000000ca",
+        backgroundColor: "#000000a2",
         position: "absolute",
         bottom: 8,
         borderBottomEndRadius: 5,
@@ -727,5 +783,67 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "bold",
     },
-    
+    addButton: {
+        marginHorizontal: 16,
+        marginBottom: 10,
+        paddingVertical: 12,
+        backgroundColor: Colors.light.highlight,
+        borderRadius: 8,
+        alignItems: "center",
+    },
+    addButtonText: {
+        color: Colors.light.text,
+        fontSize: 18,
+        fontWeight: "bold",
+    },
+    modalOverlay: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+    },
+    modalContainer: {
+        width: "90%",
+        borderRadius: 10,
+        padding: 20,
+        alignItems: "center",
+    },
+    selectedCardItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 10,
+    },
+    selectedCardImage: {
+        width: 50,
+        height: 70,
+        borderRadius: 5,
+        marginRight: 10,
+    },
+    selectedCardDetails: {
+        // flex: 1,
+    },
+    selectedCardName: {
+        fontSize: 16,
+        fontWeight: "bold",
+    },
+    selectedCardQuantity: {
+        fontSize: 14,
+        marginTop: 5,
+    },
+    selectedCardColor: {
+        fontSize: 14,
+        marginTop: 5,
+    },
+    closeButton: {
+        marginTop: 20,
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        backgroundColor: Colors.light.highlight,
+        borderRadius: 8,
+    },
+    closeButtonText: {
+        color: Colors.light.text,
+        fontSize: 16,
+        fontWeight: "bold",
+    },
 });
