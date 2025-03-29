@@ -53,5 +53,7 @@
     "wish": "Wish",
     "collect": "Colección",
     "error": "Ups!",
-    "errorAddingCard": "Algo ha salido mal añadiendo la carta al mazo."
+    "errorAddingCard": "Algo ha salido mal añadiendo la carta al mazo.",
+    "playset_complete": "Playset completo",
+    "add_to": "Añadir a..."
 }

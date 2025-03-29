@@ -53,5 +53,7 @@
     "wish": "Wish",
     "collect": "Collect",
     "error": "Ups!",
-    "errorAddingCard": "Something went wrong adding the card to the deck."
+    "errorAddingCard": "Something went wrong adding the card to the deck.",
+    "playset_complete": "Playset complete",
+    "add_to": "Add to..."
 }

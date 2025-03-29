@@ -133,7 +133,7 @@ export default function CardItem({
                     <TouchableOpacity onPress={() => updateCardQuantity(item.id, -1,item.color )}>
                         <MaterialIcons name="remove-circle-outline" size={24} color={Colors[theme].icon} />
                     </TouchableOpacity>
-                    <ThemedText style={styles.quantityText}>{selectedQuantity}</ThemedText>
+                    <ThemedText style={[styles.quantityText, {color: 'white'}]}>{selectedQuantity}</ThemedText>
                     <TouchableOpacity onPress={() => updateCardQuantity(item.id, 1, item.color)}>
                         <MaterialIcons name="add-circle-outline" size={24} color={Colors[theme].icon} />
                     </TouchableOpacity>

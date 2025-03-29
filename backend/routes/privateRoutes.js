@@ -224,6 +224,46 @@ router.post("/decks/cards", validate(addCardToDeckSchema), deckController.addCar
 
 /**
  * @swagger
+ * /decks/cards/multiple:
+ *   post:
+ *     summary: Añadir múltiples cartas a un mazo
+ *     tags: [Decks]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               deckId:
+ *                 type: string
+ *                 description: ID del mazo al que se añadirán las cartas
+ *               cards:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     cardId:
+ *                       type: string
+ *                       description: ID de la carta
+ *                     quantity:
+ *                       type: integer
+ *                       description: Cantidad de cartas
+ *             required:
+ *               - deckId
+ *               - cards
+ *     responses:
+ *       201:
+ *         description: Cartas añadidas con éxito al mazo
+ *       400:
+ *         description: Solicitud inválida
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.post("/decks/cards/multiple", deckController.addMultipleCardsToDeck);
+
+/**
+ * @swagger
  * /decks/{deckId}:
  *   delete:
  *     summary: Eliminar un mazo
@@ -392,7 +432,5 @@ router.get("/set_names", cardController.getAllSetNames);
 
 // Nueva ruta para obtener todos los valores únicos de family
 router.get("/families", cardController.getAllFamilies);
-
-
 
 module.exports = router;

@@ -6,6 +6,7 @@ import { useTheme } from "@/hooks/ThemeContext";
 import useApi from "@/hooks/useApi";
 import { ThemedText } from "@/components/ThemedText";
 import { MaterialIcons } from "@expo/vector-icons";
+import { ScrollView } from "react-native-gesture-handler";
 
 interface DeckDetail {
     id: string;
@@ -70,34 +71,35 @@ export default function DeckDetailScreen() {
 
     return (
         <View style={[styles.container, { backgroundColor: Colors[theme].background }]}>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
             <ThemedText style={[styles.title, { color: Colors[theme].text }]}>{deckDetail.name}</ThemedText>
             <ThemedText style={[styles.description, { color: Colors[theme].text }]}>
                 {deckDetail.description}
             </ThemedText>
-            <View style={styles.containerCards  }>
-                           <FlatList
-                data={deckDetail.cards}
-                keyExtractor={(item) => item.id}
-                numColumns={3}
-                renderItem={({ item }) => (
-                    <View
-                        style={[
-                            styles.cardContainer,
-                            { borderColor: Colors[theme].TabBarBackground },
-                            item.is_leader ? { borderColor: Colors[theme].tint, transform: "scale(1.1)"  } : {},
-                        ]}
-                    >
-                        <Image source={{ uri: item.images_small }} style={styles.cardImage} />
-                        <View style={[styles.quantityContainer, { backgroundColor: Colors[theme].tint }]}>
-                            <Text style={styles.quantityText}>{item.quantity}</Text>
+            <View style={styles.containerCards}>
+                <FlatList
+                    data={deckDetail.cards}
+                    keyExtractor={(item) => item.id}
+                    numColumns={3}
+                    renderItem={({ item }) => (
+                        <View
+                            style={[
+                                styles.cardContainer,
+                                { borderColor: Colors[theme].TabBarBackground },
+                                item.is_leader ? { borderColor: Colors[theme].tint, transform: "scale(1.1)" } : {},
+                            ]}
+                        >
+                            <Image source={{ uri: item.images_small }} style={styles.cardImage} />
+                            <View style={[styles.quantityContainer, { backgroundColor: Colors[theme].tint }]}>
+                                <Text style={styles.quantityText}>{item.quantity}</Text>
+                            </View>
                         </View>
-                    </View>
-                )}
-                contentContainerStyle={[styles.cardList, { backgroundColor: Colors[theme].TabBarBackground }]}
-            />
+                    )}
+                    contentContainerStyle={[styles.cardList, { backgroundColor: Colors[theme].TabBarBackground }]}
+                />
             </View>
- 
-        </View>
+        </ScrollView>
+    </View>
     );
 }
 
@@ -105,6 +107,10 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         padding: 10,
+        marginBottom: 80,
+    },
+    scrollContainer: {
+        flexGrow: 1, // Asegura que el contenido ocupe todo el espacio disponible
     },
     backButton: {
         marginRight: 12,

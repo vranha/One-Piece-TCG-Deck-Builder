@@ -187,6 +187,8 @@ export default function CardDetailScreen() {
         );
     }
 
+    const cardsToAdd = [{ cardId: Array.isArray(cardId) ? cardId[0] : cardId, quantity }];
+
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: Colors[theme].background }}>
             <ScrollView
@@ -229,9 +231,9 @@ export default function CardDetailScreen() {
             <UserDecksModal
                 modalizeRef={modalizeRef}
                 userDecks={userDecks}
-                cardId={Array.isArray(cardId) ? cardId[0] : cardId}
-                quantity={quantity}
+                cards={cardsToAdd}
                 handleAddCardToDeck={handleAddCardToDeck}
+                hasTabBar={true}
             />
         </SafeAreaView>
     );

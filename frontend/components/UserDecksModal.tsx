@@ -16,39 +16,62 @@ interface UserDecksModalProps {
         deck_cards: any[];
         totalCards: number;
     }>;
-    cardId: string;
-    quantity: number;
+    cards: Array<{ cardId: string; quantity: number }>; // Accept an array of cards
     handleAddCardToDeck: (deckId: string, totalQuantity: number, deckName: string) => void;
+    hasTabBar?: boolean;
 }
 
-const UserDecksModal: React.FC<UserDecksModalProps> = ({
-    modalizeRef,
-    userDecks,
-    cardId,
-    quantity,
-    handleAddCardToDeck,
-}) => {
+const UserDecksModal: React.FC<UserDecksModalProps> = ({ modalizeRef, userDecks, cards, handleAddCardToDeck, hasTabBar = false }) => {
     const { theme } = useTheme();
     const { t } = useTranslation();
 
     return (
         <Modalize ref={modalizeRef} adjustToContentHeight>
-            <View style={[styles.containerModalize, { backgroundColor: Colors[theme].TabBarBackground }]}>
+            <View style={[styles.containerModalize, { backgroundColor: Colors[theme].TabBarBackground, marginBottom: hasTabBar ? 64 : 0 }]}>
                 {userDecks.length > 0 ? (
                     <View style={styles.deckGrid}>
                         {userDecks.map((deck) => {
-                            const existingCard = deck.deck_cards.find((card) => card.card_id === cardId);
-                            const totalQuantity = existingCard
-                                ? Math.min(quantity + existingCard.quantity, 4) - existingCard.quantity
-                                : Math.min(quantity, 4);
+                            let totalQuantitySum = 0;
+                            let showWarning = false; // Nueva variable para controlar el aviso
+
+                            cards.forEach(({ cardId, quantity }) => {
+                                const existingCard = deck.deck_cards.find((card) => card.card_id === cardId);
+                                const totalQuantity = existingCard ? quantity + existingCard.quantity : quantity;
+
+                                // Si la cantidad total de esta carta supera 4, activamos el aviso
+                                if (totalQuantity > 4) {
+                                    showWarning = true;
+                                }
+
+                                totalQuantitySum += Math.min(totalQuantity, 4) - (existingCard?.quantity || 0);
+                            });
 
                             return (
                                 <TouchableOpacity
                                     key={deck.id}
                                     style={[styles.deckItem, { backgroundColor: Colors[theme].backgroundSoft }]}
-                                    onPress={() => handleAddCardToDeck(deck.id, totalQuantity, deck.name)}
+                                    onPress={() => {
+                                        const totalQuantities: { [cardId: string]: number } = {};
+                                    
+                                        // Calcular la cantidad total de cada carta que se va a añadir
+                                        cards.forEach(({ cardId, quantity }) => {
+                                            const existingCard = deck.deck_cards.find((card) => card.card_id === cardId);
+                                            const totalQuantity = existingCard
+                                                ? Math.min(quantity + existingCard.quantity, 4) - existingCard.quantity
+                                                : Math.min(quantity, 4);
+                                            
+                                            if (totalQuantity > 0) {
+                                                totalQuantities[cardId] = (totalQuantities[cardId] || 0) + totalQuantity;
+                                            }
+                                        });
+                                    
+                                        // Llamar a handleAddCardToDeck solo una vez por mazo
+                                        if (Object.keys(totalQuantities).length > 0) {
+                                            handleAddCardToDeck(deck.id, Object.values(totalQuantities).reduce((a, b) => a + b, 0), deck.name);
+                                        }
+                                    }}
                                 >
-                                    {existingCard && (
+                                    {showWarning && ( // Mostrar el aviso si alguna carta supera el límite
                                         <View
                                             style={{
                                                 position: "absolute",
@@ -60,7 +83,7 @@ const UserDecksModal: React.FC<UserDecksModalProps> = ({
                                             }}
                                         >
                                             <ThemedText style={{ color: Colors[theme].tabIconDefault }}>
-                                                {t("previouslyHad", { quantity: existingCard?.quantity })}
+                                                {t("playset_complete")}
                                             </ThemedText>
                                             <Ionicons name="warning" size={30} color={Colors[theme].tabIconDefault} />
                                         </View>
@@ -79,12 +102,11 @@ const UserDecksModal: React.FC<UserDecksModalProps> = ({
                                         <Ionicons name="arrow-down" size={28} color={Colors[theme].background} />
                                         <ThemedText style={styles.deckCards}>
                                             <ThemedText style={[styles.deckCards, { color: Colors[theme].tint }]}>
-                                                {deck.totalCards + totalQuantity}
+                                                {deck.totalCards + totalQuantitySum}
                                             </ThemedText>
                                             /51
                                         </ThemedText>
                                     </View>
-
                                     <ThemedText type="title" style={{ color: Colors[theme].background }}>
                                         +
                                     </ThemedText>
@@ -92,7 +114,7 @@ const UserDecksModal: React.FC<UserDecksModalProps> = ({
                                         type="superTitle"
                                         style={{ color: Colors[theme].tint, marginLeft: -15 }}
                                     >
-                                        {totalQuantity}
+                                        {totalQuantitySum}
                                     </ThemedText>
                                     <ThemedText
                                         type="title"

@@ -44,12 +44,12 @@ const CardOptions: React.FC<CardOptionsProps> = ({
                 style={[
                     styles.optionButton,
                     { backgroundColor: "#edc398" },
-                    selectedButton !== "WishList" && { backgroundColor: "#645140" },
+                    selectedButton !== "Collection" && { backgroundColor: "#645140" },
                 ]}
-                onPress={() => setSelectedButton("WishList")}
+                onPress={() => setSelectedButton("Collection")}
             >
                 <ThemedText style={[styles.optionButtonText, { color: Colors[theme].background }]}>
-                    {t("wish")}
+                    {t("collect")}
                 </ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
@@ -57,12 +57,12 @@ const CardOptions: React.FC<CardOptionsProps> = ({
                     styles.optionButton,
                     styles.lastOptionButton,
                     { backgroundColor: "#edc398" },
-                    selectedButton !== "Collection" && { backgroundColor: "#645140" },
+                    selectedButton !== "WishList" && { backgroundColor: "#645140" },
                 ]}
-                onPress={() => setSelectedButton("Collection")}
+                onPress={() => setSelectedButton("WishList")}
             >
                 <ThemedText style={[styles.optionButtonText, { color: Colors[theme].background }]}>
-                    {t("collect")}
+                    {t("wish")}
                 </ThemedText>
             </TouchableOpacity>
             <CustomNumericInput value={quantity} onChange={onQuantityChange} />

@@ -1,4 +1,4 @@
-const deckService = require('../services/deckService');
+const deckService = require("../services/deckService");
 
 // Crear un nuevo mazo con colores
 const createDeck = async (req, res) => {
@@ -28,7 +28,7 @@ const editDeck = async (req, res) => {
 // Obtener los mazos de un usuario con paginación y búsqueda
 const getUserDecks = async (req, res) => {
     const { userId } = req.params;
-    const { page = 1, limit = 10, search = '', color } = req.query; // Recibir parámetros de consulta
+    const { page = 1, limit = 10, search = "", color } = req.query; // Recibir parámetros de consulta
 
     try {
         // Llamar al servicio para obtener los mazos
@@ -43,10 +43,10 @@ const getUserDecks = async (req, res) => {
             limit: parseInt(limit, 10),
         });
     } catch (err) {
-        console.error('Error en getUserDecks:', err.message);
+        console.error("Error en getUserDecks:", err.message);
         res.status(500).json({
             success: false,
-            message: 'Error al obtener los mazos.',
+            message: "Error al obtener los mazos.",
             error: err.message,
         });
     }
@@ -59,7 +59,7 @@ const getDeckById = async (req, res) => {
         const deck = await deckService.getDeckById(deckId);
         res.status(200).json(deck);
     } catch (err) {
-        console.error('Error en getDeckById:', err);
+        console.error("Error en getDeckById:", err);
         res.status(500).json({ error: err.message });
     }
 };
@@ -69,6 +69,18 @@ const addCardToDeck = async (req, res) => {
     const { deckId, cardId, quantity } = req.body;
     try {
         const data = await deckService.addCardToDeck(deckId, cardId, quantity);
+        res.status(201).json(data);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+// Añadir múltiples cartas a un mazo
+const addMultipleCardsToDeck = async (req, res) => {
+    const { deckId, cards } = req.body;
+    try {
+        const data = await deckService.addMultipleCardsToDeck(deckId, cards);
         res.status(201).json(data);
     } catch (err) {
         console.error(err);
@@ -95,4 +107,5 @@ module.exports = {
     getUserDecks,
     addCardToDeck,
     getDeckById, // Añadir la nueva función al módulo exportado
+    addMultipleCardsToDeck,
 };
