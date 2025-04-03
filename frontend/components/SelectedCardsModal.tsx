@@ -1,8 +1,10 @@
 import React from "react";
-import { Modal, TouchableOpacity, View, ScrollView, StyleSheet } from "react-native";
+import { Modal, TouchableOpacity, View, ScrollView, StyleSheet, Pressable } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "@/constants/Colors";
+import useStore from "@/store/useStore";
+import { useTranslation } from "react-i18next";
 
 interface SelectedCard {
     cardId: string;
@@ -16,38 +18,66 @@ interface SelectedCardsModalProps {
     onClose: () => void;
     selectedCards: SelectedCard[];
     theme: "light" | "dark";
-    decreaseCardQuantity: (cardId: string) => void;
-    increaseCardQuantity: (cardId: string) => void;
+    decreaseCardQuantity: (cardId: string, color: string, name: string) => void;
+    increaseCardQuantity: (cardId: string, color: string, name: string) => void;
     openUserDecksModal: () => void;
 }
 
 const SelectedCardsModal: React.FC<SelectedCardsModalProps> = ({
     isVisible,
     onClose,
-    selectedCards,
+    // selectedCards,
     theme,
-    decreaseCardQuantity,
-    increaseCardQuantity,
+    // decreaseCardQuantity,
+    // increaseCardQuantity,
     openUserDecksModal,
 }) => {
+    const { selectedCards, updateCardQuantity } = useStore();
+    const { t } = useTranslation();
+
+    const decreaseCardQuantity = (cardId: string, color: string, name: string) => {
+        updateCardQuantity(cardId, -1, color, name);
+    };
+
+    const increaseCardQuantity = (cardId: string, color: string, name: string) => {
+        updateCardQuantity(cardId, 1, color, name);
+    };
+
     return (
-        <Modal visible={isVisible} animationType="fade" transparent={true} onRequestClose={onClose}>
-            <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
-                <TouchableOpacity
-                    style={[styles.modalContainer, { backgroundColor: Colors[theme].TabBarBackground }]}
-                    activeOpacity={1}
-                >
-                    <ThemedText style={styles.modalTitle}>Cartas Seleccionadas</ThemedText>
+        <Modal
+            visible={isVisible}
+            animationType="fade"
+            transparent={true}
+            onRequestClose={onClose}
+        >
+            <View style={styles.modalOverlay}>
+                {/* Backdrop que cierra la modal */}
+                <Pressable style={styles.backdrop} onPress={onClose} />
+                <View style={[styles.modalContainer, { backgroundColor: Colors[theme].TabBarBackground }]}>
+                    <ThemedText style={styles.modalTitle}>{t('your_selection')}</ThemedText>
                     <View style={styles.scrollContainer}>
-                        <ScrollView style={styles.scrollView}>
+                        <ScrollView 
+                            style={styles.scrollView} 
+                            contentContainerStyle={styles.scrollViewContent}
+                            keyboardShouldPersistTaps="handled"
+                        >
                             <View style={styles.tableContainer}>
                                 <View style={styles.tableHeader}>
-                                    <ThemedText style={styles.tableHeaderText}>Nombre</ThemedText>
-                                    <ThemedText style={styles.tableHeaderText}>Cantidad</ThemedText>
-                                    <ThemedText style={styles.tableHeaderText}>Color</ThemedText>
+                                    <ThemedText style={[styles.tableHeaderText, { color: Colors[theme].disabled }]}>
+                                    {t('name')}
+                                    </ThemedText>
+                                    <ThemedText style={[styles.tableHeaderText, { color: Colors[theme].disabled }]}>
+                                    {t('quantity')}
+                                    </ThemedText>
+                                    <ThemedText style={[styles.tableHeaderText, { color: Colors[theme].disabled }]}>
+                                    { t('color')}
+                                    </ThemedText>
                                 </View>
                                 {selectedCards.map((item) => (
-                                    <View key={item.cardId} style={styles.tableRow}>
+                                    <View
+                                        key={item.cardId}
+                                        style={[styles.tableRow, { borderColor: Colors[theme].backgroundSoft }]}
+                                    >
                                         <ThemedText style={styles.tableCell}>{item.name}</ThemedText>
                                         <ThemedText style={styles.tableCell}>{item.quantity}</ThemedText>
                                         <View
@@ -60,24 +90,18 @@ const SelectedCardsModal: React.FC<SelectedCardsModalProps> = ({
                                             ]}
                                         />
                                         <View style={styles.actionButtonsContainer}>
-                                            <TouchableOpacity
-                                                style={[
-                                                    styles.iconButton,
-                                                    { backgroundColor: Colors[theme].highlight },
-                                                ]}
-                                                onPress={() => decreaseCardQuantity(item.cardId)}
+                                            <Pressable
+                                                style={[styles.iconButton, { backgroundColor: Colors[theme].backgroundSoft }]}
+                                                onPress={() => decreaseCardQuantity(item.cardId, item.color, item.name)}
                                             >
-                                                <MaterialIcons name="remove" size={16} color={Colors.light.text} />
-                                            </TouchableOpacity>
-                                            <TouchableOpacity
-                                                style={[
-                                                    styles.iconButton,
-                                                    { backgroundColor: Colors[theme].highlight },
-                                                ]}
-                                                onPress={() => increaseCardQuantity(item.cardId)}
+                                                <MaterialIcons name="remove" size={16} color={Colors[theme].background} />
+                                            </Pressable>
+                                            <Pressable
+                                                style={[styles.iconButton, { backgroundColor: Colors[theme].backgroundSoft }]}
+                                                onPress={() => increaseCardQuantity(item.cardId, item.color, item.name)}
                                             >
-                                                <MaterialIcons name="add" size={16} color={Colors.light.text} />
-                                            </TouchableOpacity>
+                                                <MaterialIcons name="add" size={16} color={Colors[theme].background} />
+                                            </Pressable>
                                         </View>
                                     </View>
                                 ))}
@@ -88,27 +112,27 @@ const SelectedCardsModal: React.FC<SelectedCardsModalProps> = ({
                         Total: {selectedCards.reduce((sum, card) => sum + card.quantity, 0)}
                     </ThemedText>
                     <View style={styles.buttonContainer}>
-                        <TouchableOpacity
-                            style={[styles.actionButton, { backgroundColor: Colors[theme].highlight }]}
+                        <Pressable
+                            style={[styles.actionButton, { backgroundColor: Colors[theme].backgroundSoft }]}
                             onPress={openUserDecksModal}
                         >
-                            <ThemedText style={styles.actionButtonText}>Deck</ThemedText>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.actionButton, { backgroundColor: Colors[theme].highlight }]}
+                            <ThemedText style={[styles.actionButtonText, { color: Colors[theme].tint }]}>{t('deck')}</ThemedText>
+                        </Pressable>
+                        <Pressable
+                            style={[styles.actionButton, { backgroundColor: Colors[theme].backgroundSoft }]}
                             onPress={() => console.log("Collection clicked")}
                         >
-                            <ThemedText style={styles.actionButtonText}>Collection</ThemedText>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.actionButton, { backgroundColor: Colors[theme].highlight }]}
+                            <ThemedText style={[styles.actionButtonText, { color: Colors[theme].tint }]}>{t('collection')}</ThemedText>
+                        </Pressable>
+                        <Pressable
+                            style={[styles.actionButton, { backgroundColor: Colors[theme].backgroundSoft }]}
                             onPress={() => console.log("Wish clicked")}
                         >
-                            <ThemedText style={styles.actionButtonText}>Wish</ThemedText>
-                        </TouchableOpacity>
+                            <ThemedText style={[styles.actionButtonText, { color: Colors[theme].tint }]}>{t('wish')}</ThemedText>
+                        </Pressable>
                     </View>
-                </TouchableOpacity>
-            </TouchableOpacity>
+                </View>
+            </View>
         </Modal>
     );
 };
@@ -120,11 +144,16 @@ const styles = StyleSheet.create({
         alignItems: "center",
         backgroundColor: "rgba(0, 0, 0, 0.712)",
     },
+    backdrop: {
+        ...StyleSheet.absoluteFillObject,
+    },
     modalContainer: {
         width: "90%",
         borderRadius: 10,
         padding: 20,
+        paddingHorizontal: 10,
         alignItems: "center",
+        zIndex: 2,
     },
     modalTitle: {
         fontSize: 18,
@@ -139,8 +168,11 @@ const styles = StyleSheet.create({
     scrollView: {
         width: "100%",
     },
+    scrollViewContent: {
+        paddingBottom: 20,
+    },
     tableContainer: {
-        width: "85%",
+        width: "100%",
         marginTop: 10,
     },
     tableHeader: {
@@ -154,35 +186,31 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "bold",
         flex: 1,
-        textAlign: "center",
+        textAlign: "left",
+        marginLeft: 10,
     },
     tableRow: {
         flexDirection: "row",
-        justifyContent: "space-around",
+        justifyContent: "space-between",
+        alignItems: "center",
         paddingVertical: 8,
         paddingHorizontal: 20,
         borderBottomWidth: 1,
-        borderBottomColor: Colors.light.icon,
+        gap: 10,
     },
     tableCell: {
-        fontSize: 14,
         flex: 1,
-        textAlign: "left",
+        fontSize: 14,
     },
     colorIndicator: {
         width: 20,
         height: 20,
         borderRadius: 10,
-        borderWidth: 2,
+        borderWidth: 1,
         alignSelf: "center",
     },
     actionButtonsContainer: {
-        position: "absolute",
-        top: "50%",
-        right: "-20%",
-        transform: [{ translateY: "-20%" }],
         flexDirection: "row",
-        alignItems: "center",
         gap: 5,
     },
     iconButton: {
@@ -204,7 +232,6 @@ const styles = StyleSheet.create({
         borderRadius: 8,
     },
     actionButtonText: {
-        color: Colors.light.text,
         fontSize: 16,
         fontWeight: "bold",
     },

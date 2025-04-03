@@ -21,6 +21,8 @@ const AbilityFilters: React.FC<AbilityFiltersProps> = ({ abilityFilters, onAbili
                 "[On Play]",
                 "[Rush]",
                 "[Main]",
+                "[Banish]",
+                "[Double Attack]",
                 "[Once Per Turn]",
                 "[When Attacking]",
                 "[Opponent's Turn]",

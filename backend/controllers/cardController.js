@@ -44,7 +44,7 @@ const searchCards = async (req, res) => {
       counter: sanitizeParam(counter),
       counter_gte: sanitizeParam(counter_gte),
       counter_lte: sanitizeParam(counter_lte),
-      color: sanitizeParam(color),
+      color: color ? color.split(',').map(sanitizeParam) : undefined,
       family: sanitizeParam(family),
       trigger: trigger === "true" ? true : undefined,
       life: sanitizeParam(life),

@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { View, Switch, StyleSheet, Alert, TouchableOpacity, Image } from "react-native";
+import { View, Switch, StyleSheet, Alert, TouchableOpacity, Image, ActivityIndicator } from "react-native";
 import { useTheme } from "@/hooks/ThemeContext";
 import { ThemedText } from "@/components/ThemedText";
 import { Colors } from "@/constants/Colors";
@@ -7,10 +7,14 @@ import { supabase } from "@/supabaseClient";
 import { useNavigation, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import useApi from "@/hooks/useApi";
+import { useState } from "react";
 
 export default function SettingsScreen() {
     const navigation = useNavigation();
     const { t, i18n } = useTranslation();
+    const api = useApi();
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         navigation.setOptions({ headerShown: true, title: t("settings") });
@@ -31,6 +35,18 @@ export default function SettingsScreen() {
 
     const handleLanguageChange = (language: string) => {
         i18n.changeLanguage(language);
+    };
+
+    const handleImportCards = async () => {
+        setIsLoading(true);
+        try {
+            const response = await api.post("/import-cards");
+            Alert.alert("Éxito", response.data.message);
+        } catch (error: any) {
+            Alert.alert("Error", error.response?.data?.error || "Error al importar cartas.");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -74,6 +90,22 @@ export default function SettingsScreen() {
                 </View>
             </View>
 
+            {/* Botón de Importar Cartas */}
+            <TouchableOpacity
+                style={[styles.importButton, { backgroundColor: Colors[theme].TabBarBackground }]}
+                onPress={handleImportCards}
+                disabled={isLoading}
+            >
+                {isLoading ? (
+                    <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                    <>
+                        <Ionicons name="cloud-download-outline" size={20} color={Colors[theme].tint} />
+                        <ThemedText style={styles.importText}>{t("import_cards")}</ThemedText>
+                    </>
+                )}
+            </TouchableOpacity>
+
             {/* Botón de Logout */}
             <TouchableOpacity
                 style={[styles.logoutButton, { backgroundColor: Colors[theme].close }]}
@@ -92,11 +124,6 @@ const styles = StyleSheet.create({
         padding: 20,
         alignItems: "center",
         justifyContent: "center",
-    },
-    headerText: {
-        fontSize: 24,
-        fontWeight: "bold",
-        marginBottom: 20,
     },
     card: {
         width: "100%",
@@ -138,6 +165,20 @@ const styles = StyleSheet.create({
     },
     languageText: {
         fontSize: 14,
+    },
+    importButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "100%",
+        padding: 15,
+        borderRadius: 12,
+        marginTop: 20,
+    },
+    importText: {
+        color: "#FFF",
+        fontSize: 16,
+        marginLeft: 10,
     },
     logoutButton: {
         flexDirection: "row",

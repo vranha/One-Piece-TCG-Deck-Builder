@@ -16,10 +16,9 @@ import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
 import useApi from "@/hooks/useApi";
 import { ThemedText } from "@/components/ThemedText";
-import { MaterialIcons, FontAwesome } from "@expo/vector-icons";
+import { MaterialIcons, FontAwesome, AntDesign } from "@expo/vector-icons";
 import { debounce } from "lodash";
 import { useTranslation } from "react-i18next";
-import useColorCombination from "@/hooks/useColorCombination";
 import { Modalize } from "react-native-modalize";
 import MultiSlider from "@ptomasroos/react-native-multi-slider";
 import FilterSlider from "@/components/FilterSlider";
@@ -43,6 +42,7 @@ import SelectedCardsModal from "@/components/SelectedCardsModal";
 import { showMessage } from "react-native-flash-message";
 import { supabase } from "@/supabaseClient";
 import AddToButton from "@/components/AddToButton";
+import useStore from "@/store/useStore";
 
 interface Card {
     id: string;
@@ -52,7 +52,7 @@ interface Card {
     set_name: string;
     type: string;
     rarity: string;
-    color: string;
+    color: string[];
 }
 
 type Deck = {
@@ -70,6 +70,8 @@ const abilityColorMap: { [key: string]: string } = {
     "[Activate: Main]": "#2677A7",
     "[On Play]": "#2677A7",
     "[Rush]": "#d67e1a",
+    "[Banish]": "#d67e1a",
+    "[Double Attack]": "#d67e1a",
     "[Main]": "#2677A7",
     "[Once Per Turn]": "#e6006b",
     "[When Attacking]": "#2677A7",
@@ -83,7 +85,6 @@ const abilityColorMap: { [key: string]: string } = {
 export default function SearchScreen() {
     const { theme } = useTheme();
     const api = useApi();
-    const [searchQuery, setSearchQuery] = useState("");
     const [cards, setCards] = useState<Card[]>([]);
     const [cardSizeOption, setCardSizeOption] = useState(0); // 0: small, 1: large, 2: detailed
     const [loading, setLoading] = useState(false);
@@ -96,37 +97,60 @@ export default function SearchScreen() {
     const navigation = useNavigation();
     const searchInputRef = useRef<TextInput>(null);
     const { t } = useTranslation();
-    const { getColorCombination } = useColorCombination();
-    const [selectedColors, setSelectedColors] = useState<string[]>([]);
     const modalizeRef = useRef<Modalize>(null);
-    const [costRange, setCostRange] = useState<[number, number]>([0, 10]);
-    const [powerRange, setPowerRange] = useState<[number, number]>([0, 13000]);
-    const [counterRange, setCounterRange] = useState<[number, number]>([0, 2000]);
-    const [setNames, setSetNames] = useState<string[]>([]);
-    const [families, setFamilies] = useState<string[]>([]);
-    const [selectedSet, setSelectedSet] = useState<string | null>(null);
-    const [selectedFamily, setSelectedFamily] = useState<string | null>(null);
-    const [openSet, setOpenSet] = useState(false);
-    const [openFamily, setOpenFamily] = useState(false);
-    const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-    const [selectedRarities, setSelectedRarities] = useState<string[]>([]);
-    const [triggerFilter, setTriggerFilter] = useState(false);
-    const [abilityFilters, setAbilityFilters] = useState<string[]>([]);
-    const [isAbilityAccordionOpen, setIsAbilityAccordionOpen] = useState(false);
-    const abilityAccordionHeight = useRef(new Animated.Value(0)).current;
     const scrollViewRef = useRef<ScrollView>(null);
-    const [isSelectionEnabled, setIsSelectionEnabled] = useState(false);
-    const [selectedCards, setSelectedCards] = useState<
-        { cardId: string; name: string; quantity: number; color: string }[]
-    >([]);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const userDecksModalRef = useRef<Modalize>(null);
     const [userDecks, setUserDecks] = useState<Deck[]>([]);
     const [userId, setUserId] = useState<string | null>(null);
+    const [setNames, setSetNames] = useState<string[]>([]); // Add this line to define setNames
+    const [families, setFamilies] = useState<string[]>([]); // Add this line to define setNames
 
     DropDownPicker.setListMode("MODAL");
 
     const formattedSetNames = useFormattedSetNames(setNames);
+
+    const {
+        selectedCards,
+        setSelectedCards,
+        selectedColors,
+        setSelectedColors,
+        selectedSet,
+        setSelectedSet,
+        selectedFamily,
+        setSelectedFamily,
+        selectedTypes,
+        setSelectedTypes,
+        selectedRarities,
+        setSelectedRarities,
+        triggerFilter,
+        setTriggerFilter,
+        abilityFilters,
+        setAbilityFilters,
+        costRange,
+        setCostRange,
+        powerRange,
+        setPowerRange,
+        counterRange,
+        setCounterRange,
+        updateCardQuantity,
+        searchQuery,
+        setSearchQuery,
+    } = useStore();
+    const [isSelectionEnabled, setIsSelectionEnabled] = useState(selectedCards.length > 0); // State for selection mode
+
+    const decreaseCardQuantity = (cardId: string, color: string, name: string) => {
+        updateCardQuantity(cardId, -1, color, name);
+    };
+
+    const increaseCardQuantity = (cardId: string, color: string, name: string) => {
+        updateCardQuantity(cardId, 1, color, name);
+    };
+
+    const handleAddSelectedCards = () => {
+        console.log("Selected", selectedCards);
+        setIsModalVisible(true);
+    };
 
     useEffect(() => {
         async function fetchUser() {
@@ -166,45 +190,6 @@ export default function SearchScreen() {
         setIsSelectionEnabled((prev) => !prev);
     };
 
-    const updateCardQuantity = (cardId: string, change: number, color: string) => {
-        setSelectedCards((prevSelectedCards) => {
-            const existingCard = prevSelectedCards.find((card) => card.cardId === cardId);
-            const cardDetails = cards.find((card) => card.id === cardId); // Get card details from the cards array
-
-            if (existingCard) {
-                const updatedQuantity = Math.min(Math.max(existingCard.quantity + change, 0), 4);
-
-                if (updatedQuantity === 0) {
-                    return prevSelectedCards.filter((card) => card.cardId !== cardId);
-                }
-
-                return prevSelectedCards.map((card) =>
-                    card.cardId === cardId ? { ...card, quantity: updatedQuantity } : card
-                );
-            } else if (change > 0 && cardDetails) {
-                return [...prevSelectedCards, { cardId, name: cardDetails.name, quantity: 1, color }];
-            }
-
-            return prevSelectedCards;
-        });
-    };
-
-    const decreaseCardQuantity = (cardId: string) => {
-        setSelectedCards((prevSelectedCards) => {
-            return prevSelectedCards
-                .map((card) => (card.cardId === cardId ? { ...card, quantity: card.quantity - 1 } : card))
-                .filter((card) => card.quantity > 0); // Remove cards with quantity 0
-        });
-    };
-
-    const increaseCardQuantity = (cardId: string) => {
-        setSelectedCards((prevSelectedCards) => {
-            return prevSelectedCards.map((card) =>
-                card.cardId === cardId && card.quantity < 4 ? { ...card, quantity: card.quantity + 1 } : card
-            );
-        });
-    };
-
     const handleSearchChange = (text: string) => {
         setSearchQuery(text);
         setPage(1);
@@ -217,6 +202,10 @@ export default function SearchScreen() {
     }, []);
 
     useEffect(() => {
+        fetchCards(searchQuery, 1);
+    }, []); // Dependencia vacía para que solo se ejecute al montar
+
+    useEffect(() => {
         onEndReachedCalledDuringMomentum.current = false;
     }, [searchQuery]);
 
@@ -225,21 +214,28 @@ export default function SearchScreen() {
             fetchCards(searchQuery, 1);
         }
     }, [cardSizeOption]);
+    
 
     const fetchCards = async (query = "", page = 1) => {
         if (loading || !hasMore) return;
 
         setLoading(true);
         try {
-            let colorQuery = "";
-            if (selectedColors.length === 1) {
-                colorQuery = `&color=${selectedColors[0]}`;
-            } else if (selectedColors.length === 2) {
-                const colorCombination = getColorCombination(selectedColors);
-                colorQuery = `&color=${colorCombination}`;
-            }
+            let colorQuery = selectedColors.length > 0 ? `&color=${selectedColors.join(",")}` : "";
 
-            const transformCounterValue = (value: number) => (value === 0 ? "-" : value.toString());
+            const transformCounterValue = (value: number | null | undefined) => {
+                if (value === 0 || value == null) {
+                    return "";
+                }
+                return value.toString();
+            };
+
+            const transformCostValue = (value: number | null | undefined) => {
+                if (value === 0 || value == null) {
+                    return "null"; // Reemplaza 0 por "null" para la consulta
+                }
+                return value.toString();
+            };
 
             const setNameQuery = selectedSet ? `&set_name=${encodeURIComponent(selectedSet)}` : "";
             const setFamilyQuery = selectedFamily ? `&family=${encodeURIComponent(selectedFamily)}` : "";
@@ -249,9 +245,9 @@ export default function SearchScreen() {
             const abilityQuery = abilityFilters.length > 0 ? `&ability=${abilityFilters.join(",")}` : "";
 
             const response = await api.get(
-                `/cards?search=${query}&page=${page}${colorQuery}${setNameQuery}${setFamilyQuery}${typeQuery}${rarityQuery}${triggerQuery}${abilityQuery}&cost_gte=${
+                `/cards?search=${query}&page=${page}${colorQuery}${setNameQuery}${setFamilyQuery}${typeQuery}${rarityQuery}${triggerQuery}${abilityQuery}&cost_gte=${transformCostValue(
                     costRange[0]
-                }&cost_lte=${costRange[1]}&power_gte=${powerRange[0]}&power_lte=${
+                )}&cost_lte=${transformCostValue(costRange[1])}&power_gte=${powerRange[0]}&power_lte=${
                     powerRange[1]
                 }&counter_gte=${transformCounterValue(counterRange[0])}&counter_lte=${transformCounterValue(
                     counterRange[1]
@@ -290,6 +286,7 @@ export default function SearchScreen() {
             setLoading(false);
         }
     };
+
     useEffect(() => {
         const fetchSetNames = async () => {
             try {
@@ -331,50 +328,37 @@ export default function SearchScreen() {
         });
     };
 
-    const handleColorSelect = (color: string) => {
-        setSelectedColors((prevColors) => {
-            if (prevColors.includes(color)) {
-                return prevColors.filter((c) => c !== color);
-            } else if (prevColors.length < 2) {
-                return [...prevColors, color];
-            }
-            return prevColors;
-        });
-    };
 
     const handleTypeSelect = (type: string) => {
-        setSelectedTypes((prevTypes) => {
-            if (prevTypes.includes(type)) {
-                return prevTypes.filter((t) => t !== type);
-            } else {
-                return [...prevTypes, type];
-            }
-        });
+        setSelectedTypes(
+            selectedTypes.includes(type) ? selectedTypes.filter((t) => t !== type) : [...selectedTypes, type]
+        );
     };
 
     const handleRaritySelect = (rarity: string) => {
-        setSelectedRarities((prevRarities) => {
-            if (prevRarities.includes(rarity)) {
-                return prevRarities.filter((r) => r !== rarity);
-            } else {
-                return [...prevRarities, rarity];
-            }
-        });
+        setSelectedRarities(
+            selectedRarities.includes(rarity)
+                ? selectedRarities.filter((r) => r !== rarity)
+                : [...selectedRarities, rarity]
+        );
     };
 
     const handleTriggerFilterToggle = () => {
-        setTriggerFilter((prev) => !prev);
+        setTriggerFilter(!triggerFilter);
     };
 
     const handleAbilityFilterToggle = (ability: string) => {
-        setAbilityFilters((prevFilters) => {
-            if (prevFilters.includes(ability)) {
-                return prevFilters.filter((a) => a !== ability);
-            } else {
-                return [...prevFilters, ability];
-            }
-        });
+        setAbilityFilters(
+            abilityFilters.includes(ability)
+                ? abilityFilters.filter((a) => a !== ability)
+                : [...abilityFilters, ability]
+        );
     };
+
+    const [isAbilityAccordionOpen, setIsAbilityAccordionOpen] = useState(false);
+    const abilityAccordionHeight = useRef(new Animated.Value(0)).current;
+    // const scrollViewRef = useRef<ScrollView>(null); // Asegúrate de definir la referencia
+
     const toggleAbilityAccordion = () => {
         const newValue = !isAbilityAccordionOpen;
         setIsAbilityAccordionOpen(newValue);
@@ -383,7 +367,7 @@ export default function SearchScreen() {
             toValue: newValue ? 300 : 0,
             duration: 300,
             easing: Easing.linear,
-            useNativeDriver: false,
+            useNativeDriver: false, // Animamos altura, así que debe ser false
         }).start(() => {
             if (newValue) {
                 scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -426,11 +410,6 @@ export default function SearchScreen() {
         setPage(1);
         setHasMore(true);
         fetchCards(searchQuery, 1);
-    };
-
-    const handleAddSelectedCards = () => {
-        console.log("Selected", selectedCards);
-        setIsModalVisible(true);
     };
 
     const closeModal = () => {
@@ -497,6 +476,8 @@ export default function SearchScreen() {
                 cards: adjustedCards,
             });
 
+            if (response.status === 200 || response.status === 201) {
+                // Mostrar un mensaje de éxito
             showMessage({
                 message: `Se añadieron ${totalQuantity} cartas al mazo "${deckName}".`,
                 type: "success",
@@ -504,8 +485,9 @@ export default function SearchScreen() {
                 duration: 3000,
                 position: "bottom",
             });
-
+            userDecksModalRef.current?.close();
             setSelectedCards([]); // Limpiar selección después de añadir
+        }
         } catch (error: any) {
             console.error("Error adding cards to deck:", error.response?.data || error.message);
             showMessage({
@@ -552,7 +534,6 @@ export default function SearchScreen() {
     return (
         <View style={[styles.container, { backgroundColor: Colors[theme].background }]}>
             <SearchBar
-                searchQuery={searchQuery}
                 onSearchChange={handleSearchChange}
                 onClearFilters={clearAllFilters}
                 onOpenFilterModal={openFilterModal}
@@ -563,14 +544,22 @@ export default function SearchScreen() {
                 toggleSelectionMode={toggleSelectionMode}
             />
             {isSelectionEnabled && (
-                <AddToButton
-                    isDisabled={selectedCards.length === 0}
-                    onPress={handleAddSelectedCards}
-                    text={t("add_to")}
-                    theme={theme}
-                />
+                <View style={styles.selectionButtonsContainer}>
+                    <AddToButton
+                        isDisabled={selectedCards.length === 0}
+                        onPress={handleAddSelectedCards}
+                        text={t("add_to")}
+                        theme={theme}
+                    />
+                    <TouchableOpacity
+                        style={[styles.resetButton, { backgroundColor: Colors[theme].tint }]}
+                        onPress={() => setSelectedCards([])}
+                    >
+                        <ThemedText style={[styles.resetButtonText, {color: Colors[theme].background}]}>({selectedCards.reduce((sum, card) => sum + card.quantity, 0)}) {t("erase")}</ThemedText>
+                    </TouchableOpacity>
+                </View>
             )}
-            <ColorFilters selectedColors={selectedColors} onColorSelect={handleColorSelect} />
+            <ColorFilters />
 
             {initialLoading ? (
                 <View style={styles.loadingContainer}>
@@ -590,7 +579,9 @@ export default function SearchScreen() {
                             theme={theme}
                             isSelectionEnabled={isSelectionEnabled}
                             selectedQuantity={selectedCards.find((card) => card.cardId === item.id)?.quantity || 0}
-                            updateCardQuantity={updateCardQuantity}
+                            updateCardQuantity={(cardId, change) =>
+                                updateCardQuantity(cardId, change, item.color[0], item.name)
+                            }
                         />
                     )}
                     contentContainerStyle={[
@@ -624,18 +615,7 @@ export default function SearchScreen() {
             <Modalize ref={modalizeRef} adjustToContentHeight>
                 <ScrollView ref={scrollViewRef}>
                     <View style={[styles.modalContent, { backgroundColor: Colors[theme].TabBarBackground }]}>
-                        <DropdownsContainer
-                            formattedSetNames={formattedSetNames}
-                            families={families}
-                            selectedSet={selectedSet}
-                            setSelectedSet={setSelectedSet}
-                            openSet={openSet}
-                            setOpenSet={setOpenSet}
-                            selectedFamily={selectedFamily}
-                            setSelectedFamily={setSelectedFamily}
-                            openFamily={openFamily}
-                            setOpenFamily={setOpenFamily}
-                        />
+                        <DropdownsContainer formattedSetNames={formattedSetNames} families={families} />
                         <TriggerFilter triggerFilter={triggerFilter} onToggle={handleTriggerFilterToggle} />
                         <View style={[styles.separator, { backgroundColor: Colors[theme].tabIconDefault }]} />
                         <ThemedText style={styles.label}>
@@ -1009,5 +989,22 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         alignItems: "center",
         justifyContent: "center",
+    },
+    selectionButtonsContainer: {
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        marginBottom: 10,
+    },
+    resetButton: {
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 8,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    resetButtonText: {
+        fontSize: 16,
+        fontWeight: "bold",
     },
 });

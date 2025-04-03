@@ -89,4 +89,4 @@ async function importarCartas() {
   console.log(`Importación completada. Total de cartas importadas: ${totalImportadas}`);
 }
 
-importarCartas();
+module.exports = { importarCartas };

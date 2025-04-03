@@ -5,7 +5,6 @@ import { useTheme } from "@/hooks/ThemeContext";
 import useApi from "@/hooks/useApi";
 import { Image } from "expo-image";
 import { useAuth } from "@/contexts/AuthContext";
-import useColorCombination from "@/hooks/useColorCombination";
 import FlashMessage, { showMessage } from "react-native-flash-message";
 import { useTranslation } from "react-i18next";
 
@@ -26,7 +25,6 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
     const { theme } = useTheme();
     const api = useApi();
     const { session } = useAuth();
-    const { getColorCombination } = useColorCombination();
     const { t } = useTranslation();
     const [leader, setLeader] = useState<Card | null>(null);
     const [name, setName] = useState("");
@@ -38,7 +36,8 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
 
     const handleCreate = async () => {
         try {
-            const colorsArray = leader?.color.split("/") || [];
+            // Aquí ahora usamos directamente selectedColors como array de colores.
+            const colorsArray = selectedColors; 
             const response = await api.post("/decks", {
                 userId: session?.user.id, // Obtén el user-id del contexto de autenticación
                 name,
@@ -81,16 +80,16 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
     const fetchLeaders = async (colors: string[]) => {
         setLoading(true);
         try {
+            // Si hay colores seleccionados, construir la query
             let colorQuery = "";
             if (colors.length === 1) {
-                // Si solo hay un color, usarlo directamente en el query.
+                // Si solo hay un color, usarlo directamente en la query
                 colorQuery = `color=${colors[0]}`;
-            } else if (colors.length === 2) {
-                // Si hay dos colores, usar colorCombination.
-                const colorCombination = getColorCombination(colors);
-                colorQuery = `color=${colorCombination}`;
+            } else if (colors.length > 1) {
+                // Si hay más de un color, incluirlos todos en la query
+                colorQuery = `colors=${colors.join(",")}`;
             }
-
+    
             const response = await api.get(`/cards?type=LEADER&limit=1000&${colorQuery}`);
             setLeaders(response.data.data);
         } catch (error: any) {
@@ -99,6 +98,7 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
             setLoading(false);
         }
     };
+    
 
     useEffect(() => {
         if (leaderModalVisible) {
@@ -114,11 +114,10 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
     const handleColorSelect = (color: string) => {
         setSelectedColors((prevColors) => {
             if (prevColors.includes(color)) {
-                return prevColors.filter((c) => c !== color);
-            } else if (prevColors.length < 2) {
-                return [...prevColors, color];
+                return prevColors.filter((c) => c !== color); // Elimina el color si ya está seleccionado
+            } else {
+                return [...prevColors, color]; // Agrega el color sin límite
             }
-            return prevColors;
         });
     };
 
@@ -138,7 +137,7 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
                 <View style={styles.overlay}>
                     <TouchableOpacity style={styles.overlayTouchable} activeOpacity={1} onPress={handleClose} />
                     <View style={[styles.centeredView]}>
-                        <View style={[styles.modalView, { backgroundColor: Colors[theme].background }]}>
+                        <View style={[styles.modalView, { backgroundColor: Colors[theme].background }]} >
                             <TouchableOpacity
                                 onPress={() => setLeaderModalVisible(true)}
                                 style={leader ? null : styles.leaderButton}
@@ -198,10 +197,9 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
                                                 style={[
                                                     styles.colorCircle,
                                                     { backgroundColor: color },
-                                                    selectedColors.includes(capitalizeFirstLetter(color)) &&
-                                                        styles.selectedColorCircle,
+                                                    selectedColors.includes(color) && styles.selectedColorCircle,
                                                 ]}
-                                                onPress={() => handleColorSelect(capitalizeFirstLetter(color))}
+                                                onPress={() => handleColorSelect(color)}
                                             />
                                         ))}
                                     </View>

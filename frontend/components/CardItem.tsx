@@ -13,7 +13,7 @@ interface Card {
     set_name: string;
     type: string;
     rarity: string;
-    color: string;
+    color: string[]; // Ahora color es un array de colores
 }
 
 interface CardItemProps {
@@ -25,7 +25,7 @@ interface CardItemProps {
     theme: string;
     isSelectionEnabled: boolean;
     selectedQuantity: number;
-    updateCardQuantity: (cardId: string, change: number, color:string) => void;
+    updateCardQuantity: (cardId: string, change: number, color: string) => void;
 }
 
 export default function CardItem({
@@ -69,6 +69,9 @@ export default function CardItem({
     };
 
     const { height, imageStyle } = getCardDimensions();
+
+    // Usamos el primer color del array, o un color predeterminado si es necesario
+    const cardColor = item.color[0]; // O puedes elegir otro color del array
 
     return (
         <View style={[styles.cardContainer, { alignItems: "center" }]}>
@@ -130,11 +133,11 @@ export default function CardItem({
             </TouchableOpacity>
             {(isSelectionEnabled && item.type !== 'LEADER') && (
                 <View style={[styles.quantityControls, getQuantityControlsStyle()]}>
-                    <TouchableOpacity onPress={() => updateCardQuantity(item.id, -1,item.color )}>
+                    <TouchableOpacity onPress={() => updateCardQuantity(item.id, -1, cardColor)}>
                         <MaterialIcons name="remove-circle-outline" size={24} color={Colors[theme].icon} />
                     </TouchableOpacity>
-                    <ThemedText style={[styles.quantityText, {color: 'white'}]}>{selectedQuantity}</ThemedText>
-                    <TouchableOpacity onPress={() => updateCardQuantity(item.id, 1, item.color)}>
+                    <ThemedText style={[styles.quantityText, { color: 'white' }]}>{selectedQuantity}</ThemedText>
+                    <TouchableOpacity onPress={() => updateCardQuantity(item.id, 1, cardColor)}>
                         <MaterialIcons name="add-circle-outline" size={24} color={Colors[theme].icon} />
                     </TouchableOpacity>
                 </View>

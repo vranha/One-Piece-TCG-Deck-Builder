@@ -6,6 +6,8 @@ const userController = require("../controllers/userController");
 const deckController = require("../controllers/deckController");
 const cardController = require("../controllers/cardController");
 const authenticate = require("../middlewares/authMiddleware");
+const { importarCartas } = require("../scripts/importCards");
+const { supabase } = require("../services/supabaseClient");
 
 const router = express.Router();
 
@@ -432,5 +434,31 @@ router.get("/set_names", cardController.getAllSetNames);
 
 // Nueva ruta para obtener todos los valores únicos de family
 router.get("/families", cardController.getAllFamilies);
+
+
+// Crear un endpoint para importar cartas
+router.post('/import-cards', async (req, res) => {
+    try {
+        await importarCartas();
+        res.status(200).json({ message: 'Importación completada con éxito.' });
+    } catch (error) {
+        console.error('Error al importar cartas:', error);
+        res.status(500).json({ error: 'Error al importar cartas.' });
+    }
+});
+
+router.post("/card", async (req, res) => {
+    const cardData = req.body; // Los datos de la carta se envían en el cuerpo de la solicitud
+    try {
+        const { data, error } = await supabase.from("cards").insert([cardData]);
+        if (error) {
+            throw error;
+        }
+        res.status(201).json({ message: "Carta añadida con éxito.", card: data });
+    } catch (error) {
+        console.error("Error al añadir la carta:", error);
+        res.status(500).json({ error: "Error al añadir la carta." });
+    }
+});
 
 module.exports = router;

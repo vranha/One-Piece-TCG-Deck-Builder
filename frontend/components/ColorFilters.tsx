@@ -2,17 +2,19 @@ import React from "react";
 import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
+import useStore from "@/store/useStore";
 
-interface ColorFiltersProps {
-    selectedColors: string[];
-    onColorSelect: (color: string) => void;
-}
-
-const ColorFilters: React.FC<ColorFiltersProps> = ({ selectedColors, onColorSelect }) => {
+const ColorFilters: React.FC = () => {
     const { theme } = useTheme();
+    const { selectedColors, setSelectedColors } = useStore();
 
-    const capitalizeFirstLetter = (string: string) => {
-        return string.charAt(0).toUpperCase() + string.slice(1);
+    const handleColorSelect = (color: string) => {
+        // Si el color ya está seleccionado, lo eliminamos, si no lo está, lo agregamos
+        setSelectedColors(
+            selectedColors.includes(color)
+                ? selectedColors.filter((c) => c !== color) // Si ya está seleccionado, lo quita
+                : [...selectedColors, color] // Lo agrega sin límite de colores seleccionados
+        );
     };
 
     return (
@@ -22,12 +24,12 @@ const ColorFilters: React.FC<ColorFiltersProps> = ({ selectedColors, onColorSele
                     key={color}
                     style={[
                         styles.colorCircleContainer,
-                        { borderColor: Colors[theme].tabIconDefault },
-                        selectedColors.includes(capitalizeFirstLetter(color))
+                        { borderColor: Colors[theme].backgroundSoft },
+                        selectedColors.includes(color)
                             ? [styles.selectedColorCircle, { borderColor: Colors[theme].text }]
                             : "",
                     ]}
-                    onPress={() => onColorSelect(capitalizeFirstLetter(color))}
+                    onPress={() => handleColorSelect(color)} // Llama a la función con el nombre del color
                 >
                     <View style={[styles.colorCircle, { backgroundColor: color }]} />
                 </TouchableOpacity>

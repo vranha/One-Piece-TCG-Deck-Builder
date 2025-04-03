@@ -5,9 +5,9 @@ import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { router } from "expo-router";
+import useStore from "@/store/useStore";
 
 interface SearchBarProps {
-    searchQuery: string;
     onSearchChange: (text: string) => void;
     onClearFilters: () => void;
     onOpenFilterModal: () => void;
@@ -19,7 +19,6 @@ interface SearchBarProps {
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({
-    searchQuery,
     onSearchChange,
     onClearFilters,
     onOpenFilterModal,
@@ -31,6 +30,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
 }) => {
     const { theme } = useTheme();
     const { t } = useTranslation();
+    const { searchQuery } = useStore();
 
     return (
         <View style={styles.headerContainer}>
@@ -47,10 +47,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
             />
             {!isBaseRoute && (
                 <TouchableOpacity onPress={onClearFilters} style={styles.closeButton}>
-                    <MaterialIcons name="close" size={24} color={Colors[theme].close} />
+                    <MaterialIcons name="close" size={24} color={Colors[theme].tint} />
                 </TouchableOpacity>
             )}
-                        <TouchableOpacity onPress={toggleSelectionMode}>
+            <TouchableOpacity onPress={toggleSelectionMode}>
                 <MaterialIcons
                     name={isSelectionEnabled ? "check-circle" : "check-circle-outline"}
                     size={24}

@@ -72,6 +72,12 @@ const formatCardDetail = (text: string, theme: keyof typeof Colors, trigger?: bo
   text = text.replace(/\[Blocker\]/g, () =>
     `<badge data-bg="#d67e1a" data-color="${themeColors.text}">Blocker</badge>`
   );
+  text = text.replace(/\[Banish\]/g, () =>
+    `<badge data-bg="#d67e1a" data-color="${themeColors.text}">Banish</badge>`
+  );
+  text = text.replace(/\[Double Attack\]/g, () =>
+    `<badge data-bg="#d67e1a" data-color="${themeColors.text}">Double Attack</badge>`
+  );
 
   // Puedes hacer lo mismo para los demás elementos:
   text = text.replace(/\[Activate: Main\]/g, () =>
@@ -129,7 +135,7 @@ const formatCardDetail = (text: string, theme: keyof typeof Colors, trigger?: bo
   text = text.replace(
     /\((.*?)\)/g,
     (match: string, p1: string) =>
-      `<em style="font-size: 16px; font-weight: 600; line-height: 22px;">(${p1})</em><br />`
+      `<em style="font-size: 16px; font-weight: 600; line-height: 22px;color: #808080;">(${p1})</em><br />`
   );
 
   // Envolver el texto normal

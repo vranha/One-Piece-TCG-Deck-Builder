@@ -14,7 +14,7 @@ const RarityFilters: React.FC<RarityFiltersProps> = ({ selectedRarities, onRarit
 
     return (
         <View style={styles.rarityFilters}>
-            {["C", "UC", "R", "SR", "L", "P", "SEC", "TR"].map((rarity) => (
+            {["C", "UC", "R", "SR", "L", "P", "SEC", "SP CARD" ,"TR"].map((rarity) => (
                 <TouchableOpacity
                     key={rarity}
                     style={[
@@ -26,7 +26,7 @@ const RarityFilters: React.FC<RarityFiltersProps> = ({ selectedRarities, onRarit
                     onPress={() => onRaritySelect(rarity)}
                 >
                     <ThemedText style={[styles.rarityButtonText, { color: Colors[theme].background }]}>
-                        {rarity}
+                        {rarity === 'SP CARD' ? 'SP' : rarity}
                     </ThemedText>
                 </TouchableOpacity>
             ))}

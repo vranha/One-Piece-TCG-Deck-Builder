@@ -27,8 +27,14 @@ const searchCards = async (page = 1, limit = 10, search = "", filters = {}) => {
     if (filters.counter) {
         query = query.eq("counter", filters.counter);
     }
-    if (filters.color) {
-        query = query.eq("color", filters.color);
+    if (filters.color && filters.color.length > 0) {
+        // Asegurarse de que los colores sean consistentes (primera letra mayúscula)
+        const formattedColors = filters.color.map(color => color.charAt(0).toUpperCase() + color.slice(1));
+    
+        // Crear un conjunto de condiciones OR para que coincida al menos con uno de los colores
+        const colorConditions = formattedColors.map(color => `color.cs.{${color}}`).join(',');
+    
+        query = query.or(colorConditions);
     }
     if (filters.family) {
         query = query.ilike("family", `%${filters.family}%`);
@@ -46,11 +52,17 @@ const searchCards = async (page = 1, limit = 10, search = "", filters = {}) => {
     }
 
     // Filtros por rango para "cost"
-    if (filters.cost_gte !== undefined) {
-        query = query.gte("cost", Number(filters.cost_gte));
-    }
-    if (filters.cost_lte !== undefined) {
-        query = query.lte("cost", Number(filters.cost_lte));
+    if (filters.cost_gte !== undefined || filters.cost_lte !== undefined) {
+        if (filters.cost_gte === "null" && filters.cost_lte === "null") {
+            // Caso 1: Ambos son null, traer solo las cartas cuyo cost es null
+            query = query.or("cost.is.null");
+        } else if (filters.cost_gte === "null" && filters.cost_lte !== "null") {
+            // Caso 2: cost_gte es null y cost_lte es un número
+            query = query.or(`cost.is.null,cost.lte.${Number(filters.cost_lte)}`);
+        } else if (filters.cost_gte !== "null" && filters.cost_lte !== "null") {
+            // Caso 3: Ambos son números
+            query = query.gte("cost", Number(filters.cost_gte)).lte("cost", Number(filters.cost_lte));
+        }
     }
 
     // Filtros por rango para "power"

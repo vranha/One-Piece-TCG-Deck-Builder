@@ -43,6 +43,7 @@
     "all_f": "Todas",
     "filter": "Filtrar",
     "previouslyHad": "{{quantity}} en el mazo",
+    "cardAdded": "Carta añadida",
     "cardAddedToDeck": "Carta añadida a {{deckName}}",
     "no_decks_available": "No hay mazos disponibles",
     "cards": "Cartas",
@@ -50,10 +51,16 @@
     "total_cards": "Total de cartas",
     "deck_updated": "Mazo actualizado",
     "deck": "Mazo",
-    "wish": "Wish",
-    "collect": "Colección",
+    "wish": "Deseo",
+    "collection": "Colección",
     "error": "Ups!",
     "errorAddingCard": "Algo ha salido mal añadiendo la carta al mazo.",
     "playset_complete": "Playset completo",
-    "add_to": "Añadir a..."
+    "add_to": "Añadir a...",
+    "import_cards": "Importar Cartas",
+    "erase": "Borrar",
+    "your_selection": "Tu Selección",
+    "name": "Nombre",
+    "quantity": "Cantidad",
+    "color": "Color"
 }

@@ -1,38 +1,23 @@
-import React, { Dispatch, SetStateAction } from "react";
+import React from "react";
 import { View, StyleSheet } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import DropDownPicker from "react-native-dropdown-picker";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
 import { useTranslation } from "react-i18next";
+import useStore from "@/store/useStore";
 
 interface DropdownsContainerProps {
     formattedSetNames: { original: string; formatted: string }[];
     families: string[];
-    selectedSet: string | null;
-    setSelectedSet: Dispatch<SetStateAction<string | null>>;
-    openSet: boolean;
-    setOpenSet: Dispatch<SetStateAction<boolean>>;
-    selectedFamily: string | null;
-    setSelectedFamily: Dispatch<SetStateAction<string | null>>;
-    openFamily: boolean;
-    setOpenFamily: Dispatch<SetStateAction<boolean>>;
 }
 
-const DropdownsContainer: React.FC<DropdownsContainerProps> = ({
-    formattedSetNames,
-    families,
-    selectedSet,
-    setSelectedSet,
-    openSet,
-    setOpenSet,
-    selectedFamily,
-    setSelectedFamily,
-    openFamily,
-    setOpenFamily,
-}) => {
+const DropdownsContainer: React.FC<DropdownsContainerProps> = ({ formattedSetNames, families }) => {
     const { theme } = useTheme();
     const { t } = useTranslation();
+    const { selectedSet, setSelectedSet, selectedFamily, setSelectedFamily } = useStore();
+    const [openSet, setOpenSet] = React.useState(false);
+    const [openFamily, setOpenFamily] = React.useState(false);
 
     return (
         <View style={styles.dropdownsContainer}>
@@ -48,9 +33,17 @@ const DropdownsContainer: React.FC<DropdownsContainerProps> = ({
                     ]}
                     itemKey="value"
                     value={selectedSet}
-                    setValue={setSelectedSet}
+                    setValue={(callback) => {
+                        const newValue = typeof callback === "function" ? callback(selectedSet) : callback;
+                        if (newValue !== selectedSet) {
+                            setSelectedSet(newValue);
+                        }
+                    }}
                     onChangeValue={(value) => setSelectedSet(value)}
-                    style={[styles.picker, { backgroundColor: Colors[theme].background, borderColor: Colors[theme].highlight }]}
+                    style={[
+                        styles.picker,
+                        { backgroundColor: Colors[theme].background, borderColor: Colors[theme].highlight },
+                    ]}
                     labelStyle={{ color: Colors[theme].text }}
                     selectedItemLabelStyle={{ fontWeight: "bold" }}
                     placeholder={t("select_set")}
@@ -81,9 +74,17 @@ const DropdownsContainer: React.FC<DropdownsContainerProps> = ({
                     ]}
                     itemKey="value"
                     value={selectedFamily}
-                    setValue={setSelectedFamily}
+                    setValue={(callback) => {
+                        const newValue = typeof callback === "function" ? callback(selectedFamily) : callback;
+                        if (newValue !== selectedFamily) {
+                            setSelectedFamily(newValue);
+                        }
+                    }}
                     onChangeValue={(value) => setSelectedFamily(value)}
-                    style={[styles.picker, { backgroundColor: Colors[theme].background, borderColor: Colors[theme].highlight }]}
+                    style={[
+                        styles.picker,
+                        { backgroundColor: Colors[theme].background, borderColor: Colors[theme].highlight },
+                    ]}
                     labelStyle={{ color: Colors[theme].text }}
                     selectedItemLabelStyle={{ fontWeight: "bold" }}
                     placeholder={t("select_family")}
@@ -132,7 +133,6 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         fontSize: 16,
         paddingHorizontal: 10,
-        // color: Colors.light.icon,
         width: "100%",
     },
 });

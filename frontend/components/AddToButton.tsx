@@ -24,8 +24,9 @@ const AddToButton: React.FC<AddToButtonProps> = ({ isDisabled, onPress, text, th
 
 const styles = StyleSheet.create({
     addButton: {
+        flex: 1,
         marginHorizontal: 16,
-        marginBottom: 10,
+        // marginBottom: 10,
         paddingVertical: 12,
         borderRadius: 8,
         alignItems: "center",

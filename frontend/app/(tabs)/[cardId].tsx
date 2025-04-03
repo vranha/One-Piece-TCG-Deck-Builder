@@ -104,7 +104,7 @@ export default function CardDetailScreen() {
     }, [navigation, cardName, theme]);
 
     const hasPower = cardDetail?.type === "CHARACTER" || cardDetail?.type === "LEADER";
-    const dividerStyle = useDividerStyle(cardDetail?.color || "");
+    const dividerStyle = useDividerStyle([cardDetail?.color || ""]);
     const familyFontSize = useResponsiveFontSize(cardDetail?.family || "");
 
     const handleQuantityChange = (value: number) => {
@@ -115,20 +115,46 @@ export default function CardDetailScreen() {
 
     const fetchUserDecks = async () => {
         if (!userId || !cardDetail) return;
+    
+        // Suponiendo que cardDetail.color ahora es un array de colores
+        const cardColors = Array.isArray(cardDetail.color) ? cardDetail.color : [cardDetail.color];
+    
+        // Mapeamos los colores a sus correspondientes ID
+        const colorNameToId = { red: 1, blue: 2, green: 3, yellow: 4, purple: 5, black: 6 };
+    
+        // Convertimos los colores de la carta en color_ids (asegurándonos que estén en minúsculas)
+        const colorIds = cardColors
+            .map(color => colorNameToId[color.toLowerCase() as keyof typeof colorNameToId])
+            .filter(id => id); // Filtramos cualquier color que no tenga un ID correspondiente
+    
+        // Verificamos si hay más de 2 colores
+        if (colorIds.length > 2) {
+            showMessage({
+                message: "No se pueden seleccionar más de 2 colores.",
+                type: "danger",
+                floating: true,
+                duration: 3000,
+                position: "bottom",
+            });
+            return;
+        }
+    
         try {
             const response = await api.get(`/decks/${userId}`);
             const allDecks = response.data.data;
-            const colorNameToId = { red: 1, blue: 2, green: 3, yellow: 4, purple: 5, black: 6 };
-            const cardColorId = colorNameToId[cardDetail.color.toLowerCase() as keyof typeof colorNameToId];
+    
+            // Filtramos los mazos que contienen al menos uno de los colores correspondientes
             const filteredDecks = allDecks.filter((deck: { deck_colors: { color_id: number }[] }) =>
-                deck.deck_colors.some((color) => color.color_id === cardColorId)
+                deck.deck_colors.some((color) => colorIds.includes(color.color_id))
             );
+    
             setUserDecks(filteredDecks);
             console.log(filteredDecks);
         } catch (error: any) {
             console.error("Error fetching user decks:", error.response?.data || error.message);
         }
     };
+    
 
     const handleAddButtonPress = () => {
         if (selectedButton === "Deck") {
@@ -149,7 +175,7 @@ export default function CardDetailScreen() {
             if (response.status === 200 || response.status === 201) {
                 // Mostrar un mensaje de éxito
                 showMessage({
-                    message: `😆 ${t("cardAdded")}`,
+                    message: `😆`,
                     description: t("cardAddedToDeck", { deckName }),
                     type: "success",
                     duration: 3000,

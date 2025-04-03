@@ -49,11 +49,18 @@
     "add_to_deck": "Add to deck",
     "total_cards": "Total cards",
     "deck_updated": "Deck updated",
+    "cardAdded": "Card added",
     "deck": "Deck",
     "wish": "Wish",
-    "collect": "Collect",
+    "collection": "Collection",
     "error": "Ups!",
     "errorAddingCard": "Something went wrong adding the card to the deck.",
     "playset_complete": "Playset complete",
-    "add_to": "Add to..."
+    "add_to": "Add to...",
+    "import_cards": "Import Cards",
+    "erase": "Erase",
+    "your_selection": "Your Selection",
+    "name": "Name",
+    "quantity": "Quantity",
+    "color": "Color"
 }
