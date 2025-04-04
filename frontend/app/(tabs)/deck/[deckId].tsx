@@ -16,6 +16,15 @@ import useApi from "@/hooks/useApi";
 import { ThemedText } from "@/components/ThemedText";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { BarChart, PieChart } from "react-native-chart-kit";
+import { LoadingIndicator } from "@/components/LoadingIndicator"; // Import the new component
+import { NoDeckFound } from "@/components/NoDeckFound"; // Import the new component
+import { CostCurveChart } from "@/components/CostCurveChart"; // Import the new component
+import { PowerCurveChart } from "@/components/PowerCurveChart"; // Import the new component
+import { ArchetypeChart } from "@/components/ArchetypeChart"; // Import the new component
+import { Searcher } from "@/components/Searcher"; // Import the new component
+import { TriggerChart } from "@/components/TriggerChart"; // Import the new component
+import { CounterDistributionChart } from "@/components/CounterDistributionChart"; // Import the new component
+import { DeckStats } from "@/components/DeckStats"; // Import the new component
 
 interface DeckDetail {
     id: string;
@@ -33,6 +42,11 @@ export default function DeckDetailScreen() {
     const [loading, setLoading] = useState(true);
     const navigation = useNavigation();
     const router = useRouter();
+
+    useEffect(() => {
+        setDeckDetail(null); // Reset deckDetail when deckId changes
+        setLoading(true); // Reset loading state
+    }, [deckId]);
 
     useEffect(() => {
         const fetchDeckDetail = async () => {
@@ -380,25 +394,14 @@ export default function DeckDetailScreen() {
     const averageCost = useMemo(() => calculateAverageCost(), [deckDetail]);
     const averagePower = useMemo(() => calculateAveragePower(), [deckDetail]);
 
+    const nonLeaderCards = deckDetail?.cards.filter((card) => card.type !== "LEADER") ?? [];
+
     if (loading) {
-        return (
-            <View
-                style={[
-                    styles.container,
-                    { backgroundColor: Colors[theme].background, height: Dimensions.get("window").height },
-                ]}
-            >
-                <ActivityIndicator size="large" color={Colors[theme].tint} />
-            </View>
-        );
+        return <LoadingIndicator />;
     }
 
     if (!deckDetail) {
-        return (
-            <View style={[styles.container, { backgroundColor: Colors[theme].background }]}>
-                <ThemedText style={{ color: Colors[theme].text }}>No se encontró el mazo.</ThemedText>
-            </View>
-        );
+        return <NoDeckFound />;
     }
 
     return (
@@ -442,649 +445,49 @@ export default function DeckDetailScreen() {
                 style={{ flexDirection: "row", height: 20, marginVertical: 10, borderRadius: 5, overflow: "hidden" }}
             ></View>
 
-            <View
-                style={[
-                    styles.chartContainer,
-                    { backgroundColor: Colors[theme].TabBarBackground, paddingHorizontal: 20 },
-                ]}
-            >
-                <ThemedText type="subtitle">Counter Distribution</ThemedText>
-
-                {/* Leyenda en forma de escalera */}
-                <View
-                    style={{
-                        flexDirection: "row",
-                        justifyContent: "flex-end",
-                        alignItems: "flex-end",
-                        marginBottom: 10,
-                        gap: 30,
-                    }}
-                >
-                    {/* Grupo 1: "+0" */}
-                    <View style={{ alignItems: "center", gap: 3 }}>
-                        <ThemedText style={{ fontSize: 12, color: Colors[theme].tabIconDefault, marginBottom: -5 }}>
-                            +0
-                        </ThemedText>
-                        <View
-                            style={{
-                                width: 20,
-                                height: 10,
-                                borderRadius: 1,
-                                backgroundColor: Colors[theme].tint,
-                                opacity: 0.2, // Color del grupo 1
-                            }}
-                        />
-                    </View>
-
-                    {/* Grupo 2: "+1000" */}
-                    <View style={{ alignItems: "center", gap: 3, marginTop: -10 }}>
-                        <ThemedText style={{ fontSize: 12, color: Colors[theme].tabIconDefault, marginBottom: -5 }}>
-                            +1000
-                        </ThemedText>
-                        <View
-                            style={{
-                                width: 20,
-                                height: 10,
-                                borderRadius: 1,
-                                backgroundColor: Colors[theme].tint,
-                                opacity: 0.4, // Color del grupo 2
-                            }}
-                        />
-                    </View>
-
-                    {/* Grupo 3: "+2000" */}
-                    <View style={{ alignItems: "center", gap: 3, marginTop: -20 }}>
-                        <ThemedText style={{ fontSize: 12, color: Colors[theme].tabIconDefault, marginBottom: -5 }}>
-                            +2000
-                        </ThemedText>
-                        <View
-                            style={{
-                                width: 20,
-                                height: 10,
-                                borderRadius: 1,
-                                backgroundColor: Colors[theme].tint,
-                                opacity: 0.8, // Color del grupo 3
-                            }}
-                        />
-                    </View>
-
-                    {/* Grupo 4: "Counter Event" */}
-                    <View style={{ alignItems: "center", gap: 3, marginTop: -30 }}>
-                        <ThemedText style={{ fontSize: 12, color: Colors[theme].tabIconDefault, marginBottom: -5 }}>
-                            Counter Event
-                        </ThemedText>
-                        <View
-                            style={{
-                                width: 20,
-                                height: 10,
-                                borderRadius: 1,
-                                backgroundColor: Colors[theme].highlight,
-                                opacity: 0.7, // Color del grupo 4
-                            }}
-                        />
-                    </View>
-                </View>
-
-                {/* Barra horizontal */}
-                {(deckDetail.cards.length ?? 0) > 0 ? (
-                    <View
-                        style={{
-                            position: "relative", // Permite posicionar elementos dentro de este contenedor
-                            height: 40, // Altura total para incluir la barra y los números
-                            marginVertical: 10,
-                        }}
-                    >
-                        {/* Barra horizontal */}
-                        <View
-                            style={{
-                                flexDirection: "row",
-                                height: 20,
-                                borderRadius: 5,
-                                overflow: "hidden",
-                                borderWidth: 0,
-                                borderColor: Colors[theme].tabIconDefault,
-                            }}
-                        >
-                            <View
-                                style={{
-                                    flex: counterDistribution.noCounter,
-                                    backgroundColor: Colors[theme].tint, // Color para el grupo 1
-                                    opacity: 0.2,
-                                }}
-                            />
-                            <View
-                                style={{
-                                    flex: counterDistribution.counter1000,
-                                    backgroundColor: Colors[theme].tint, // Color para el grupo 2
-                                    opacity: 0.4,
-                                }}
-                            />
-                            <View
-                                style={{
-                                    flex: counterDistribution.counter2000,
-                                    backgroundColor: Colors[theme].tint, // Color para el grupo 3
-                                    opacity: 0.8,
-                                }}
-                            />
-                            <View
-                                style={{
-                                    flex: counterDistribution.eventCounter,
-                                    backgroundColor: Colors[theme].highlight, // Color para el grupo 4
-                                    opacity: 0.7,
-                                }}
-                            />
-                        </View>
-
-                        {/* Números encima de cada sector */}
-                        <View
-                            style={{
-                                position: "absolute",
-                                bottom: 0,
-                                left: 0,
-                                right: 0,
-                                flexDirection: "row",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                            }}
-                        >
-                            {/* Grupo 1 */}
-                            <View
-                                style={{
-                                    flex: counterDistribution.noCounter,
-                                    alignItems: "center",
-                                }}
-                            >
-                                <ThemedText style={{ fontSize: 12, color: Colors[theme].tabIconDefault }}>
-                                    {counterDistribution.noCounter}
-                                </ThemedText>
-                            </View>
-
-                            {/* Grupo 2 */}
-                            <View
-                                style={{
-                                    flex: counterDistribution.counter1000,
-                                    alignItems: "center",
-                                }}
-                            >
-                                <ThemedText style={{ fontSize: 12, color: Colors[theme].tabIconDefault }}>
-                                    {counterDistribution.counter1000}
-                                </ThemedText>
-                            </View>
-
-                            {/* Grupo 3 */}
-                            <View
-                                style={{
-                                    flex: counterDistribution.counter2000,
-                                    alignItems: "center",
-                                }}
-                            >
-                                <ThemedText style={{ fontSize: 12, color: Colors[theme].tabIconDefault }}>
-                                    {counterDistribution.counter2000}
-                                </ThemedText>
-                            </View>
-
-                            {/* Grupo 4 */}
-                            <View
-                                style={{
-                                    flex: counterDistribution.eventCounter,
-                                    alignItems: "center",
-                                }}
-                            >
-                                <ThemedText style={{ fontSize: 12, color: Colors[theme].tabIconDefault }}>
-                                    {counterDistribution.eventCounter}
-                                </ThemedText>
-                            </View>
-                        </View>
-                        {/* Textos de XXXX */}
-                    </View>
-                ) : (
-                    <ThemedText style={{ color: Colors[theme].text }}>No cards to display</ThemedText>
-                )}
-                <View
-                    style={{
-                        alignSelf: "flex-end",
-                        flexDirection: "row",
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                        marginBottom: 20,
-                    }}
-                >
-                    <ThemedText style={{ fontWeight: "bold", color: Colors[theme].tabIconDefault }}>Events:</ThemedText>
-
-                    {Object.entries(counterDistribution.eventCounterDetails).map(([xxxx, count]) => (
-                        <View
-                            key={xxxx}
-                            style={{
-                                flexDirection: "row",
-                                borderRadius: 5,
-                                overflow: "hidden", // Asegura que los bordes redondeados afecten ambos bloques de color
-                                marginLeft: 5,
-                            }}
-                        >
-                            {/* Primer fondo para el primer texto */}
-                            <View
-                                style={{
-                                    backgroundColor: Colors[theme].highlight,
-                                    opacity: 0.7,
-                                    paddingLeft: 8,
-                                    paddingRight: 5,
-                                    paddingVertical: 2,
-                                    borderTopLeftRadius: 5,
-                                    borderBottomLeftRadius: 5,
-                                }}
-                            >
-                                <ThemedText
-                                    style={{ fontSize: 14, fontWeight: "bold", color: Colors[theme].TabBarBackground }}
-                                >
-                                    {`+${parseInt(xxxx)}:`}
-                                </ThemedText>
-                            </View>
-
-                            {/* Segundo fondo para el segundo texto */}
-                            <View
-                                style={{
-                                    backgroundColor: Colors[theme].text, // Color distinto para la segunda parte
-                                    opacity: 0.8,
-                                    paddingLeft: 5,
-                                    paddingRight: 8,
-                                    paddingVertical: 2,
-                                    borderTopRightRadius: 5,
-                                    borderBottomRightRadius: 5,
-                                }}
-                            >
-                                <ThemedText
-                                    style={{ fontSize: 14, fontWeight: "bold", color: Colors[theme].background }}
-                                >
-                                    {`${count}`}
-                                </ThemedText>
-                            </View>
-                        </View>
-                    ))}
-                </View>
-            </View>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", width: "100%", padding: 5, marginTop:20 }}>
-                {/* Blockers */}
-                <View
-                    style={{
-                        flexDirection: "row",
-                        borderRadius: 5,
-                        overflow: "hidden", // Asegura que los bordes redondeados afecten ambos bloques de color
-                        marginLeft: 5,
-                    }}
-                >
-                    {/* Primer fondo para el primer texto */}
-                    <View
-                        style={{
-                            backgroundColor: Colors[theme].TabBarBackground,
-                            paddingLeft: 10,
-                            paddingRight: 7,
-                            paddingVertical: 7,
-                            borderTopLeftRadius: 5,
-                            borderBottomLeftRadius: 5,
-                        }}
-                    >
-                        <ThemedText style={{ fontSize: 14, fontWeight: "bold", color: Colors[theme].text }}>
-                            Blockers:
-                        </ThemedText>
-                    </View>
-
-                    {/* Segundo fondo para el segundo texto */}
-                    <View
-                        style={{
-                            backgroundColor: Colors[theme].tint, // Color distinto para la segunda parte
-                            paddingLeft: 7,
-                            paddingRight: 10,
-                            paddingVertical: 7,
-                            borderTopRightRadius: 5,
-                            borderBottomRightRadius: 5,
-                        }}
-                    >
-                        <ThemedText style={{ fontSize: 14, fontWeight: "bold", color: Colors[theme].text }}>
-                            {deckDetail.cards.reduce(
-                                (total, card) => total + (card.ability?.includes("[Blocker]") ? card.quantity ?? 1 : 0),
-                                0
-                            )}
-                        </ThemedText>
-                    </View>
-                </View>
-
-                {/* Fighters */}
-                <View
-                    style={{
-                        flexDirection: "row",
-                        borderRadius: 5,
-                        overflow: "hidden", // Asegura que los bordes redondeados afecten ambos bloques de color
-                        marginLeft: 5,
-                    }}
-                >
-                    {/* Primer fondo para el primer texto */}
-                    <View
-                        style={{
-                            backgroundColor: Colors[theme].TabBarBackground,
-                            paddingLeft: 10,
-                            paddingRight: 7,
-                            paddingVertical: 7,
-                            borderTopLeftRadius: 5,
-                            borderBottomLeftRadius: 5,
-                        }}
-                    >
-                        <ThemedText style={{ fontSize: 14, fontWeight: "bold", color: Colors[theme].text }}>
-                            +5k Card:
-                        </ThemedText>
-                    </View>
-
-                    {/* Segundo fondo para el segundo texto */}
-                    <View
-                        style={{
-                            backgroundColor: Colors[theme].tint, // Color distinto para la segunda parte
-                            paddingLeft: 7,
-                            paddingRight: 10,
-                            paddingVertical: 7,
-                            borderTopRightRadius: 5,
-                            borderBottomRightRadius: 5,
-                        }}
-                    >
-                        <ThemedText style={{ fontSize: 14, fontWeight: "bold", color: Colors[theme].text }}>
-                            {deckDetail.cards.reduce(
-                                (total, card) => total + (card.power > 5000 ? card.quantity ?? 1 : 0),
-                                0
-                            )}
-                        </ThemedText>
-                    </View>
-                </View>
-
-                {/* Events */}
-                <View
-                    style={{
-                        flexDirection: "row",
-                        borderRadius: 5,
-                        overflow: "hidden", // Asegura que los bordes redondeados afecten ambos bloques de color
-                        marginLeft: 5,
-                    }}
-                >
-                    {/* Primer fondo para el primer texto */}
-                    <View
-                        style={{
-                            backgroundColor: Colors[theme].TabBarBackground,
-                            paddingLeft: 10,
-                            paddingRight: 7,
-                            paddingVertical: 7,
-                            borderTopLeftRadius: 5,
-                            borderBottomLeftRadius: 5,
-                        }}
-                    >
-                        <ThemedText style={{ fontSize: 14, fontWeight: "bold", color: Colors[theme].text }}>
-                            Events:
-                        </ThemedText>
-                    </View>
-
-                    {/* Segundo fondo para el segundo texto */}
-                    <View
-                        style={{
-                            backgroundColor: Colors[theme].tint, // Color distinto para la segunda parte
-                            paddingLeft: 7,
-                            paddingRight: 10,
-                            paddingVertical: 7,
-                            borderTopRightRadius: 5,
-                            borderBottomRightRadius: 5,
-                        }}
-                    >
-                        <ThemedText style={{ fontSize: 14, fontWeight: "bold", color: Colors[theme].text }}>
-                            {deckDetail.cards.reduce(
-                                (total, card) => total + (card.type === "EVENT" ? card.quantity ?? 1 : 0),
-                                0
-                            )}
-                        </ThemedText>
-                    </View>
-                </View>
-            </View>
-            <View style={[styles.chartContainer, { backgroundColor: Colors[theme].TabBarBackground }]}>
-                <View style={styles.titleContainerChart}>
-                    <ThemedText style={{ paddingLeft: 20 }} type="subtitle">
-                        Cost Curve
-                    </ThemedText>
-                    <ThemedText style={{ fontWeight: "bold", color: Colors[theme].tabIconDefault }}>
-                        Average: {averageCost}
-                    </ThemedText>
-                </View>
-                <BarChart
-                    data={{
-                        labels: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
-                        datasets: [{ data: cardCosts }],
-                    }}
-                    width={Dimensions.get("window").width - 30} // Adjust width
-                    height={180}
-                    yAxisLabel=""
-                    yAxisSuffix=" Cards"
-                    fromZero={true} // Asegura que la escala empieza desde 0
-                    chartConfig={{
-                        backgroundColor: Colors[theme].TabBarBackground,
-                        backgroundGradientFrom: Colors[theme].TabBarBackground,
-                        backgroundGradientTo: Colors[theme].TabBarBackground,
-                        decimalPlaces: 0,
-                        barPercentage: 0.3,
-                        color: (opacity = 1) => "#446fcc",
-                        labelColor: (opacity = 1) => Colors[theme].tabIconDefault,
-                        style: { borderRadius: 16 },
-                        // propsForDots: { r: "6", strokeWidth: "2", stroke: Colors[theme].tint },
-                    }}
-                    style={{ marginVertical: 20, borderRadius: 16, alignSelf: "center" }}
-                    showValuesOnTopOfBars
-                    showBarTops={false}
-                    withInnerLines={false}
-                />
-            </View>
-            <View style={[styles.chartContainer, { backgroundColor: Colors[theme].TabBarBackground }]}>
-                <View style={styles.titleContainerChart}>
-                    <ThemedText style={{ paddingLeft: 20 }} type="subtitle">
-                        Power Curve
-                    </ThemedText>
-                    <ThemedText style={{ fontWeight: "bold", color: Colors[theme].tabIconDefault }}>
-                        Average: {averagePower}
-                    </ThemedText>
-                </View>
-                <BarChart
-                    data={{
-                        labels: ["0k", "1k", "2k", "3k", "4k", "5k", "6k", "7k", "8k", "9k", "+10k"],
-                        datasets: [{ data: cardPowers }],
-                    }}
-                    width={Dimensions.get("window").width - 30} // Adjust width
-                    height={180}
-                    yAxisLabel=""
-                    yAxisSuffix=" Cards"
-                    fromZero={true} // Asegura que la escala empieza desde 0
-                    chartConfig={{
-                        backgroundColor: Colors[theme].TabBarBackground,
-                        backgroundGradientFrom: Colors[theme].TabBarBackground,
-                        backgroundGradientTo: Colors[theme].TabBarBackground,
-                        decimalPlaces: 0,
-                        barPercentage: 0.3,
-                        color: (opacity = 1) => "#cc44cc",
-                        labelColor: (opacity = 1) => Colors[theme].tabIconDefault,
-                        style: { borderRadius: 16 },
-                        // propsForDots: { r: "6", strokeWidth: "2", stroke: Colors[theme].tint },
-                    }}
-                    style={{ marginVertical: 20, borderRadius: 16, alignSelf: "center" }}
-                    showValuesOnTopOfBars
-                    showBarTops={false}
-                    withInnerLines={false}
-                />
-            </View>
-            <View style={[styles.chartContainer, { backgroundColor: Colors[theme].TabBarBackground }]}>
-                <View style={styles.titleContainerChart}>
-                    <ThemedText style={{ paddingLeft: 20 }} type="subtitle">
-                        Archetype
-                    </ThemedText>
-                </View>
-                <View style={{ alignItems: "center", flexDirection: "row" }}>
-                    <PieChart
-                        data={familyDistribution}
-                        width={120}
-                        height={120}
-                        chartConfig={{
-                            backgroundColor: Colors[theme].TabBarBackground,
-                            backgroundGradientFrom: Colors[theme].TabBarBackground,
-                            backgroundGradientTo: Colors[theme].TabBarBackground,
-                            color: (opacity = 1) => Colors[theme].tint,
-                            labelColor: (opacity = 1) => Colors[theme].text,
-                        }}
-                        accessor={"count"}
-                        backgroundColor={"transparent"}
-                        paddingLeft={"40"}
-                        hasLegend={false}
-                        // center={[-20, 0]}
+            {nonLeaderCards.length > 0 && (
+                <>
+                    <CounterDistributionChart counterDistribution={counterDistribution} theme={theme} />
+                    <DeckStats
+                        blockers={deckDetail.cards.reduce(
+                            (total, card) => total + (card.ability?.includes("[Blocker]") ? card.quantity ?? 1 : 0),
+                            0
+                        )}
+                        plus5kCards={deckDetail.cards.reduce(
+                            (total, card) => total + (card.power > 5000 ? card.quantity ?? 1 : 0),
+                            0
+                        )}
+                        events={deckDetail.cards.reduce(
+                            (total, card) => total + (card.type === "EVENT" ? card.quantity ?? 1 : 0),
+                            0
+                        )}
+                        theme={theme}
                     />
-                    <View style={styles.pyeDetails}>
-                        <View style={styles.pyeDetailsUnit}>
-                            <ThemedText style={{ paddingLeft: 20, color: familyDistribution[0].color }}>
-                                {familyDistribution[0].name} -{" "}
-                                {(
-                                    (familyDistribution[0].count /
-                                        deckDetail.cards
-                                            .filter((card) => card.type !== "LEADER") // Excluye las cartas de tipo LEADER
-                                            .reduce((total, card) => total + (card.quantity ?? 1), 0)) *
-                                    100
-                                ).toFixed(1)}
-                                %
-                            </ThemedText>
-                            <View style={[styles.pyeColor, { backgroundColor: familyDistribution[0].color }]}></View>
-                        </View>
-                        <View style={styles.pyeDetailsUnit}>
-                            <ThemedText style={{ paddingLeft: 20, color: familyDistribution[1].color }}>
-                                {familyDistribution[1].name} -{" "}
-                                {(
-                                    (familyDistribution[1].count /
-                                        deckDetail.cards
-                                            .filter((card) => card.type !== "LEADER") // Excluye las cartas de tipo LEADER
-                                            .reduce((total, card) => total + (card.quantity ?? 1), 0)) *
-                                    100
-                                ).toFixed(1)}
-                                %
-                            </ThemedText>
-                            <View style={[styles.pyeColor, { backgroundColor: familyDistribution[1].color }]}></View>
-                        </View>
-                    </View>
-                </View>
-                {cardWithHighestX ? (
-                    <View style={styles.searcherContainer}>
-                        <Image
-                            source={{ uri: cardWithHighestX?.images_small || "" }}
-                            style={{ width: 80, height: 115, borderRadius: 5, opacity: 0.8 }}
+                    <CostCurveChart cardCosts={cardCosts} averageCost={averageCost} />
+                    <PowerCurveChart cardPowers={cardPowers} averagePower={averagePower} />
+                    <ArchetypeChart
+                        familyDistribution={familyDistribution}
+                        totalCards={nonLeaderCards.reduce((total, card) => total + (card.quantity ?? 1), 0)}
+                    />
+                    {cardWithHighestX ? (
+                        <Searcher
+                            cardImage={cardWithHighestX.images_small}
+                            x={probabilityForCardWithHighestX?.x!}
+                            probability={probabilityForCardWithHighestX?.probability!}
                         />
-                        <View style={styles.statsContainer}>
-                            <ThemedText type="subtitle" style={{ fontWeight: "bold", marginBottom: 12 }}>
-                                Searcher
-                            </ThemedText>
-                            <View style={styles.statItem}>
-                                <Ionicons name="search" size={16} color={Colors[theme].tint} />
-                                <ThemedText style={[styles.statText, { color: Colors[theme].tabIconDefault }]}>
-                                    {probabilityForCardWithHighestX?.x} cards
-                                </ThemedText>
-                            </View>
-
-                            <View style={styles.statItem}>
-                                <Ionicons name="bar-chart" size={16} color={Colors[theme].tint} />
-                                <ThemedText style={[styles.statText, { color: Colors[theme].tabIconDefault }]}>
-                                    {probabilityForCardWithHighestX?.probability.toFixed(2)}% Success rate
-                                </ThemedText>
-                            </View>
-                        </View>
-                    </View>
-                ) : (
-                    <ThemedText style={{ color: Colors[theme].text }}>No searchers</ThemedText>
-                )}
-            </View>
-            <View style={[styles.chartContainer, { backgroundColor: Colors[theme].TabBarBackground }]}>
-                <View style={styles.titleContainerChartTrigger}>
-                    <ThemedText style={{ paddingLeft: 20 }} type="subtitle">
-                        Num. of
-                    </ThemedText>
-                    <View>
-                        <ThemedText
-                            type="subtitle"
-                            style={{
-                                backgroundColor: "#ddd345",
-                                color: "black",
-                                borderRadius: 10,
-                                paddingHorizontal: 6,
-                                paddingVertical: 3,
-                            }}
-                        >
-                            Triggers
-                        </ThemedText>
-                    </View>
-                    <ThemedText type="subtitle">in lifes</ThemedText>
-                </View>
-                <View style={{ alignItems: "center", justifyContent: "flex-start", flexDirection: "row", gap: 30 }}>
-                    <View
-                        style={{
-                            flexDirection: "column",
-                            marginVertical: 20,
-                            gap: 5,
-                            alignItems: "flex-start",
-                            minWidth: 150,
-                        }}
-                    >
-                        {triggerProbabilities.map(({ triggers, probability }) => (
-                            <View key={triggers} style={{ flexDirection: "row", alignItems: "center" }}>
-                                {/* Etiqueta a la izquierda de la barra */}
-                                <ThemedText
-                                    style={{
-                                        fontSize: 12,
-                                        color: Colors[theme].text,
-                                        // width: 30,
-                                        textAlign: "right",
-                                        marginRight: 10,
-                                        marginLeft: 20,
-                                    }}
-                                >
-                                    {triggers} Tr:
-                                </ThemedText>
-
-                                {/* Barra amarilla horizontal */}
-                                <View
-                                    style={{
-                                        height: 20, // Altura fija para cada barra
-                                        width: (probability / 100) * 110, // Ancho proporcional a la probabilidad
-                                        backgroundColor: "#ddd345", // Color amarillo
-                                        borderRadius: 5,
-                                    }}
-                                />
-
-                                {/* Etiqueta de porcentaje al final de la barra */}
-                                <ThemedText
-                                    style={{
-                                        fontSize: 12,
-                                        fontWeight: "bold",
-                                        color: Colors[theme].tabIconDefault,
-                                        marginLeft: 10,
-                                    }}
-                                >
-                                    {probability.toFixed(2)}%
-                                </ThemedText>
-                            </View>
-                        ))}
-                    </View>
-                    <View style={{ justifyContent: "flex-start", alignSelf: "flex-end", gap: 10, marginBottom: 50 }}>
-                        <ThemedText
-                            type="title"
-                            style={{ textAlign: "center", color: Colors[theme].text, marginBottom: -8 }}
-                        >
-                            Triggers
-                        </ThemedText>
-                        <ThemedText
-                            type="subtitle"
-                            style={{ textAlign: "center", color: Colors[theme].tabIconDefault }}
-                        >
-                            in deck
-                        </ThemedText>
-                        {/* <Ionicons name="return-down-forward" size ={30} color={Colors[theme].text} style={{position:'absolute', top:30,left:10}}/> */}
-                        <ThemedText type="title" style={{ textAlign: "center", color: "#ddd345" }}>
-                            {deckDetail.cards.reduce((total, card) => total + (card.trigger ? card.quantity : 0), 0)}
-                        </ThemedText>
-                    </View>
-                </View>
-            </View>
+                    ) : (
+                        <ThemedText style={{ color: Colors[theme].text }}>No searchers</ThemedText>
+                    )}
+                    <TriggerChart
+                        triggerProbabilities={triggerProbabilities}
+                        totalTriggers={deckDetail.cards.reduce(
+                            (total, card) => total + (card.trigger ? card.quantity : 0),
+                            0
+                        )}
+                        theme={theme}
+                    />
+                </>
+            )}
         </ScrollView>
     );
 }
@@ -1093,6 +496,11 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         padding: 10,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
     },
     backButton: {
         marginRight: 12,
@@ -1140,63 +548,5 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontSize: 16,
         fontWeight: "bold",
-    },
-    chartContainer: {
-        marginTop: 20,
-        paddingTop: 20,
-        borderRadius: 15,
-        fontSize: 16,
-        fontWeight: "bold",
-    },
-    titleContainerChart: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "flex-end",
-        width: "95%",
-    },
-    titleContainerChartTrigger: {
-        flexDirection: "row",
-        justifyContent: "flex-start",
-        alignItems: "center",
-        width: "95%",
-        gap: 6,
-    },
-    pyeDetails: {
-        justifyContent: "flex-start",
-        alignItems: "flex-end",
-        gap: 10,
-        marginLeft: 0,
-        marginTop: -20,
-    },
-    pyeDetailsUnit: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 10,
-    },
-    pyeColor: {
-        width: 15,
-        height: 15,
-        borderRadius: 10,
-    },
-    searcherContainer: {
-        flexDirection: "row",
-        marginTop: 10,
-        justifyContent: "center",
-        alignItems: "center",
-        gap: 15,
-        paddingBottom: 20,
-    },
-    statsContainer: {
-        gap: 2,
-        marginTop: 0,
-    },
-    statItem: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
-    },
-    statText: {
-        fontWeight: "bold",
-        // color: Colors[theme].tint,
     },
 });
