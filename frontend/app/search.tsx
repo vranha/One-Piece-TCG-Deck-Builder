@@ -39,7 +39,7 @@ import TriggerFilter from "@/components/TriggerFilter";
 import CardItem from "@/components/CardItem";
 import UserDecksModal from "@/components/UserDecksModal";
 import SelectedCardsModal from "@/components/SelectedCardsModal";
-import { showMessage } from "react-native-flash-message";
+import Toast from "react-native-toast-message";
 import { supabase } from "@/supabaseClient";
 import AddToButton from "@/components/AddToButton";
 import useStore from "@/store/useStore";
@@ -214,7 +214,6 @@ export default function SearchScreen() {
             fetchCards(searchQuery, 1);
         }
     }, [cardSizeOption]);
-    
 
     const fetchCards = async (query = "", page = 1) => {
         if (loading || !hasMore) return;
@@ -328,7 +327,6 @@ export default function SearchScreen() {
         });
     };
 
-
     const handleTypeSelect = (type: string) => {
         setSelectedTypes(
             selectedTypes.includes(type) ? selectedTypes.filter((t) => t !== type) : [...selectedTypes, type]
@@ -421,12 +419,9 @@ export default function SearchScreen() {
         if (uniqueColors.size > 2) {
             closeModal(); // Close the modal first
             setTimeout(() => {
-                showMessage({
-                    message: "No se pueden seleccionar más de 2 colores.",
-                    type: "danger",
-                    floating: true,
-                    duration: 3000,
-                    position: "bottom",
+                Toast.show({
+                    type: "error",
+                    text1: "No se pueden seleccionar más de 2 colores.",
                 });
             }, 300); // Add a slight delay to ensure the modal is fully closed
             return;
@@ -461,12 +456,9 @@ export default function SearchScreen() {
                 .filter((card) => card.quantity > 0); // Excluir cartas con cantidad 0
 
             if (adjustedCards.length === 0) {
-                showMessage({
-                    message: "No se pueden añadir más cartas, ya alcanzaste el límite.",
-                    type: "warning",
-                    floating: true,
-                    duration: 3000,
-                    position: "bottom",
+                Toast.show({
+                    type: "error",
+                    text1: "No se pueden añadir más cartas, ya alcanzaste el límite.",
                 });
                 return;
             }
@@ -478,24 +470,18 @@ export default function SearchScreen() {
 
             if (response.status === 200 || response.status === 201) {
                 // Mostrar un mensaje de éxito
-            showMessage({
-                message: `Se añadieron ${totalQuantity} cartas al mazo "${deckName}".`,
-                type: "success",
-                floating: true,
-                duration: 3000,
-                position: "bottom",
-            });
-            userDecksModalRef.current?.close();
-            setSelectedCards([]); // Limpiar selección después de añadir
-        }
+                Toast.show({
+                    type: "success",
+                    text1: `Se añadieron ${totalQuantity} cartas al mazo "${deckName}".`,
+                });
+                userDecksModalRef.current?.close();
+                setSelectedCards([]); // Limpiar selección después de añadir
+            }
         } catch (error: any) {
             console.error("Error adding cards to deck:", error.response?.data || error.message);
-            showMessage({
-                message: "Error al añadir cartas al mazo.",
-                type: "danger",
-                floating: true,
-                duration: 3000,
-                position: "bottom",
+            Toast.show({
+                type: "error",
+                text1: "Error al añadir cartas al mazo.",
             });
         }
     };
@@ -555,7 +541,9 @@ export default function SearchScreen() {
                         style={[styles.resetButton, { backgroundColor: Colors[theme].tint }]}
                         onPress={() => setSelectedCards([])}
                     >
-                        <ThemedText style={[styles.resetButtonText, {color: Colors[theme].background}]}>({selectedCards.reduce((sum, card) => sum + card.quantity, 0)}) {t("erase")}</ThemedText>
+                        <ThemedText style={[styles.resetButtonText, { color: Colors[theme].background }]}>
+                            ({selectedCards.reduce((sum, card) => sum + card.quantity, 0)}) {t("erase")}
+                        </ThemedText>
                     </TouchableOpacity>
                 </View>
             )}
@@ -614,7 +602,7 @@ export default function SearchScreen() {
             {/* Modal de filtros */}
             <Modalize ref={modalizeRef} adjustToContentHeight>
                 <ScrollView ref={scrollViewRef}>
-                    <View style={[styles.modalContent, { backgroundColor: Colors[theme].TabBarBackground }]}>
+                    <View style={[styles.modalContent, { backgroundColor: Colors[theme].backgroundSoft }]}>
                         <DropdownsContainer formattedSetNames={formattedSetNames} families={families} />
                         <TriggerFilter triggerFilter={triggerFilter} onToggle={handleTriggerFilterToggle} />
                         <View style={[styles.separator, { backgroundColor: Colors[theme].tabIconDefault }]} />
@@ -691,6 +679,7 @@ export default function SearchScreen() {
                 cards={selectedCards.map(({ cardId, quantity }) => ({ cardId, quantity }))}
                 handleAddCardToDeck={handleAddCardToDeck}
             />
+            <Toast />
         </View>
     );
 }

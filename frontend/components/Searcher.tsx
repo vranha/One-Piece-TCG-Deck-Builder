@@ -48,7 +48,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 30,
         paddingVertical: 15,
         borderRadius: 12,
-        elevation: 2,
     },
     statsContainer: {
         gap: 2,

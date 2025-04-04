@@ -23,6 +23,9 @@ export const Colors = {
         triggerInactive: "#757575",
         triggerActiveText: "#2D2D2D",
         triggerInactiveText: "#5A5A5A",
+        success: "#4CAF50", // Verde para éxito
+        error: "#F44336", // Rojo para error
+        info: "#2196F3", // Azul para información
     },
     dark: {
         text: "#EAEAEA",
@@ -40,5 +43,8 @@ export const Colors = {
         triggerInactive: "#424242",
         triggerActiveText: "#2D2D2D",
         triggerInactiveText: "#9E9E9E",
+        success: "#81C784", // Verde más suave para éxito
+        error: "#E57373", // Rojo más suave para error
+        info: "#64B5F6", // Azul más suave para información
     },
 };

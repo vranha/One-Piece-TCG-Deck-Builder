@@ -26,7 +26,7 @@ const CardOptions: React.FC<CardOptionsProps> = ({
     const { t } = useTranslation();
 
     return (
-        <View style={[styles.buttonContainer, { backgroundColor: Colors[theme].TabBarBackground }]}>
+        <View style={[styles.buttonContainer, { backgroundColor: Colors[theme].backgroundSoft }]}>
             <TouchableOpacity
                 style={[
                     styles.optionButton,
@@ -49,7 +49,7 @@ const CardOptions: React.FC<CardOptionsProps> = ({
                 onPress={() => setSelectedButton("Collection")}
             >
                 <ThemedText style={[styles.optionButtonText, { color: Colors[theme].background }]}>
-                    {t("collect")}
+                    {t("collection")}
                 </ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
@@ -67,7 +67,7 @@ const CardOptions: React.FC<CardOptionsProps> = ({
             </TouchableOpacity>
             <CustomNumericInput value={quantity} onChange={onQuantityChange} />
             <TouchableOpacity
-                style={[styles.addButton, { backgroundColor: Colors[theme].tint }]}
+                style={[styles.addButton, { backgroundColor: Colors[theme].success }]}
                 onPress={onAddButtonPress}
             >
                 <Ionicons name="checkmark" size={24} color={Colors[theme].text} />
@@ -112,8 +112,8 @@ const styles = StyleSheet.create({
         borderBottomRightRadius: 10,
     },
     addButton: {
-        paddingHorizontal: 10,
-        paddingVertical: 7,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
         borderRadius: 5,
     },
 });

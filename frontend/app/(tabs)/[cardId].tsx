@@ -16,7 +16,7 @@ import { supabase } from "@/supabaseClient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ScrollView } from "react-native-gesture-handler";
 import { useTranslation } from "react-i18next";
-import { showMessage } from "react-native-flash-message";
+import Toast from "react-native-toast-message";
 import CardOptions from "@/components/CardOptions";
 import CardStats from "@/components/CardStats";
 import CardDescription from "@/components/CardDescription";
@@ -115,46 +115,42 @@ export default function CardDetailScreen() {
 
     const fetchUserDecks = async () => {
         if (!userId || !cardDetail) return;
-    
+
         // Suponiendo que cardDetail.color ahora es un array de colores
         const cardColors = Array.isArray(cardDetail.color) ? cardDetail.color : [cardDetail.color];
-    
+
         // Mapeamos los colores a sus correspondientes ID
         const colorNameToId = { red: 1, blue: 2, green: 3, yellow: 4, purple: 5, black: 6 };
-    
+
         // Convertimos los colores de la carta en color_ids (asegurándonos que estén en minúsculas)
         const colorIds = cardColors
-            .map(color => colorNameToId[color.toLowerCase() as keyof typeof colorNameToId])
-            .filter(id => id); // Filtramos cualquier color que no tenga un ID correspondiente
-    
+            .map((color) => colorNameToId[color.toLowerCase() as keyof typeof colorNameToId])
+            .filter((id) => id); // Filtramos cualquier color que no tenga un ID correspondiente
+
         // Verificamos si hay más de 2 colores
         if (colorIds.length > 2) {
-            showMessage({
-                message: "No se pueden seleccionar más de 2 colores.",
-                type: "danger",
-                floating: true,
-                duration: 3000,
-                position: "bottom",
+            Toast.show({
+                type: "error",
+                text1: t("No se pueden seleccionar más de 2 colores."),
             });
             return;
         }
-    
+
         try {
             const response = await api.get(`/decks/${userId}`);
             const allDecks = response.data.data;
-    
+
             // Filtramos los mazos que contienen al menos uno de los colores correspondientes
             const filteredDecks = allDecks.filter((deck: { deck_colors: { color_id: number }[] }) =>
                 deck.deck_colors.some((color) => colorIds.includes(color.color_id))
             );
-    
+
             setUserDecks(filteredDecks);
             console.log(filteredDecks);
         } catch (error: any) {
             console.error("Error fetching user decks:", error.response?.data || error.message);
         }
     };
-    
 
     const handleAddButtonPress = () => {
         if (selectedButton === "Deck") {
@@ -174,11 +170,9 @@ export default function CardDetailScreen() {
 
             if (response.status === 200 || response.status === 201) {
                 // Mostrar un mensaje de éxito
-                showMessage({
-                    message: `😆`,
-                    description: t("cardAddedToDeck", { deckName }),
+                Toast.show({
                     type: "success",
-                    duration: 3000,
+                    text1: t("cardAddedToDeck", { deckName }),
                 });
 
                 // Cerrar el modal
@@ -188,11 +182,10 @@ export default function CardDetailScreen() {
             console.error("Error adding card to deck:", error.response?.data || error.message);
 
             // Mostrar un mensaje de error
-            showMessage({
-                message: `😅 ${t("error")}`,
-                description: t("errorAddingCard"),
-                type: "danger",
-                duration: 3000,
+            Toast.show({
+                type: "error",
+                text1: t("error"),
+                text2: t("errorAddingCard"),
             });
         }
     };
@@ -216,7 +209,7 @@ export default function CardDetailScreen() {
     const cardsToAdd = [{ cardId: Array.isArray(cardId) ? cardId[0] : cardId, quantity }];
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: Colors[theme].background }}>
+        <>
             <ScrollView
                 contentContainerStyle={{ flexGrow: 1, paddingBottom: 80 }}
                 style={{ backgroundColor: Colors[theme].background }}
@@ -261,7 +254,8 @@ export default function CardDetailScreen() {
                 handleAddCardToDeck={handleAddCardToDeck}
                 hasTabBar={true}
             />
-        </SafeAreaView>
+            <Toast />
+        </>
     );
 }
 

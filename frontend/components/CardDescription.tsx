@@ -33,7 +33,7 @@ const CardDescription: React.FC<CardDescriptionProps> = ({ cardDetail, dividerSt
                 <View
                     style={{
                         alignItems: "flex-start",
-                        backgroundColor: Colors[theme].TabBarBackground,
+                        backgroundColor: Colors[theme].backgroundSoft,
                         borderRadius: 5,
                         padding: 12,
                     }}

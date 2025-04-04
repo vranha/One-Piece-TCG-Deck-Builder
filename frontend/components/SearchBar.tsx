@@ -54,11 +54,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 <MaterialIcons
                     name={isSelectionEnabled ? "check-circle" : "check-circle-outline"}
                     size={24}
-                    color={Colors.light.highlight}
+                    color={ isSelectionEnabled ? Colors[theme].info :Colors[theme].text}
                 />
             </TouchableOpacity>
             <TouchableOpacity onPress={onOpenFilterModal} style={styles.filterButton}>
-                <MaterialIcons name="filter-list" size={24} color={Colors[theme].highlight} />
+                <MaterialIcons name="filter-list" size={24} color={ isBaseRoute ? Colors[theme].text :Colors[theme].info} />
             </TouchableOpacity>
             <TouchableOpacity onPress={onToggleCardSize} style={styles.cardSizeToggle}>
                 <MaterialIcons

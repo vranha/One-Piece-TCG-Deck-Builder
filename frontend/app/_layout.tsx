@@ -6,13 +6,14 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import "react-native-reanimated";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import FlashMessage from "react-native-flash-message";
 import { ThemeProvider, useTheme } from "@/hooks/ThemeContext";
 import { supabase } from "@/supabaseClient";
 import AuthCheck from "@/components/AuthCheck"; // Asegúrate de la ruta correcta
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Provider as PaperProvider } from "react-native-paper";
 import "../i18n"; // Import i18n configuration
+import Toast from "react-native-toast-message";
+import toastConfig from "@/config/toastConfig";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -70,6 +71,7 @@ export default function RootLayout() {
                     <GestureHandlerRootView style={{ flex: 1 }}>
                         <AuthCheck />
                         <ThemeConsumer isAuthenticated={isAuthenticated} />
+                        <Toast config={toastConfig} />
                     </GestureHandlerRootView>
                 </PaperProvider>
             </ThemeProvider>
@@ -94,8 +96,8 @@ function ThemeConsumer({ isAuthenticated }: { isAuthenticated: boolean }) {
                     <Stack.Screen name="login" options={{ headerShown: false }} />
                 )}
             </Stack>
-            <FlashMessage position="top" />
             <StatusBar style="auto" />
         </NavigationThemeProvider>
     );
 }
+

@@ -6,7 +6,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
-import { showMessage } from "react-native-flash-message";
+import Toast from "react-native-toast-message";
 
 export default function RegisterScreen() {
     const [email, setEmail] = useState("");
@@ -18,20 +18,18 @@ export default function RegisterScreen() {
     const handleRegister = async () => {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) {
-            showMessage({
-                message: "Error",
-                description: error.message,
-                type: "danger",
-                icon: "auto",
+            Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: error.message,
             });
         } else {
             const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
             if (loginError) {
-                showMessage({
-                    message: "Error",
-                    description: loginError.message,
-                    type: "danger",
-                    icon: "auto",
+                Toast.show({
+                    type: "error",
+                    text1: "Error",
+                    text2: loginError.message,
                 });
             } else {
                 router.push("/(tabs)");
@@ -68,6 +66,7 @@ export default function RegisterScreen() {
                 </TouchableOpacity>
             </View>
             <Button title="Registrarse" onPress={handleRegister} color={Colors[theme].tint} />
+            <Toast />
         </View>
     );
 }

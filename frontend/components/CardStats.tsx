@@ -26,7 +26,7 @@ const CardStats: React.FC<CardStatsProps> = ({ cardDetail, hasPower, dividerStyl
     return (
         <View style={styles.cardContainer}>
             {/* Columna Izquierda (Stats) */}
-            <View style={[styles.statsContainer, { backgroundColor: Colors[theme].TabBarBackground }]}>
+            <View style={[styles.statsContainer, { backgroundColor: Colors[theme].backgroundSoft }]}>
                 <View style={{ alignItems: "center" }}>
                     <Image source={{ uri: cardDetail.attribute_image }} style={styles.attributeImage} />
                     <ThemedText style={styles.attributeText}>{cardDetail.attribute_name}</ThemedText>

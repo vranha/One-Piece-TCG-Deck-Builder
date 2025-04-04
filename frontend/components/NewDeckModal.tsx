@@ -5,8 +5,9 @@ import { useTheme } from "@/hooks/ThemeContext";
 import useApi from "@/hooks/useApi";
 import { Image } from "expo-image";
 import { useAuth } from "@/contexts/AuthContext";
-import FlashMessage, { showMessage } from "react-native-flash-message";
+import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
+import { Ionicons } from "@expo/vector-icons";
 
 interface NewDeckModalProps {
     visible: boolean;
@@ -37,7 +38,7 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
     const handleCreate = async () => {
         try {
             // Aquí ahora usamos directamente selectedColors como array de colores.
-            const colorsArray = selectedColors; 
+            const colorsArray = selectedColors;
             const response = await api.post("/decks", {
                 userId: session?.user.id, // Obtén el user-id del contexto de autenticación
                 name,
@@ -49,22 +50,22 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
             if (response.status === 201) {
                 onCreate(leader?.id || "", name, description);
                 handleClose();
-                showMessage({
-                    message: t("create_deck_success"),
+                Toast.show({
                     type: "success",
+                    text1: t("create_deck_success"),
                 });
             } else {
                 console.error("Error al crear el mazo:", response.data);
-                showMessage({
-                    message: t("create_deck_error"),
-                    type: "danger",
+                Toast.show({
+                    type: "error",
+                    text1: t("create_deck_error"),
                 });
             }
         } catch (error) {
             console.error("Error al crear el mazo:", error);
-            showMessage({
-                message: t("create_deck_error"),
-                type: "danger",
+            Toast.show({
+                type: "error",
+                text1: t("create_deck_error"),
             });
         }
     };
@@ -89,7 +90,7 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
                 // Si hay más de un color, incluirlos todos en la query
                 colorQuery = `colors=${colors.join(",")}`;
             }
-    
+
             const response = await api.get(`/cards?type=LEADER&limit=1000&${colorQuery}`);
             setLeaders(response.data.data);
         } catch (error: any) {
@@ -98,7 +99,6 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
             setLoading(false);
         }
     };
-    
 
     useEffect(() => {
         if (leaderModalVisible) {
@@ -109,6 +109,10 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
     const handleLeaderSelect = (selectedLeader: Card) => {
         setLeader(selectedLeader);
         setLeaderModalVisible(false);
+    };
+
+    const handleLeaderDeselect = () => {
+        setLeader(null);
     };
 
     const handleColorSelect = (color: string) => {
@@ -137,13 +141,28 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
                 <View style={styles.overlay}>
                     <TouchableOpacity style={styles.overlayTouchable} activeOpacity={1} onPress={handleClose} />
                     <View style={[styles.centeredView]}>
-                        <View style={[styles.modalView, { backgroundColor: Colors[theme].background }]} >
+                        <View style={[styles.modalView, { backgroundColor: Colors[theme].TabBarBackground }]}>
                             <TouchableOpacity
                                 onPress={() => setLeaderModalVisible(true)}
-                                style={leader ? null : styles.leaderButton}
+                                style={
+                                    leader
+                                        ? styles.leaderSelectedContainer
+                                        : [styles.leaderButton, { borderColor: Colors[theme].icon }]
+                                }
                             >
                                 {leader ? (
-                                    <Image source={{ uri: leader.images_small }} style={styles.leaderImage} />
+                                    <View style={styles.leaderSelected}>
+                                        <Image source={{ uri: leader.images_small }} style={styles.leaderImage} />
+                                        <TouchableOpacity
+                                            onPress={handleLeaderDeselect}
+                                            style={[
+                                                styles.deselectButton,
+                                                { backgroundColor: Colors[theme].TabBarBackground },
+                                            ]}
+                                        >
+                                            <Ionicons name="close-circle" size={28} color={Colors[theme].tint} />
+                                        </TouchableOpacity>
+                                    </View>
                                 ) : (
                                     <Text style={[styles.leaderButtonText, { color: Colors[theme].text }]}>
                                         {t("select_leader")}
@@ -151,20 +170,37 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
                                 )}
                             </TouchableOpacity>
                             <TextInput
-                                style={[styles.input, { color: Colors[theme].text }]}
+                                style={[
+                                    styles.input,
+                                    {
+                                        color: Colors[theme].text,
+                                        borderColor: Colors[theme].background,
+                                        backgroundColor: Colors[theme].backgroundSoft,
+                                    },
+                                ]}
                                 placeholder={t("deck_name")}
-                                placeholderTextColor={Colors[theme].icon}
+                                placeholderTextColor={Colors[theme].tabIconDefault}
                                 value={name}
                                 onChangeText={(text) => setName(text.slice(0, 9))}
                             />
                             <TextInput
-                                style={[styles.input, { color: Colors[theme].text }]}
+                                style={[
+                                    styles.input,
+                                    {
+                                        color: Colors[theme].text,
+                                        borderColor: Colors[theme].background,
+                                        backgroundColor: Colors[theme].backgroundSoft,
+                                    },
+                                ]}
                                 placeholder={t("description_optional")}
-                                placeholderTextColor={Colors[theme].icon}
+                                placeholderTextColor={Colors[theme].tabIconDefault}
                                 value={description}
                                 onChangeText={setDescription}
                             />
-                            <TouchableOpacity style={styles.button} onPress={handleCreate}>
+                            <TouchableOpacity
+                                style={[styles.button, { backgroundColor: Colors[theme].success }]}
+                                onPress={handleCreate}
+                            >
                                 <Text style={styles.buttonText}>{t("create_deck")}</Text>
                             </TouchableOpacity>
                         </View>
@@ -197,7 +233,9 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
                                                 style={[
                                                     styles.colorCircle,
                                                     { backgroundColor: color },
-                                                    selectedColors.includes(color) && styles.selectedColorCircle,
+                                                    selectedColors.includes(color) && {
+                                                        borderColor: Colors[theme].success,
+                                                    },
                                                 ]}
                                                 onPress={() => handleColorSelect(color)}
                                             />
@@ -226,7 +264,7 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
                     </View>
                 </View>
             </Modal>
-            <FlashMessage position="top" />
+            <Toast />
         </>
     );
 }
@@ -234,7 +272,7 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
 const styles = StyleSheet.create({
     overlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: "rgba(0, 0, 0, 0.4)",
+        backgroundColor: "rgba(0, 0, 0, 0.6)", // Fondo más oscuro para mayor contraste
     },
     overlayTouchable: {
         ...StyleSheet.absoluteFillObject,
@@ -243,95 +281,106 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        marginTop: 22,
+        padding: 20, // Espaciado adicional para evitar bordes
     },
     modalView: {
-        margin: 20,
+        width: "90%",
         borderRadius: 20,
-        padding: 35,
+        padding: 25,
         alignItems: "center",
+        backgroundColor: Colors.light.background,
         shadowColor: "#000",
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 5,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 8,
     },
     modalViewImages: {
-        marginHorizontal: 0,
-        marginVertical: 30,
+        width: "90%",
         borderRadius: 20,
-        padding: 15,
+        padding: 20,
         alignItems: "center",
+        backgroundColor: Colors.light.backgroundSoft,
         shadowColor: "#000",
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 5,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 8,
     },
     input: {
-        width: 250,
-        height: 40,
-        borderColor: Colors.light.icon,
+        width: "100%",
+        height: 50,
+
         borderWidth: 1,
-        borderRadius: 10,
-        paddingHorizontal: 10,
-        marginBottom: 15,
+        borderRadius: 12,
+        paddingHorizontal: 15,
+        marginBottom: 20,
+
+        fontSize: 16,
+        color: Colors.light.text,
     },
     button: {
-        backgroundColor: Colors.light.tint,
-        borderRadius: 10,
-        padding: 10,
-        elevation: 2,
+        width: "100%",
+        borderRadius: 12,
+        paddingVertical: 12,
+        alignItems: "center",
+        elevation: 3,
     },
     buttonText: {
-        color: "white",
+        color: "#fff",
         fontWeight: "bold",
-        textAlign: "center",
+        fontSize: 16,
     },
     leaderButton: {
-        width: 250,
-        height: 40,
-        borderColor: Colors.light.icon,
+        width: "100%",
+        height: 50,
         borderWidth: 1,
-        borderRadius: 10,
+        borderRadius: 12,
         justifyContent: "center",
         alignItems: "center",
-        marginBottom: 15,
+        marginBottom: 20,
     },
     leaderButtonText: {
         fontSize: 16,
-    },
-    leaderImage: {
-        width: 100,
-        height: 145,
-        borderRadius: 5,
-        marginBottom: 10,
+        fontWeight: "bold",
     },
     leaderList: {
         justifyContent: "center",
         alignItems: "center",
-        gap: 10,
+        gap: 15,
     },
     colorFilters: {
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-        marginBottom: 10,
+        marginBottom: 20,
     },
     colorCircle: {
-        width: 30,
-        height: 30,
-        borderRadius: 15,
-        marginHorizontal: 5,
-    },
-    selectedColorCircle: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        marginHorizontal: 8,
         borderWidth: 2,
-        borderColor: "#fff",
+        borderColor: "transparent",
+    },
+    leaderSelectedContainer: {
+        marginVertical: 20,
+    },
+    leaderSelected: {
+        position: "relative", // Contenedor relativo para posicionar el botón
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    leaderImage: {
+        width: 96,
+        height: 128,
+        borderRadius: 10,
+    },
+    deselectButton: {
+        position: "absolute", // Superpone el botón sobre la imagen
+        top: -10, // Ajusta la posición vertical
+        right: -10, // Ajusta la posición horizontal
+        borderRadius: 50,
+        padding: 0,
     },
 });

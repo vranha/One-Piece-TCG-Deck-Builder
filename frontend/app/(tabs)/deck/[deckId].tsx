@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import {
     View,
     StyleSheet,
@@ -8,6 +8,9 @@ import {
     Text,
     ScrollView,
     Dimensions,
+    Platform,
+    ToastAndroid,
+    Alert,
 } from "react-native";
 import { useNavigation, useLocalSearchParams, useRouter } from "expo-router";
 import { Colors } from "@/constants/Colors";
@@ -25,6 +28,9 @@ import { Searcher } from "@/components/Searcher"; // Import the new component
 import { TriggerChart } from "@/components/TriggerChart"; // Import the new component
 import { CounterDistributionChart } from "@/components/CounterDistributionChart"; // Import the new component
 import { DeckStats } from "@/components/DeckStats"; // Import the new component
+import * as Clipboard from "expo-clipboard";
+import Toast from "react-native-toast-message";
+import { Modalize } from "react-native-modalize";
 
 interface DeckDetail {
     id: string;
@@ -42,6 +48,11 @@ export default function DeckDetailScreen() {
     const [loading, setLoading] = useState(true);
     const navigation = useNavigation();
     const router = useRouter();
+    const modalizeRef = useRef<Modalize>(null);
+
+    const openModal = () => {
+        modalizeRef.current?.open();
+    };
 
     useEffect(() => {
         setDeckDetail(null); // Reset deckDetail when deckId changes
@@ -68,14 +79,63 @@ export default function DeckDetailScreen() {
 
         navigation.setOptions({
             headerShown: true,
-            title: deckDetail.name,
             headerLeft: () => (
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <MaterialIcons name="arrow-back" size={24} color={Colors[theme].text} />
                 </TouchableOpacity>
             ),
+            headerTitle: () => null, // No title in the center
+            headerRight: () => (
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <TouchableOpacity
+                        onPress={deckDetail.cards.length < 51 ? openModal : undefined}
+                        style={{
+                            backgroundColor:
+                                deckDetail.cards.length < 51 ? Colors[theme].success : Colors[theme].disabled,
+                            paddingVertical: 5,
+                            paddingHorizontal: 10,
+                            borderRadius: 5,
+                            marginRight: 10,
+                        }}
+                        disabled={deckDetail.cards.length >= 51}
+                    >
+                        <ThemedText style={{ color: Colors[theme].background, fontWeight: "bold" }}>
+                            Add Card
+                        </ThemedText>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        onPress={copyDeckToClipboard}
+                        style={{
+                            backgroundColor: Colors[theme].info,
+                            paddingVertical: 5,
+                            paddingHorizontal: 10,
+                            borderRadius: 5,
+                        }}
+                    >
+                        <ThemedText style={{ color: Colors[theme].background, fontWeight: "bold" }}>Copy</ThemedText>
+                    </TouchableOpacity>
+                </View>
+            ),
         });
-    }, [deckDetail?.name, theme]); // Only depend on deckDetail.name and theme
+    }, [deckDetail?.cards.length, theme]);
+
+    const copyDeckToClipboard = () => {
+        if (!deckDetail || !deckDetail.cards.length) return;
+
+        // Generar el string con los códigos y cantidades, separando cada carta con un salto de línea
+        const deckString = deckDetail.cards.map((card) => `${card.quantity ?? 1}x${card.code}`).join("\n"); // Aseguramos que cada carta esté en una línea nueva
+
+        // Copiar al portapapeles
+        Clipboard.setStringAsync(deckString);
+
+        // Mostrar el mensaje de confirmación personalizado
+        Toast.show({
+            type: "success", // Tipo de mensaje (success, error, info)
+            text1: "Copied Deck for Simulator", // Título del mensaje
+            text2: "Your deck has been copied to the clipboard!", // Subtítulo opcional
+            position: "bottom", // Posición del toast (top, bottom)
+        });
+    };
 
     const calculateCardCosts = () => {
         const costCounts = Array(11).fill(0); // Array para costos de 0 a 10
@@ -405,90 +465,125 @@ export default function DeckDetailScreen() {
     }
 
     return (
-        <ScrollView
-            style={[styles.container, { backgroundColor: Colors[theme].background }]}
-            contentContainerStyle={{ paddingBottom: 150 }}
-        >
-            <ThemedText style={[styles.title, { color: Colors[theme].text }]}>{deckDetail.name}</ThemedText>
-            {deckDetail.description ? (
-                <ThemedText style={[styles.description, { color: Colors[theme].disabled }]}>
-                    {deckDetail.description}
-                </ThemedText>
-            ) : null}
-            <View style={styles.cardsContainer}>
-                {deckDetail.cards
-                    .sort((a, b) => {
-                        if (a.is_leader) return -1; // Los LEADER van primero
-                        if (b.is_leader) return 1;
-                        if (a.type === "CHARACTER" && b.type !== "CHARACTER") return -1; // Los CHARACTER van después de LEADER
-                        if (b.type === "CHARACTER" && a.type !== "CHARACTER") return 1;
-                        return (a.cost ?? 0) - (b.cost ?? 0); // Ordenar por costo
-                    })
-                    .map((item) => (
-                        <View
-                            key={item.id}
-                            style={[
-                                styles.cardContainer,
-                                { borderColor: Colors[theme].TabBarBackground },
-                                item.is_leader ? { borderColor: Colors[theme].tint, transform: [{ scale: 1.1 }] } : {},
-                            ]}
-                        >
-                            <Image source={{ uri: item.images_small }} style={styles.cardImage} />
-                            <View style={[styles.quantityContainer, { backgroundColor: Colors[theme].tint }]}>
-                                <Text style={styles.quantityText}>{item.quantity}</Text>
+        <>
+            <ScrollView
+                style={[styles.container, { backgroundColor: Colors[theme].background }]}
+                contentContainerStyle={{ paddingBottom: 150 }}
+            >
+                <ThemedText style={[styles.title, { color: Colors[theme].text }]}>{deckDetail.name}</ThemedText>
+                {deckDetail.description ? (
+                    <ThemedText style={[styles.description, { color: Colors[theme].disabled }]}>
+                        {deckDetail.description}
+                    </ThemedText>
+                ) : null}
+                <View style={styles.cardsContainer}>
+                    {deckDetail.cards
+                        .sort((a, b) => {
+                            if (a.is_leader) return -1; // Los LEADER van primero
+                            if (b.is_leader) return 1;
+                            if (a.type === "CHARACTER" && b.type !== "CHARACTER") return -1; // Los CHARACTER van después de LEADER
+                            if (b.type === "CHARACTER" && a.type !== "CHARACTER") return 1;
+                            return (a.cost ?? 0) - (b.cost ?? 0); // Ordenar por costo
+                        })
+                        .map((item) => (
+                            <View
+                                key={item.id}
+                                style={[
+                                    styles.cardContainer,
+                                    { borderColor: Colors[theme].backgroundSoft },
+                                    item.is_leader
+                                        ? { borderColor: Colors[theme].tint, transform: [{ scale: 1.1 }] }
+                                        : {},
+                                ]}
+                            >
+                                <Image source={{ uri: item.images_small }} style={styles.cardImage} />
+                                {!item.is_leader ? (
+                                    <View
+                                        style={[
+                                            styles.quantityContainerBack,
+                                            { backgroundColor: Colors[theme].backgroundSoft },
+                                        ]}
+                                    >
+                                        <View
+                                            style={[styles.quantityContainer, { backgroundColor: Colors[theme].tint }]}
+                                        >
+                                            <Text
+                                                style={[styles.quantityText, { color: Colors[theme].backgroundSoft }]}
+                                            >
+                                                {item.quantity}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                ) : (
+                                    ""
+                                )}
                             </View>
-                        </View>
-                    ))}
-            </View>
+                        ))}
+                </View>
 
-            <View
-                style={{ flexDirection: "row", height: 20, marginVertical: 10, borderRadius: 5, overflow: "hidden" }}
-            ></View>
+                <View
+                    style={{
+                        flexDirection: "row",
+                        height: 20,
+                        marginVertical: 10,
+                        borderRadius: 5,
+                        overflow: "hidden",
+                    }}
+                ></View>
 
-            {nonLeaderCards.length > 0 && (
-                <>
-                    <CounterDistributionChart counterDistribution={counterDistribution} theme={theme} />
-                    <DeckStats
-                        blockers={deckDetail.cards.reduce(
-                            (total, card) => total + (card.ability?.includes("[Blocker]") ? card.quantity ?? 1 : 0),
-                            0
-                        )}
-                        plus5kCards={deckDetail.cards.reduce(
-                            (total, card) => total + (card.power > 5000 ? card.quantity ?? 1 : 0),
-                            0
-                        )}
-                        events={deckDetail.cards.reduce(
-                            (total, card) => total + (card.type === "EVENT" ? card.quantity ?? 1 : 0),
-                            0
-                        )}
-                        theme={theme}
-                    />
-                    <CostCurveChart cardCosts={cardCosts} averageCost={averageCost} />
-                    <PowerCurveChart cardPowers={cardPowers} averagePower={averagePower} />
-                    <ArchetypeChart
-                        familyDistribution={familyDistribution}
-                        totalCards={nonLeaderCards.reduce((total, card) => total + (card.quantity ?? 1), 0)}
-                    />
-                    {cardWithHighestX ? (
-                        <Searcher
-                            cardImage={cardWithHighestX.images_small}
-                            x={probabilityForCardWithHighestX?.x!}
-                            probability={probabilityForCardWithHighestX?.probability!}
+                {nonLeaderCards.length > 0 && (
+                    <>
+                        <CounterDistributionChart counterDistribution={counterDistribution} theme={theme} />
+                        <DeckStats
+                            blockers={deckDetail.cards.reduce(
+                                (total, card) => total + (card.ability?.includes("[Blocker]") ? card.quantity ?? 1 : 0),
+                                0
+                            )}
+                            plus5kCards={deckDetail.cards.reduce(
+                                (total, card) => total + (card.power > 5000 ? card.quantity ?? 1 : 0),
+                                0
+                            )}
+                            events={deckDetail.cards.reduce(
+                                (total, card) => total + (card.type === "EVENT" ? card.quantity ?? 1 : 0),
+                                0
+                            )}
+                            theme={theme}
                         />
-                    ) : (
-                        <ThemedText style={{ color: Colors[theme].text }}>No searchers</ThemedText>
-                    )}
-                    <TriggerChart
-                        triggerProbabilities={triggerProbabilities}
-                        totalTriggers={deckDetail.cards.reduce(
-                            (total, card) => total + (card.trigger ? card.quantity : 0),
-                            0
+                        <CostCurveChart cardCosts={cardCosts} averageCost={averageCost} />
+                        <PowerCurveChart cardPowers={cardPowers} averagePower={averagePower} />
+                        <ArchetypeChart
+                            familyDistribution={familyDistribution}
+                            totalCards={nonLeaderCards.reduce((total, card) => total + (card.quantity ?? 1), 0)}
+                        />
+                        {cardWithHighestX ? (
+                            <Searcher
+                                cardImage={cardWithHighestX.images_small}
+                                x={probabilityForCardWithHighestX?.x!}
+                                probability={probabilityForCardWithHighestX?.probability!}
+                            />
+                        ) : (
+                            <ThemedText style={{ color: Colors[theme].text }}>No searchers</ThemedText>
                         )}
-                        theme={theme}
-                    />
-                </>
-            )}
-        </ScrollView>
+                        <TriggerChart
+                            triggerProbabilities={triggerProbabilities}
+                            totalTriggers={deckDetail.cards.reduce(
+                                (total, card) => total + (card.trigger ? card.quantity : 0),
+                                0
+                            )}
+                            theme={theme}
+                        />
+                    </>
+                )}
+            </ScrollView>
+            <Modalize ref={modalizeRef} snapPoint={500} modalStyle={{ backgroundColor: Colors[theme].backgroundSoft }}>
+                <View style={[styles.containerModalize]}>
+                    <ThemedText style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>
+                        Add a New Card
+                    </ThemedText>
+                    {/* Aquí puedes agregar el contenido del modal para añadir cartas */}
+                </View>
+            </Modalize>
+        </>
     );
 }
 
@@ -514,8 +609,9 @@ const styles = StyleSheet.create({
     },
     description: {
         fontSize: 16,
-        textAlign: "center",
+        textAlign: "left",
         marginBottom: 20,
+        padding: 12
     },
     cardsContainer: {
         flexDirection: "row",
@@ -534,19 +630,26 @@ const styles = StyleSheet.create({
         height: 140,
         borderRadius: 5,
     },
-    quantityContainer: {
-        position: "absolute",
-        bottom: -8,
-        right: -8,
+    quantityContainerBack: {
+        position: "absolute", // Superpone el botón sobre la imagen
+        bottom: -8, // Ajusta la posición vertical
+        right: -8, // Ajusta la posición horizontal
         borderRadius: 50,
-        width: 28,
-        height: 28,
+        padding: 4,
+    },
+    quantityContainer: {
+        borderRadius: 50,
+        width: 24,
+        height: 24,
         justifyContent: "center",
         alignItems: "center",
     },
     quantityText: {
-        color: "#fff",
         fontSize: 16,
         fontWeight: "bold",
+    },
+    containerModalize: {
+        padding: 20,
+        marginBottom: 65,
     },
 });

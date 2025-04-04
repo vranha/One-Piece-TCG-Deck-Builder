@@ -62,7 +62,7 @@ const SelectedCardsModal: React.FC<SelectedCardsModalProps> = ({
                             keyboardShouldPersistTaps="handled"
                         >
                             <View style={styles.tableContainer}>
-                                <View style={styles.tableHeader}>
+                                <View style={[styles.tableHeader, { borderColor: Colors[theme].text }]}>
                                     <ThemedText style={[styles.tableHeaderText, { color: Colors[theme].disabled }]}>
                                     {t('name')}
                                     </ThemedText>
@@ -179,8 +179,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         paddingVertical: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.light.icon,
+        borderBottomWidth: 2,
     },
     tableHeaderText: {
         fontSize: 16,
@@ -203,10 +202,10 @@ const styles = StyleSheet.create({
         fontSize: 14,
     },
     colorIndicator: {
-        width: 20,
-        height: 20,
+        width: 12,
+        height: 12,
         borderRadius: 10,
-        borderWidth: 1,
+        // borderWidth: 1,
         alignSelf: "center",
     },
     actionButtonsContainer: {

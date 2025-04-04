@@ -28,7 +28,7 @@ const CustomNumericInput: React.FC<CustomNumericInputProps> = ({ value, onChange
         const { theme } = useTheme();
 
     return (
-        <View style={[styles.container, { backgroundColor: Colors[theme].TabBarBackground }]}>
+        <View style={[styles.container, { backgroundColor: Colors[theme].backgroundSoft }]}>
             <TouchableOpacity onPress={handleDecrement} style={[styles.button, { backgroundColor: Colors[theme].tabIconDefault }]}>
                 <MaterialIcons name="remove" size={24} color="black" />
             </TouchableOpacity>
@@ -50,11 +50,11 @@ const styles = StyleSheet.create({
         paddingVertical: 5,
     },
     button: {
-        padding: 3,
+        padding: 0,
         borderRadius: 5,
     },
     value: {
-        marginHorizontal: 10,
+        marginHorizontal: 5,
         fontSize: 20,
     },
 });
