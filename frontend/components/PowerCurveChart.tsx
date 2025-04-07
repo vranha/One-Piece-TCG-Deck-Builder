@@ -4,6 +4,7 @@ import { BarChart } from "react-native-chart-kit";
 import { ThemedText } from "@/components/ThemedText";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 interface PowerCurveChartProps {
     cardPowers: number[];
@@ -12,15 +13,16 @@ interface PowerCurveChartProps {
 
 export const PowerCurveChart: React.FC<PowerCurveChartProps> = ({ cardPowers, averagePower }) => {
     const { theme } = useTheme();
+    const { t } = useTranslation();
 
     return (
         <View style={[styles.chartContainer, { backgroundColor: Colors[theme].TabBarBackground }]}>
             <View style={styles.titleContainer}>
                 <ThemedText style={{ paddingLeft: 20 }} type="subtitle">
-                    Power Curve
+                    {t("power_curve")}
                 </ThemedText>
                 <ThemedText style={{ fontWeight: "bold", color: Colors[theme].tabIconDefault }}>
-                    Average: {averagePower}
+                    {t("average_power")}: {averagePower}
                 </ThemedText>
             </View>
             <BarChart

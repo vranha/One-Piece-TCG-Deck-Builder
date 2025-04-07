@@ -266,10 +266,7 @@ async function addMultipleCardsToDeck(deckId, cards) {
             if (existingCards) {
                 // Si la carta ya existe, sumamos la cantidad sin sobrepasar 4
                 const newQuantity = Math.min(existingCards.quantity + quantity, 4);
-                await supabase
-                    .from("deck_cards")
-                    .update({ quantity: newQuantity })
-                    .eq("id", existingCards.id);
+                await supabase.from("deck_cards").update({ quantity: newQuantity }).eq("id", existingCards.id);
             } else {
                 // Si la carta no existe en el mazo, la insertamos pero con máximo 4 copias
                 const insertQuantity = Math.min(quantity, 4);
@@ -288,6 +285,87 @@ async function addMultipleCardsToDeck(deckId, cards) {
     }
 }
 
+async function syncDeckCards(deckId, newCards) {
+    try {
+        // Validar que cada carta tenga cardId y quantity
+        if (!Array.isArray(newCards)) {
+            throw new Error("newCards debe ser un array.");
+        }
+
+        newCards.forEach((card) => {
+            if (!card.cardId || typeof card.quantity !== "number") {
+                // Cambiar "card.card" a "card.cardId"
+                throw new Error(`Datos inválidos en newCards: ${JSON.stringify(card)}`);
+            }
+        });
+
+        // 1. Obtener el estado actual del mazo
+        const { data: currentCards, error } = await supabase
+            .from("deck_cards")
+            .select("id, card_id, quantity")
+            .eq("deck_id", deckId);
+
+        if (error) {
+            console.error("Error al obtener cartas actuales:", error);
+            return;
+        }
+
+        const currentMap = new Map();
+        currentCards.forEach((card) => currentMap.set(card.card_id, card));
+
+        const newCardIds = newCards.map((c) => c.cardId);
+        const processedCardIds = new Set();
+
+        // 2. Procesar cada carta del nuevo array
+        for (const { cardId, quantity } of newCards) {
+            if (!cardId) {
+                console.error("cardId es inválido:", cardId);
+                continue;
+            }
+
+            const clampedQuantity = Math.max(0, Math.min(quantity, 4)); // límites del juego
+            const existingCard = currentMap.get(cardId);
+
+            processedCardIds.add(cardId);
+
+            if (existingCard) {
+                if (clampedQuantity === 0) {
+                    // Si la nueva cantidad es 0, eliminar la carta
+                    await supabase.from("deck_cards").delete().eq("id", existingCard.id);
+                } else if (existingCard.quantity !== clampedQuantity) {
+                    // Si la cantidad ha cambiado, actualizarla
+                    await supabase.from("deck_cards").update({ quantity: clampedQuantity }).eq("id", existingCard.id);
+                }
+                // Si es igual, no hacer nada
+            } else if (clampedQuantity > 0) {
+                // Insertar nueva carta
+                console.log("Insertando nueva carta:", {
+                    deck_id: deckId,
+                    card_id: cardId,
+                    quantity: clampedQuantity,
+                });
+                await supabase.from("deck_cards").insert([
+                    {
+                        deck_id: deckId,
+                        card_id: cardId,
+                        quantity: clampedQuantity,
+                    },
+                ]);
+            }
+        }
+
+        // 3. Eliminar cartas que ya no están en el nuevo array
+        for (const card of currentCards) {
+            if (!processedCardIds.has(card.card_id)) {
+                await supabase.from("deck_cards").delete().eq("id", card.id);
+            }
+        }
+
+        console.log("Mazo sincronizado correctamente.");
+    } catch (err) {
+        console.error("Error al sincronizar el mazo:", err);
+    }
+}
 
 // Eliminar un mazo y sus asociaciones
 const deleteDeck = async (deckId) => {
@@ -305,5 +383,6 @@ module.exports = {
     getUserDecks,
     addCardToDeck,
     addMultipleCardsToDeck,
+    syncDeckCards,
     getDeckById,
 };

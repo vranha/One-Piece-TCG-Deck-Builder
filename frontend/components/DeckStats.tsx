@@ -2,6 +2,7 @@ import React from "react";
 import { View, StyleSheet } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { Colors } from "@/constants/Colors";
+import { useTranslation } from "react-i18next";
 
 interface DeckStatsProps {
     blockers: number;
@@ -11,11 +12,13 @@ interface DeckStatsProps {
 }
 
 export const DeckStats: React.FC<DeckStatsProps> = ({ blockers, plus5kCards, events, theme }) => {
+    const { t } = useTranslation();
+
     return (
         <View style={styles.container}>
-            <StatItem label="Blockers:" value={blockers} theme={theme} />
-            <StatItem label="+5k Card:" value={plus5kCards} theme={theme} />
-            <StatItem label="Events:" value={events} theme={theme} />
+            <StatItem label={t("blockers") + ":"} value={blockers} theme={theme} />
+            <StatItem label={t("plus_5k_cards") + ":"} value={plus5kCards} theme={theme} />
+            <StatItem label={t("events") + ":"} value={events} theme={theme} />
         </View>
     );
 };

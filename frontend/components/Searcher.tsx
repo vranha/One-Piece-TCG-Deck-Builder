@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 interface SearcherProps {
     cardImage: string;
@@ -13,24 +14,25 @@ interface SearcherProps {
 
 export const Searcher: React.FC<SearcherProps> = ({ cardImage, x, probability }) => {
     const { theme } = useTheme();
+    const { t } = useTranslation();
 
     return (
         <View style={styles.searcherContainer}>
             <Image source={{ uri: cardImage }} style={{ width: 80, height: 115, borderRadius: 5, opacity: 0.8 }} />
             <View style={styles.statsContainer}>
                 <ThemedText type="subtitle" style={{ fontWeight: "bold", marginBottom: 12 }}>
-                    Searcher
+                    {t("searcher")}
                 </ThemedText>
                 <View style={styles.statItem}>
                     <Ionicons name="search" size={16} color={Colors[theme].tint} />
                     <ThemedText style={[styles.statText, { color: Colors[theme].tabIconDefault }]}>
-                        {x} cards
+                        {x} {t("cards")}
                     </ThemedText>
                 </View>
                 <View style={styles.statItem}>
                     <Ionicons name="bar-chart" size={16} color={Colors[theme].tint} />
                     <ThemedText style={[styles.statText, { color: Colors[theme].tabIconDefault }]}>
-                        {probability.toFixed(2)}% Success rate
+                        {probability.toFixed(1)}% {t("success_rate")}
                     </ThemedText>
                 </View>
             </View>

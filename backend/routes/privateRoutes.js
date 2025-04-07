@@ -264,6 +264,8 @@ router.post("/decks/cards", validate(addCardToDeckSchema), deckController.addCar
  */
 router.post("/decks/cards/multiple", deckController.addMultipleCardsToDeck);
 
+router.post("/decks/cards/sync", deckController.syncDeckCards);
+
 /**
  * @swagger
  * /decks/{deckId}:

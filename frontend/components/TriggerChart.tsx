@@ -2,19 +2,22 @@ import React from "react";
 import { View, StyleSheet } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { Colors } from "@/constants/Colors";
+import { useTranslation } from "react-i18next";
 
 interface TriggerChartProps {
     triggerProbabilities: { triggers: number; probability: number }[];
     totalTriggers: number;
-    theme: string;
+    theme: 'light' | 'dark';
 }
 
 export const TriggerChart: React.FC<TriggerChartProps> = ({ triggerProbabilities, totalTriggers, theme }) => {
+    const { t } = useTranslation();
+
     return (
         <View style={[styles.chartContainer, { backgroundColor: Colors[theme].TabBarBackground }]}>
             <View style={styles.titleContainerChartTrigger}>
                 <ThemedText style={{ paddingLeft: 20 }} type="subtitle">
-                    Num. of
+                    {t("num_of")}
                 </ThemedText>
                 <View>
                     <ThemedText
@@ -27,10 +30,10 @@ export const TriggerChart: React.FC<TriggerChartProps> = ({ triggerProbabilities
                             paddingVertical: 3,
                         }}
                     >
-                        Triggers
+                        {t("triggers")}
                     </ThemedText>
                 </View>
-                <ThemedText type="subtitle">in lifes</ThemedText>
+                <ThemedText type="subtitle">{t("in_lifes")}</ThemedText>
             </View>
             <View
                 style={{
@@ -59,7 +62,7 @@ export const TriggerChart: React.FC<TriggerChartProps> = ({ triggerProbabilities
                                     marginLeft: 20,
                                 }}
                             >
-                                {triggers} Tr:
+                                {triggers} {t("triggers_short")}:
                             </ThemedText>
                             <View
                                 style={{
@@ -77,7 +80,7 @@ export const TriggerChart: React.FC<TriggerChartProps> = ({ triggerProbabilities
                                     marginLeft: 10,
                                 }}
                             >
-                                {probability.toFixed(2)}%
+                                {probability.toFixed(1)}%
                             </ThemedText>
                         </View>
                     ))}
@@ -94,10 +97,10 @@ export const TriggerChart: React.FC<TriggerChartProps> = ({ triggerProbabilities
                         type="title"
                         style={{ textAlign: "center", color: Colors[theme].text, marginBottom: -8 }}
                     >
-                        Triggers
+                        {t("triggers")}
                     </ThemedText>
                     <ThemedText type="subtitle" style={{ textAlign: "center", color: Colors[theme].tabIconDefault }}>
-                        in deck
+                        {t("in_deck")}
                     </ThemedText>
                     <ThemedText type="title" style={{ textAlign: "center", color: "#ddd345" }}>
                         {totalTriggers}

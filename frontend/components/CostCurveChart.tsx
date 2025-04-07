@@ -4,6 +4,7 @@ import { BarChart } from "react-native-chart-kit";
 import { ThemedText } from "@/components/ThemedText";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 interface CostCurveChartProps {
     cardCosts: number[];
@@ -12,15 +13,16 @@ interface CostCurveChartProps {
 
 export const CostCurveChart: React.FC<CostCurveChartProps> = ({ cardCosts, averageCost }) => {
     const { theme } = useTheme();
+    const { t } = useTranslation();
 
     return (
         <View style={[styles.chartContainer, { backgroundColor: Colors[theme].TabBarBackground }]}>
             <View style={styles.titleContainer}>
                 <ThemedText style={{ paddingLeft: 20 }} type="subtitle">
-                    Cost Curve
+                    {t("cost_curve")}
                 </ThemedText>
                 <ThemedText style={{ fontWeight: "bold", color: Colors[theme].tabIconDefault }}>
-                    Average: {averageCost}
+                    {t("average_cost")}: {averageCost}
                 </ThemedText>
             </View>
             <BarChart

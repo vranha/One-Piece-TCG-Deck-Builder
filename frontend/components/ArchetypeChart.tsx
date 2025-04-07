@@ -4,6 +4,7 @@ import { PieChart } from "react-native-chart-kit";
 import { ThemedText } from "@/components/ThemedText";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 interface ArchetypeChartProps {
     familyDistribution: {
@@ -16,12 +17,13 @@ interface ArchetypeChartProps {
 
 export const ArchetypeChart: React.FC<ArchetypeChartProps> = ({ familyDistribution, totalCards }) => {
     const { theme } = useTheme();
+    const { t } = useTranslation();
 
     return (
         <View style={[styles.chartContainer, { backgroundColor: Colors[theme].TabBarBackground }]}>
             <View style={styles.titleContainer}>
                 <ThemedText style={{ paddingLeft: 20 }} type="subtitle">
-                    Archetype
+                    {t("archetype")}
                 </ThemedText>
             </View>
             <View style={{ alignItems: "center", flexDirection: "row" }}>

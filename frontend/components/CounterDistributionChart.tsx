@@ -2,6 +2,7 @@ import React from "react";
 import { View, StyleSheet } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { Colors } from "@/constants/Colors";
+import { useTranslation } from "react-i18next";
 
 interface CounterDistributionChartProps {
     counterDistribution: {
@@ -15,21 +16,22 @@ interface CounterDistributionChartProps {
 }
 
 export const CounterDistributionChart: React.FC<CounterDistributionChartProps> = ({ counterDistribution, theme }) => {
+    const { t } = useTranslation();
     const { noCounter, counter1000, counter2000, eventCounter, eventCounterDetails } = counterDistribution;
 
     return (
         <View style={[styles.chartContainer, { backgroundColor: Colors[theme].TabBarBackground }]}>
             <ThemedText type="subtitle" style={styles.title}>
-                Counter Distribution
+                {t("counter_distribution")}
             </ThemedText>
 
             {/* Legend */}
             <View style={styles.legendContainer}>
                 {[
-                    { label: "+0", color: Colors[theme].tint, opacity: 0.2 },
-                    { label: "+1000", color: Colors[theme].tint, opacity: 0.4 },
-                    { label: "+2000", color: Colors[theme].tint, opacity: 0.8 },
-                    { label: "Counter Event", color: Colors[theme].highlight, opacity: 0.7 },
+                    { label: t("counter_0"), color: Colors[theme].tint, opacity: 0.2 },
+                    { label: t("counter_1000"), color: Colors[theme].tint, opacity: 0.4 },
+                    { label: t("counter_2000"), color: Colors[theme].tint, opacity: 0.8 },
+                    { label: t("counter_event"), color: Colors[theme].highlight, opacity: 0.7 },
                 ].map(({ label, color, opacity }) => (
                     <LegendItem key={label} label={label} color={color} opacity={opacity} theme={theme} />
                 ))}
@@ -53,7 +55,7 @@ export const CounterDistributionChart: React.FC<CounterDistributionChartProps> =
             {/* Event Counter Details */}
             <View style={styles.eventDetailsContainer}>
                 <ThemedText style={[styles.eventDetailsTitle, { color: Colors[theme].tabIconDefault }]}>
-                    Events:
+                    {t("events") + ":"}
                 </ThemedText>
                 {Object.entries(eventCounterDetails).map(([xxxx, count]) => (
                     <EventDetail key={xxxx} xxxx={xxxx} count={count} theme={theme} />
@@ -85,7 +87,7 @@ const BarSegment = ({ flex, color, opacity }: { flex: number; color: string; opa
 );
 
 const NumberItem = ({ value, theme }: { value: number; theme: "light" | "dark" }) => (
-    <View style={styles.numberItem}>
+    <View style={[styles.numberItem, { flex: value }]}>
         <ThemedText style={{ fontSize: 12, color: Colors[theme].tabIconDefault }}>{value}</ThemedText>
     </View>
 );

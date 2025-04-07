@@ -87,6 +87,17 @@ const addMultipleCardsToDeck = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+// Añadir múltiples cartas a un mazo
+const syncDeckCards = async (req, res) => {
+    const { deckId, cards } = req.body;
+    try {
+        const data = await deckService.syncDeckCards(deckId, cards);
+        res.status(201).json(data);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+};
 
 // Eliminar un mazo y sus asociaciones
 const deleteDeck = async (req, res) => {
@@ -108,4 +119,5 @@ module.exports = {
     addCardToDeck,
     getDeckById, // Añadir la nueva función al módulo exportado
     addMultipleCardsToDeck,
+    syncDeckCards,
 };
