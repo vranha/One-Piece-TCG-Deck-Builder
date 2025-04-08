@@ -64,8 +64,8 @@ const DeckCarousel: React.FC<DeckCarouselProps> = ({ decks, onNewDeckPress, onDe
                 mode="parallax"
                 modeConfig={{
                     parallaxScrollingScale: 1,
-                    parallaxScrollingOffset: 30,
-                    parallaxAdjacentItemScale: 0.9,
+                    parallaxScrollingOffset: 40,
+                    parallaxAdjacentItemScale: 0.8,
                 }}
                 customConfig={() => ({ type: "positive", viewCount: 3 })}
             />

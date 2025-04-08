@@ -29,6 +29,7 @@ const DropdownsContainer: React.FC<DropdownsContainerProps> = ({ formattedSetNam
                         ...formattedSetNames.map(({ original, formatted }) => ({
                             label: formatted,
                             value: original,
+                            key: original, 
                         })),
                     ]}
                     itemKey="value"
@@ -47,7 +48,7 @@ const DropdownsContainer: React.FC<DropdownsContainerProps> = ({ formattedSetNam
                     labelStyle={{ color: Colors[theme].text }}
                     selectedItemLabelStyle={{ fontWeight: "bold" }}
                     placeholder={t("select_set")}
-                    placeholderStyle={{ color: Colors[theme].text }}
+                    placeholderStyle={{ color: Colors[theme].tabIconDefault }}
                     searchable={true}
                     searchPlaceholder={t("search_set")}
                     multiple={false}
@@ -70,6 +71,7 @@ const DropdownsContainer: React.FC<DropdownsContainerProps> = ({ formattedSetNam
                         ...families.sort().map((family) => ({
                             label: family,
                             value: family,
+                            key: family, // Usamos `family` como clave única
                         })),
                     ]}
                     itemKey="value"
@@ -88,7 +90,7 @@ const DropdownsContainer: React.FC<DropdownsContainerProps> = ({ formattedSetNam
                     labelStyle={{ color: Colors[theme].text }}
                     selectedItemLabelStyle={{ fontWeight: "bold" }}
                     placeholder={t("select_family")}
-                    placeholderStyle={{ color: Colors[theme].text }}
+                    placeholderStyle={{ color: Colors[theme].tabIconDefault }}
                     searchable={true}
                     searchPlaceholder={t("search_family")}
                     multiple={false}

@@ -12,6 +12,8 @@ import {
     Alert,
     TextInput,
     FlatList,
+    Modal,
+    Pressable,
 } from "react-native";
 import { Image as ExpoImage } from "expo-image";
 import { useNavigation, useLocalSearchParams, useRouter } from "expo-router";
@@ -35,6 +37,8 @@ import Toast from "react-native-toast-message";
 import { Modalize } from "react-native-modalize";
 import { useTranslation } from "react-i18next";
 import FilterSlider from "@/components/FilterSlider";
+import ImageModal from "@/components/ImageModal"; // Import the new component
+import CardSelectionModal from "@/components/CardSelectionModal"; // Import the new component
 
 interface DeckDetail {
     id: string;
@@ -84,6 +88,73 @@ export default function DeckDetailScreen() {
     const [powerRange, setPowerRange] = useState<[number, number]>([0, 13000]); // State for power filter
     const [counterRange, setCounterRange] = useState<[number, number]>([0, 2000]); // State for counter filter
     const [isModalOpen, setIsModalOpen] = useState(false); // State to track modal open/close
+    const [showSelectedCardsOnly, setShowSelectedCardsOnly] = useState(false); // State to toggle showing only selected cards
+
+    const [relatedCards, setRelatedCards] = useState<Card[]>([]); // Estado para cartas relacionadas
+    const [selectedCard, setSelectedCard] = useState<Card | null>(null); // Carta seleccionada para reemplazo
+    const [isModalVisible, setIsModalVisible] = useState(false); // Estado del modal
+
+    const [isImageModalVisible, setIsImageModalVisible] = useState(false); // State for image modal
+    const [selectedImage, setSelectedImage] = useState<string | null>(null); // State for selected image
+
+    const fetchRelatedCards = async (code: string) => {
+        try {
+            const response = await api.get(`/cards/by-code/${code}`);
+            setRelatedCards(response.data);
+            setIsModalVisible(true); // Abre el modal
+        } catch (error) {
+            console.error("Error fetching related cards:", error);
+        }
+    };
+
+    const replaceCard = async (newCard: Card) => {
+        if (!deckDetail || !selectedCard) return;
+
+        // Update the deck detail locally
+        const updatedCards = deckDetail.cards.map((card) =>
+            card.id === selectedCard.id ? { ...newCard, quantity: card.quantity } : card
+        );
+
+        setDeckDetail((prev) => ({
+            ...prev!,
+            cards: updatedCards,
+        }));
+
+        try {
+            // Sync the updated deck with the server
+            const adjustedCards = updatedCards.map((card) => ({
+                cardId: card.id,
+                quantity: card.quantity ?? 1,
+            }));
+
+            await api.post("/decks/cards/sync", {
+                deckId,
+                cards: adjustedCards,
+            });
+
+            Toast.show({
+                type: "success",
+                text1: t("deck_synced_title"),
+                text2: t("deck_synced_message"),
+                position: "bottom",
+            });
+        } catch (error) {
+            console.error("Error syncing deck cards:", error);
+            Toast.show({
+                type: "error",
+                text1: t("deck_sync_error_title"),
+                text2: t("deck_sync_error_message"),
+                position: "bottom",
+            });
+        }
+
+        setIsModalVisible(false); // Close the modal
+    };
+
+    const openImageModal = (imageUri: string) => {
+        setSelectedImage(imageUri);
+        setIsImageModalVisible(true);
+    };
 
     useEffect(() => {
         if (!deckDetail) return;
@@ -632,7 +703,16 @@ export default function DeckDetailScreen() {
             );
 
             const { data: cards } = response.data;
-            setFilteredCards(cards); // Store all cards
+
+            if (showSelectedCardsOnly) {
+                // Filter cards to show only those in selectedCards with quantity > 0
+                const selectedCardIds = Object.entries(selectedCards)
+                    .filter(([_, quantity]) => quantity > 0)
+                    .map(([cardId]) => cardId);
+                setFilteredCards(cards.filter((card: Card) => selectedCardIds.includes(card.id)));
+            } else {
+                setFilteredCards(cards); // Store all cards
+            }
         } catch (error) {
             console.error("Error fetching filtered cards:", error);
         }
@@ -655,7 +735,16 @@ export default function DeckDetailScreen() {
 
     useEffect(() => {
         fetchFilteredCards(); // Reset search whenever filters change
-    }, [searchQuery, leaderColors, selectedTypes, selectedFamilies, costRange, powerRange, counterRange]); // Updated dependencies
+    }, [
+        searchQuery,
+        leaderColors,
+        selectedTypes,
+        selectedFamilies,
+        costRange,
+        powerRange,
+        counterRange,
+        showSelectedCardsOnly,
+    ]); // Updated dependencies
 
     const toggleFilterVisibility = () => {
         setFiltersVisible(!filtersVisible);
@@ -780,35 +869,53 @@ export default function DeckDetailScreen() {
                             return (Number(a.cost) || 0) - (Number(b.cost) || 0); // Ordenar por costo
                         })
                         .map((item) => (
-                            <View
-                                key={item.id}
-                                style={[
-                                    styles.cardContainer,
-                                    { borderColor: Colors[theme].backgroundSoft },
-                                    item.is_leader
-                                        ? { borderColor: Colors[theme].tint, transform: [{ scale: 1.1 }] }
-                                        : {},
-                                ]}
-                            >
-                                <ExpoImage source={{ uri: item.images_small }} style={styles.cardImage} />
-                                {!item.is_leader ? (
+                            <View key={item.id} style={styles.cardWrapper}>
+                                <TouchableOpacity onPress={() => openImageModal(item.images_small)}>
                                     <View
                                         style={[
-                                            styles.quantityContainerBack,
-                                            { backgroundColor: Colors[theme].backgroundSoft },
+                                            styles.cardContainer,
+                                            { borderColor: Colors[theme].backgroundSoft },
+                                            item.is_leader
+                                                ? { borderColor: Colors[theme].tint, transform: [{ scale: 1.1 }] }
+                                                : {},
                                         ]}
                                     >
-                                        <View
-                                            style={[styles.quantityContainer, { backgroundColor: Colors[theme].tint }]}
-                                        >
-                                            <Text
-                                                style={[styles.quantityText, { color: Colors[theme].backgroundSoft }]}
+                                        <ExpoImage source={{ uri: item.images_small }} style={styles.cardImage} />
+                                        {!item.is_leader ? (
+                                            <View
+                                                style={[
+                                                    styles.quantityContainerBack,
+                                                    { backgroundColor: Colors[theme].backgroundSoft },
+                                                ]}
                                             >
-                                                {item.quantity}
-                                            </Text>
-                                        </View>
+                                                <View
+                                                    style={[
+                                                        styles.quantityContainer,
+                                                        { backgroundColor: Colors[theme].tint },
+                                                    ]}
+                                                >
+                                                    <Text
+                                                        style={[
+                                                            styles.quantityText,
+                                                            { color: Colors[theme].backgroundSoft },
+                                                        ]}
+                                                    >
+                                                        {item.quantity}
+                                                    </Text>
+                                                </View>
+                                            </View>
+                                        ) : null}
                                     </View>
-                                ) : null}
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.changeArtIcon,  item.is_leader ? { transform: [{ scale: 1.1 }], bottom:-4, left:-4, backgroundColor: Colors[theme].tint } : { backgroundColor: Colors[theme].backgroundSoft } ]}
+                                    onPress={() => {
+                                        setSelectedCard(item);
+                                        fetchRelatedCards(item.code);
+                                    }}
+                                >
+                                    <MaterialIcons name="palette" size={16} color={Colors[theme].text} />
+                                </TouchableOpacity>
                             </View>
                         ))}
                 </View>
@@ -857,7 +964,11 @@ export default function DeckDetailScreen() {
                         ) : (
                             <ThemedText
                                 type="subtitle"
-                                style={{ color: Colors[theme].text, textAlign: "center", marginTop: 20 }}
+                                style={{
+                                    color: Colors[theme].text,
+                                    textAlign: "center",
+                                    marginTop: 20,
+                                }}
                             >
                                 {t("no_searchers")}
                             </ThemedText>
@@ -873,10 +984,25 @@ export default function DeckDetailScreen() {
                     </>
                 )}
             </ScrollView>
+            <ImageModal
+                isVisible={isImageModalVisible}
+                onClose={() => setIsImageModalVisible(false)}
+                imageUri={selectedImage}
+                theme={theme}
+            />
+            <CardSelectionModal
+                isVisible={isModalVisible}
+                onClose={() => setIsModalVisible(false)}
+                relatedCards={relatedCards}
+                onCardSelect={replaceCard}
+                theme={theme}
+                t={t}
+            />
             <Modalize
                 ref={modalizeRef}
                 // snapPoint={100}
                 closeSnapPointStraightEnabled={false}
+                adjustToContentHeight
                 modalStyle={{ backgroundColor: Colors[theme].backgroundSoft }}
                 velocity={8000} // gesto extremadamente rápido necesario
                 threshold={200} // gesto muy largo también necesario si no supera velocity
@@ -902,14 +1028,22 @@ export default function DeckDetailScreen() {
                                 >
                                     {deckCardCount}
                                 </Text>
-                                <Text style={{ fontWeight: "bold", color: Colors[theme].disabled }}>
+                                <Text
+                                    style={{
+                                        fontWeight: "bold",
+                                        color: Colors[theme].disabled,
+                                    }}
+                                >
                                     /{limitDeckNum}
                                 </Text>
                             </Text>
                             <TextInput
                                 style={[
                                     styles.searchInput,
-                                    { borderColor: Colors[theme].TabBarBackground, color: Colors[theme].text },
+                                    {
+                                        borderColor: Colors[theme].TabBarBackground,
+                                        color: Colors[theme].text,
+                                    },
                                 ]}
                                 placeholder={t("search_cards")}
                                 placeholderTextColor={Colors[theme].disabled}
@@ -944,10 +1078,27 @@ export default function DeckDetailScreen() {
                                     color={Colors[theme].text}
                                 />
                             </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => setShowSelectedCardsOnly((prev) => !prev)} // Toggle showing selected cards
+                                style={styles.filterButton}
+                                delayPressIn={0}
+                            >
+                                <MaterialIcons
+                                    name={showSelectedCardsOnly ? "visibility" : "visibility-off"}
+                                    size={24}
+                                    color={showSelectedCardsOnly ? Colors[theme].info : Colors[theme].text}
+                                />
+                            </TouchableOpacity>
                         </View>
                         {filtersVisible && (
                             <>
-                                <ThemedText type="subtitle" style={{ textAlign: "center", marginBottom: 5 }}>
+                                <ThemedText
+                                    type="subtitle"
+                                    style={{
+                                        textAlign: "center",
+                                        marginBottom: 5,
+                                    }}
+                                >
                                     {" "}
                                     {t("type")}
                                 </ThemedText>
@@ -958,13 +1109,22 @@ export default function DeckDetailScreen() {
                                             style={[
                                                 styles.typeButton,
                                                 selectedTypes.includes(type)
-                                                    ? { backgroundColor: Colors[theme].icon }
-                                                    : { backgroundColor: Colors[theme].disabled },
+                                                    ? {
+                                                          backgroundColor: Colors[theme].icon,
+                                                      }
+                                                    : {
+                                                          backgroundColor: Colors[theme].disabled,
+                                                      },
                                             ]}
                                             onPress={() => toggleTypeSelection(type)}
                                         >
                                             <ThemedText
-                                                style={[styles.typeButtonText, { color: Colors[theme].background }]}
+                                                style={[
+                                                    styles.typeButtonText,
+                                                    {
+                                                        color: Colors[theme].background,
+                                                    },
+                                                ]}
                                             >
                                                 {type}
                                             </ThemedText>
@@ -975,7 +1135,13 @@ export default function DeckDetailScreen() {
                         )}
                         {filtersVisible && (
                             <>
-                                <ThemedText type="subtitle" style={{ textAlign: "center", marginBottom: 5 }}>
+                                <ThemedText
+                                    type="subtitle"
+                                    style={{
+                                        textAlign: "center",
+                                        marginBottom: 5,
+                                    }}
+                                >
                                     {" "}
                                     {t("family")}
                                 </ThemedText>
@@ -999,13 +1165,22 @@ export default function DeckDetailScreen() {
                                             style={[
                                                 styles.typeButton,
                                                 selectedFamilies.includes(family)
-                                                    ? { backgroundColor: Colors[theme].icon }
-                                                    : { backgroundColor: Colors[theme].disabled },
+                                                    ? {
+                                                          backgroundColor: Colors[theme].icon,
+                                                      }
+                                                    : {
+                                                          backgroundColor: Colors[theme].disabled,
+                                                      },
                                             ]}
                                             onPress={() => toggleFamilySelection(family)}
                                         >
                                             <ThemedText
-                                                style={[styles.typeButtonText, { color: Colors[theme].background }]}
+                                                style={[
+                                                    styles.typeButtonText,
+                                                    {
+                                                        color: Colors[theme].background,
+                                                    },
+                                                ]}
                                             >
                                                 {family}
                                             </ThemedText>
@@ -1065,6 +1240,7 @@ export default function DeckDetailScreen() {
                             selectedQuantity={selectedQuantity}
                             limitDeckNum={limitDeckNum}
                             deckCardCount={deckCardCount}
+                            loading={loading}
                         />
                     ),
                     contentContainerStyle: [styles.cardList, { paddingBottom: 20 }],
@@ -1084,7 +1260,12 @@ export default function DeckDetailScreen() {
                                 }}
                             >
                                 <TouchableOpacity onPress={loadMoreCards}>
-                                    <Text style={{ color: Colors[theme].tabIconDefault, fontWeight: "bold" }}>
+                                    <Text
+                                        style={{
+                                            color: Colors[theme].tabIconDefault,
+                                            fontWeight: "bold",
+                                        }}
+                                    >
                                         {t("load_more")}
                                     </Text>
                                 </TouchableOpacity>
@@ -1111,6 +1292,7 @@ const CardItem = React.memo(
         selectedQuantity,
         limitDeckNum,
         deckCardCount,
+        loading,
     }: {
         card: Card;
         height: number;
@@ -1124,6 +1306,7 @@ const CardItem = React.memo(
         selectedQuantity: (cardId: string) => number;
         limitDeckNum: number; // Added limitDeckNum to the props
         deckCardCount: number; // Added deckCardCount to the props
+        loading: boolean;
     }) => (
         <View key={card.id}>
             <View
@@ -1132,14 +1315,16 @@ const CardItem = React.memo(
                     { height },
                     cardSizeOption === 2 && [
                         styles.detailedCardContainer,
-                        { backgroundColor: Colors[theme as keyof typeof Colors].TabBarBackground },
+                        {
+                            backgroundColor: Colors[theme as keyof typeof Colors].TabBarBackground,
+                        },
                     ],
                 ]}
             >
                 <ExpoImage
                     source={{ uri: card.images_small }}
                     placeholder={require("@/assets/images/card_placeholder.webp")}
-                    style={[styles.cardImage, imageStyle]}
+                    style={[styles.cardImage, imageStyle, loading && { opacity: 0.3 }]}
                     contentFit="contain"
                     transition={300}
                     cachePolicy="memory-disk"
@@ -1184,11 +1369,18 @@ const CardItem = React.memo(
                         <View
                             style={[
                                 styles.cardRarityContainer,
-                                { backgroundColor: Colors[theme as keyof typeof Colors].background },
+                                {
+                                    backgroundColor: Colors[theme as keyof typeof Colors].background,
+                                },
                             ]}
                         >
                             <ThemedText
-                                style={[styles.cardRarity, { color: Colors[theme as keyof typeof Colors].icon }]}
+                                style={[
+                                    styles.cardRarity,
+                                    {
+                                        color: Colors[theme as keyof typeof Colors].icon,
+                                    },
+                                ]}
                             >
                                 {card.rarity}
                             </ThemedText>
@@ -1203,14 +1395,21 @@ const CardItem = React.memo(
                             <ThemedText
                                 style={[
                                     styles.cardType,
-                                    { color: Colors[theme as keyof typeof Colors].tabIconDefault },
+                                    {
+                                        color: Colors[theme as keyof typeof Colors].tabIconDefault,
+                                    },
                                 ]}
                                 numberOfLines={1}
                             >
                                 {card.type}
                             </ThemedText>
                             <ThemedText
-                                style={[styles.cardSet, { color: Colors[theme as keyof typeof Colors].tabIconDefault }]}
+                                style={[
+                                    styles.cardSet,
+                                    {
+                                        color: Colors[theme as keyof typeof Colors].tabIconDefault,
+                                    },
+                                ]}
                                 numberOfLines={1}
                             >
                                 {card.set_name}
@@ -1322,19 +1521,6 @@ const styles = StyleSheet.create({
     typeButtonText: {
         fontWeight: "bold",
     },
-    gridView: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        justifyContent: "center",
-    },
-    listView: {
-        flexDirection: "column",
-    },
-    compactView: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        justifyContent: "center",
-    },
     cardList: {
         flexDirection: "row",
         flexWrap: "wrap",
@@ -1442,19 +1628,14 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "bold",
     },
-    floating: {
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 9999,
-
+    cardWrapper: {
+        position: "relative",
+    },
+    changeArtIcon: {
         position: "absolute",
-        right: 20,
-        bottom: 80,
-
-        width: 60,
-        height: 60,
-
-        borderRadius: 30,
-        backgroundColor: "#c02222",
+        bottom: 2,
+        left: 0,
+        padding: 5,
+        borderRadius: 5,
     },
 });

@@ -29,11 +29,11 @@ const searchCards = async (page = 1, limit = 10, search = "", filters = {}) => {
     }
     if (filters.color && filters.color.length > 0) {
         // Asegurarse de que los colores sean consistentes (primera letra mayúscula)
-        const formattedColors = filters.color.map(color => color.charAt(0).toUpperCase() + color.slice(1));
-    
+        const formattedColors = filters.color.map((color) => color.charAt(0).toUpperCase() + color.slice(1));
+
         // Crear un conjunto de condiciones OR para que coincida al menos con uno de los colores
-        const colorConditions = formattedColors.map(color => `color.cs.{${color}}`).join(',');
-    
+        const colorConditions = formattedColors.map((color) => `color.cs.{${color}}`).join(",");
+
         query = query.or(colorConditions);
     }
     if (filters.family) {
@@ -121,6 +121,12 @@ const getCardById = async (id) => {
     return card;
 };
 
+const getCardsByCode = async (code) => {
+    const { data: cards, error } = await supabase.from("cards").select("*").eq("code", code);
+    if (error) throw new Error("Error al obtener las cartas: " + error.message);
+    return cards;
+};
+
 // Obtener todos los valores únicos de set_name
 const getAllSetNames = async () => {
     const { data, error } = await supabase.rpc("get_unique_set_names");
@@ -145,6 +151,7 @@ const getAllFamilies = async () => {
 module.exports = {
     searchCards,
     getCardById,
+    getCardsByCode,
     getAllSetNames,
     getAllFamilies,
 };

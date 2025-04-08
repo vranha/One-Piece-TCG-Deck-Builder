@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from "react-native";
+import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 import { ThemedText } from "@/components/ThemedText";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
@@ -62,7 +63,7 @@ export default function CardItem({
             case 1: // Large card
                 return { bottom: 7, paddingHorizontal: 38 };
             case 2: // Detailed card
-                return { bottom: 12, padding: 8, left: 15};
+                return { bottom: 12, padding: 8, left: 15 };
             default:
                 return { bottom: 4, padding: 4 };
         }
@@ -86,17 +87,24 @@ export default function CardItem({
                         ],
                     ]}
                 >
-                    {loading && (
+                    {/* {loading && (
                         <View style={{ height, opacity: 0.3 }}>
-                            <Image
+                            <ExpoImage
                                 source={require("../assets/images/card_placeholder.webp")}
                                 style={[styles.cardImage, imageStyle]}
+                                contentFit="contain"
+                                transition={300}
+                                cachePolicy="memory-disk"
                             />
                         </View>
-                    )}
-                    <Image
+                    )} */}
+                    <ExpoImage
                         source={{ uri: item.images_small }}
-                        style={[styles.cardImage, imageStyle]}
+                        placeholder={require("../assets/images/card_placeholder.webp")}
+                        style={[styles.cardImage, imageStyle, loading && { opacity: 0.3 }]}
+                        contentFit="contain"
+                        transition={300}
+                        cachePolicy="memory-disk"
                         onLoadStart={() => setLoading(true)}
                         onLoadEnd={() => setLoading(false)}
                     />
@@ -131,12 +139,12 @@ export default function CardItem({
                     )}
                 </View>
             </TouchableOpacity>
-            {(isSelectionEnabled && item.type !== 'LEADER') && (
+            {isSelectionEnabled && item.type !== "LEADER" && (
                 <View style={[styles.quantityControls, getQuantityControlsStyle()]}>
                     <TouchableOpacity onPress={() => updateCardQuantity(item.id, -1, cardColor)}>
                         <MaterialIcons name="remove-circle-outline" size={24} color={Colors[theme].icon} />
                     </TouchableOpacity>
-                    <ThemedText style={[styles.quantityText, { color: 'white' }]}>{selectedQuantity}</ThemedText>
+                    <ThemedText style={[styles.quantityText, { color: "white" }]}>{selectedQuantity}</ThemedText>
                     <TouchableOpacity onPress={() => updateCardQuantity(item.id, 1, cardColor)}>
                         <MaterialIcons name="add-circle-outline" size={24} color={Colors[theme].icon} />
                     </TouchableOpacity>

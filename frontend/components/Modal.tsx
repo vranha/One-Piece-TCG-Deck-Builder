@@ -10,7 +10,8 @@ const Modal = React.forwardRef((props, ref) => {
     const { theme } = useTheme();
     const { t } = useTranslation();
     return (
-        <Modalize ref={ref} snapPoint={500} modalStyle={{ backgroundColor: Colors[theme].TabBarBackground }}>
+        <Modalize ref={ref} modalStyle={{ backgroundColor: Colors[theme].TabBarBackground }} adjustToContentHeight
+        childrenStyle={{ height: 500 }}>
             <View style={styles.container}>
                 <ThemedText type="subtitle" style={[styles.text, { color: Colors[theme].text }]}>
                     {t("welcome_chat")}

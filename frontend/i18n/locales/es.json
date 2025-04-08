@@ -92,5 +92,7 @@
     "deck_synced_title": "😍😍😍",
     "deck_synced_message": "Mazo Modificado con Éxito.",
     "deck_sync_error_title": "😰😰😰",
-    "deck_sync_error_message": "Ups! Algo salió mal al sincronizar el mazo."
+    "deck_sync_error_message": "Ups! Algo salió mal al sincronizar el mazo.",
+    "change_art": "Cambiar Arte",
+    "close": "Cerrar"
 }

@@ -437,15 +437,35 @@ router.get("/set_names", cardController.getAllSetNames);
 // Nueva ruta para obtener todos los valores únicos de family
 router.get("/families", cardController.getAllFamilies);
 
+/**
+ * @swagger
+ * /cards/by-code/{code}:
+ *   get:
+ *     summary: Obtener todas las cartas con el mismo código
+ *     tags: [Cards]
+ *     parameters:
+ *       - in: path
+ *         name: code
+ *         required: true
+ *         description: Código de la carta
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Lista de cartas con el mismo código
+ *       404:
+ *         description: No se encontraron cartas
+ */
+router.get("/cards/by-code/:code", cardController.getCardsByCode);
 
 // Crear un endpoint para importar cartas
-router.post('/import-cards', async (req, res) => {
+router.post("/import-cards", async (req, res) => {
     try {
         await importarCartas();
-        res.status(200).json({ message: 'Importación completada con éxito.' });
+        res.status(200).json({ message: "Importación completada con éxito." });
     } catch (error) {
-        console.error('Error al importar cartas:', error);
-        res.status(500).json({ error: 'Error al importar cartas.' });
+        console.error("Error al importar cartas:", error);
+        res.status(500).json({ error: "Error al importar cartas." });
     }
 });
 

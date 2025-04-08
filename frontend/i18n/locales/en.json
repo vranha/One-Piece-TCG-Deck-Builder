@@ -96,5 +96,7 @@
     "deck_synced_title": "😍😍😍",
     "deck_synced_message": "Deck Modified Successfully.",
     "deck_sync_error_title": "😰😰😰",
-    "deck_sync_error_message": "Ups! Something went wrong modifying the deck."
+    "deck_sync_error_message": "Ups! Something went wrong modifying the deck.",
+    "change_art": "Change Art",
+    "close": "Close"
 }
