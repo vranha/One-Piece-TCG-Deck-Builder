@@ -34,6 +34,7 @@ import * as Clipboard from "expo-clipboard";
 import Toast from "react-native-toast-message";
 import { Modalize } from "react-native-modalize";
 import { useTranslation } from "react-i18next";
+import FilterSlider from "@/components/FilterSlider";
 
 interface DeckDetail {
     id: string;
@@ -65,7 +66,7 @@ interface Card {
 
 export default function DeckDetailScreen() {
     const { t } = useTranslation();
-    const { theme } = useTheme();
+    const { theme } = useTheme() as { theme: keyof typeof Colors };
     const api = useApi();
     const { deckId } = useLocalSearchParams();
     const [deckDetail, setDeckDetail] = useState<DeckDetail | null>(null);
@@ -79,6 +80,10 @@ export default function DeckDetailScreen() {
     const [hasMore, setHasMore] = useState(true);
     const [selectedCards, setSelectedCards] = useState<{ [key: string]: number }>({}); // State to store selected cards and their quantities
     const [deckCardCount, setDeckCardCount] = useState(0); // Add state for deckCardCount
+    const [costRange, setCostRange] = useState<[number, number]>([0, 10]); // State for cost filter
+    const [powerRange, setPowerRange] = useState<[number, number]>([0, 13000]); // State for power filter
+    const [counterRange, setCounterRange] = useState<[number, number]>([0, 2000]); // State for counter filter
+    const [isModalOpen, setIsModalOpen] = useState(false); // State to track modal open/close
 
     useEffect(() => {
         if (!deckDetail) return;
@@ -99,17 +104,14 @@ export default function DeckDetailScreen() {
 
     const updateCardQuantity = (cardId: string, change: number) => {
         setSelectedCards((prevSelectedCards) => {
-            const updatedQuantity = (prevSelectedCards[cardId] || 0) + change;
+            const currentQuantity = prevSelectedCards[cardId] || 0;
+            const updatedQuantity = currentQuantity + change;
 
             // Ensure the quantity is within the valid range (0 to 4)
             if (updatedQuantity < 0 || updatedQuantity > 4) return prevSelectedCards;
 
-            // Calculate the new deckCardCount
-            const currentDeckCardCount = Object.values(prevSelectedCards).reduce((sum, qty) => sum + qty, 0);
-            const newDeckCardCount = currentDeckCardCount + change;
-
             // Prevent adding cards if the deckCardCount exceeds the limit
-            if (newDeckCardCount > limitDeckNum) return prevSelectedCards;
+            if (deckCardCount + change > limitDeckNum) return prevSelectedCards;
 
             // Check if the card's code already exists in the deck with quantity 4
             const card = filteredCards.find((c) => c.id === cardId);
@@ -119,7 +121,10 @@ export default function DeckDetailScreen() {
                 (deckCard) => deckCard.code === card.code && (deckCard.quantity ?? 0) >= 4
             );
 
-            if (isCodeMaxedOut && updatedQuantity > 0) return prevSelectedCards;
+            if (isCodeMaxedOut && updatedQuantity > currentQuantity) return prevSelectedCards;
+
+            // Update deckCardCount directly
+            setDeckCardCount((prevCount) => prevCount + change);
 
             return { ...prevSelectedCards, [cardId]: updatedQuantity };
         });
@@ -172,7 +177,13 @@ export default function DeckDetailScreen() {
     const limitDeckNum = 51;
 
     const openModal = () => {
-        modalizeRef.current?.open();
+        if (isModalOpen) {
+            modalizeRef.current?.close(); // Close the modal if it's already open
+            setIsModalOpen(false);
+        } else {
+            modalizeRef.current?.open(); // Open the modal if it's not open
+            setIsModalOpen(true);
+        }
     };
 
     useEffect(() => {
@@ -212,17 +223,20 @@ export default function DeckDetailScreen() {
                     <TouchableOpacity
                         onPress={deckCardCount < limitDeckNum ? openModal : undefined}
                         style={{
-                            backgroundColor:
-                                deckCardCount < limitDeckNum ? Colors[theme].success : Colors[theme].disabled,
+                            backgroundColor: isModalOpen
+                                ? Colors[theme].disabled
+                                : deckCardCount < limitDeckNum
+                                ? Colors[theme].success
+                                : Colors[theme].disabled,
                             paddingVertical: 5,
                             paddingHorizontal: 10,
                             borderRadius: 5,
                             marginRight: 10,
                         }}
-                        disabled={deckCardCount >= limitDeckNum}
+                        disabled={isModalOpen || deckCardCount >= limitDeckNum}
                     >
                         <ThemedText style={{ color: Colors[theme].background, fontWeight: "bold" }}>
-                            {t("add_card")}
+                            {isModalOpen ? t("close_to_make_changes") : t("add_card")}
                         </ThemedText>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -241,7 +255,7 @@ export default function DeckDetailScreen() {
                 </View>
             ),
         });
-    }, [deckDetail?.cards.length, theme]);
+    }, [deckDetail?.cards.length, theme, isModalOpen]);
 
     // Función para manejar el inicio de carga de una imagen
     const handleImageLoadStart = (cardId: string) => {
@@ -479,8 +493,9 @@ export default function DeckDetailScreen() {
             const counter = card.counter ?? 0; // Si no tiene counter, tratarlo como 0
             const quantity = card.quantity ?? 1; // Si no tiene quantity, asumir 1
 
-            // Grupo 1: Cartas con counter=null o 0 (excluyendo las que cumplen la condición del grupo 4)
+            // Grupo 1: Cartas con counter=null, "-", o 0 (excluyendo las que cumplen la condición del grupo 4)
             if ((counter === null || counter === "-" || counter === 0) && card.type !== "EVENT") {
+                console.log("EEEEE", counter, quantity, card.type);
                 noCounter += quantity;
             }
 
@@ -512,12 +527,10 @@ export default function DeckDetailScreen() {
                         eventCounterDetails[xxxx] = quantity; // Inicializar con la cantidad
                     }
                 }
-
-                if (counter === null || counter === "-" || counter === 0) {
-                    noCounter -= quantity; // Descontar del grupo 1 si cumple esta condición
-                }
             }
         });
+
+        console.log("AAAAAA", noCounter, counter1000, counter2000, eventCounter, eventCounterDetails);
 
         return { noCounter, counter1000, counter2000, eventCounter, eventCounterDetails };
     };
@@ -595,43 +608,54 @@ export default function DeckDetailScreen() {
         return leaderCard?.color || [];
     }, [deckDetail]);
 
-    // Ajusté la función fetchFilteredCards para manejar correctamente la paginación y asegurar que se carguen más resultados.
-    const fetchFilteredCards = async (reset = false) => {
+    const transformSliderValue = (value: number | null | undefined, defaultValue: string) => {
+        if (value === 0 || value == null) {
+            return defaultValue; // Transform 0 or null to the default value for the API
+        }
+        return value.toString();
+    };
+
+    const fetchFilteredCards = async () => {
         try {
             const response = await api.get(
                 `/cards?search=${searchQuery}&color=${
                     Array.isArray(leaderColors) ? leaderColors.join(",") : leaderColors
-                }&page=${reset ? 1 : page}&limit=1000` // Aumenté el límite de resultados por página
+                }&type=${selectedTypes.join(",")}&family=${selectedFamilies.join(",")}&cost_gte=${transformSliderValue(
+                    costRange[0],
+                    "null"
+                )}&cost_lte=${transformSliderValue(costRange[1], "null")}&power_gte=${powerRange[0]}&power_lte=${
+                    powerRange[1]
+                }&counter_gte=${transformSliderValue(counterRange[0], "")}&counter_lte=${transformSliderValue(
+                    counterRange[1],
+                    ""
+                )}&limit=10000`
             );
 
-            if (reset) {
-                setFilteredCards(response.data.data);
-                setPage(2); // Reinicia la paginación
-            } else {
-                setFilteredCards((prevCards) => [...prevCards, ...response.data.data]);
-                setPage((prevPage) => prevPage + 1);
-            }
-
-            setHasMore(response.data.data.length > 0); // Verifica si hay más datos para cargar
+            const { data: cards } = response.data;
+            setFilteredCards(cards); // Store all cards
         } catch (error) {
             console.error("Error fetching filtered cards:", error);
         }
     };
 
-    const handleSearchChange = (query: string) => {
-        setSearchQuery(query);
-        fetchFilteredCards(true); // Reinicia la búsqueda
+    const [visibleCardsCount, setVisibleCardsCount] = useState(21); // Number of cards to display initially
+
+    const loadMoreCards = () => {
+        setVisibleCardsCount((prevCount) => prevCount + 21); // Add 21 more cards to the visible list
     };
 
-    useEffect(() => {
-        if (searchQuery || leaderColors.length > 0) {
-            fetchFilteredCards(true); // Reinicia la búsqueda solo si hay cambios en las dependencias
-        }
-    }, [searchQuery, leaderColors]); // Eliminé la dependencia de `page` para evitar bucles infinitos
+    const handleSearchChange = (query: string) => {
+        setSearchQuery(query);
+        fetchFilteredCards(); // Reinicia la búsqueda
+    };
 
     const [filtersVisible, setFiltersVisible] = useState(false);
     const [selectedTypes, setSelectedTypes] = useState(["CHARACTER", "EVENT", "STAGE"]);
-    const [selectedFamilies, setSelectedFamilies] = useState<string[]>([]);
+    const [selectedFamilies, setSelectedFamilies] = useState<string[]>([]); // Move this above the useEffect
+
+    useEffect(() => {
+        fetchFilteredCards(); // Reset search whenever filters change
+    }, [searchQuery, leaderColors, selectedTypes, selectedFamilies, costRange, powerRange, counterRange]); // Updated dependencies
 
     const toggleFilterVisibility = () => {
         setFiltersVisible(!filtersVisible);
@@ -652,56 +676,6 @@ export default function DeckDetailScreen() {
             setSelectedFamilies([...selectedFamilies, family]);
         }
     };
-
-    const sortFilteredCardsByTypeAndFamily = (cards: Card[]) => {
-        return cards.sort((a, b) => {
-            const getPrimaryFamily = (card: Card) => {
-                return card.family?.split("/")[0].trim() || "Unknown";
-            };
-
-            const familyA = getPrimaryFamily(a);
-            const familyB = getPrimaryFamily(b);
-
-            if (familyA < familyB) return -1;
-            if (familyA > familyB) return 1;
-
-            const costA = Number(a.cost) || 0;
-            const costB = Number(b.cost) || 0;
-
-            return costA - costB;
-        });
-    };
-
-    const removeDuplicateCards = (cards: Card[]) => {
-        const uniqueCards = new Map();
-
-        cards.forEach((card) => {
-            if (!uniqueCards.has(card.code)) {
-                uniqueCards.set(card.code, card);
-            } else {
-                // If a card with the same code already exists, prioritize the one in the deck
-                const existingCard = uniqueCards.get(card.code);
-                const isExistingInDeck = deckDetail?.cards.some((deckCard) => deckCard.id === existingCard.id);
-                const isCurrentInDeck = deckDetail?.cards.some((deckCard) => deckCard.id === card.id);
-
-                if (isCurrentInDeck && !isExistingInDeck) {
-                    uniqueCards.set(card.code, card);
-                }
-            }
-        });
-
-        return Array.from(uniqueCards.values());
-    };
-
-    const filteredCardsByTypeAndFamily = useMemo(() => {
-        const filtered = filteredCards.filter(
-            (card) =>
-                selectedTypes.includes(card.type) &&
-                (selectedFamilies.length === 0 || selectedFamilies.some((family) => card.family?.includes(family)))
-        );
-        const uniqueFiltered = removeDuplicateCards(filtered);
-        return sortFilteredCardsByTypeAndFamily(uniqueFiltered);
-    }, [filteredCards, selectedTypes, selectedFamilies]);
 
     const toggleCardSize = () => {
         setCardSizeOption((prevOption) => (prevOption + 1) % 3);
@@ -759,6 +733,12 @@ export default function DeckDetailScreen() {
 
         return JSON.stringify(currentDeck) !== JSON.stringify(originalDeck);
     };
+
+    useEffect(() => {
+        // Close the modal and reset the state when the component is opened
+        modalizeRef.current?.close();
+        setIsModalOpen(false);
+    }, []);
 
     if (loading) {
         return <LoadingIndicator />;
@@ -875,7 +855,12 @@ export default function DeckDetailScreen() {
                                 probability={probabilityForCardWithHighestX?.probability!}
                             />
                         ) : (
-                            <ThemedText style={{ color: Colors[theme].text }}>{t("no_searchers")}</ThemedText>
+                            <ThemedText
+                                type="subtitle"
+                                style={{ color: Colors[theme].text, textAlign: "center", marginTop: 20 }}
+                            >
+                                {t("no_searchers")}
+                            </ThemedText>
                         )}
                         <TriggerChart
                             triggerProbabilities={triggerProbabilities}
@@ -890,147 +875,228 @@ export default function DeckDetailScreen() {
             </ScrollView>
             <Modalize
                 ref={modalizeRef}
-                snapPoint={500}
+                // snapPoint={100}
+                closeSnapPointStraightEnabled={false}
                 modalStyle={{ backgroundColor: Colors[theme].backgroundSoft }}
+                velocity={8000} // gesto extremadamente rápido necesario
+                threshold={200} // gesto muy largo también necesario si no supera velocity
+                dragToss={0.01} // poca inercia, más control
                 onClose={() => {
+                    setIsModalOpen(false); // Ensure the state is updated when the modal closes
                     if (hasDeckChanged()) {
                         syncDeckCards();
                     }
                 }}
-            >
-                <View style={[styles.containerModalize]}>
-                    <View style={styles.searchContainer}>
-                        <Text style={[styles.deckCardCount, { color: Colors[theme].text }]}>
-                            <Text
+                HeaderComponent={
+                    <View style={[styles.containerModalize]}>
+                        <View style={styles.searchContainer}>
+                            <Text style={[styles.deckCardCount, { color: Colors[theme].text }]}>
+                                <Text
+                                    style={{
+                                        fontWeight: "bold",
+                                        color:
+                                            deckCardCount === limitDeckNum
+                                                ? Colors[theme].error
+                                                : Colors[theme].success,
+                                    }}
+                                >
+                                    {deckCardCount}
+                                </Text>
+                                <Text style={{ fontWeight: "bold", color: Colors[theme].disabled }}>
+                                    /{limitDeckNum}
+                                </Text>
+                            </Text>
+                            <TextInput
+                                style={[
+                                    styles.searchInput,
+                                    { borderColor: Colors[theme].TabBarBackground, color: Colors[theme].text },
+                                ]}
+                                placeholder={t("search_cards")}
+                                placeholderTextColor={Colors[theme].disabled}
+                                value={searchQuery}
+                                onChangeText={handleSearchChange}
+                            />
+                            <TouchableOpacity
+                                onPress={toggleFilterVisibility}
+                                style={styles.filterButton}
+                                delayPressIn={0} // Reduce delay
+                            >
+                                <MaterialIcons
+                                    name="filter-list"
+                                    size={24}
+                                    color={filtersVisible ? Colors[theme].info : Colors[theme].text}
+                                />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={toggleCardSize}
+                                style={styles.viewModeButton}
+                                delayPressIn={0} // Reduce delay
+                            >
+                                <MaterialIcons
+                                    name={
+                                        cardSizeOption === 0
+                                            ? "view-module"
+                                            : cardSizeOption === 1
+                                            ? "view-agenda"
+                                            : "view-list"
+                                    }
+                                    size={24}
+                                    color={Colors[theme].text}
+                                />
+                            </TouchableOpacity>
+                        </View>
+                        {filtersVisible && (
+                            <>
+                                <ThemedText type="subtitle" style={{ textAlign: "center", marginBottom: 5 }}>
+                                    {" "}
+                                    {t("type")}
+                                </ThemedText>
+                                <View style={styles.filtersContainer}>
+                                    {["CHARACTER", "EVENT", "STAGE"].map((type) => (
+                                        <TouchableOpacity
+                                            key={type}
+                                            style={[
+                                                styles.typeButton,
+                                                selectedTypes.includes(type)
+                                                    ? { backgroundColor: Colors[theme].icon }
+                                                    : { backgroundColor: Colors[theme].disabled },
+                                            ]}
+                                            onPress={() => toggleTypeSelection(type)}
+                                        >
+                                            <ThemedText
+                                                style={[styles.typeButtonText, { color: Colors[theme].background }]}
+                                            >
+                                                {type}
+                                            </ThemedText>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </>
+                        )}
+                        {filtersVisible && (
+                            <>
+                                <ThemedText type="subtitle" style={{ textAlign: "center", marginBottom: 5 }}>
+                                    {" "}
+                                    {t("family")}
+                                </ThemedText>
+                                <ScrollView
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    contentContainerStyle={{
+                                        paddingHorizontal: 10,
+                                        paddingBottom: 20,
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        width: "100%",
+                                    }}
+                                    style={{ maxHeight: 50 }}
+                                >
+                                    {Array.from(
+                                        new Set([...leaderCardFamilies, mostRepresentedFamily ?? mostRepresentedFamily])
+                                    ).map((family) => (
+                                        <TouchableOpacity
+                                            key={family}
+                                            style={[
+                                                styles.typeButton,
+                                                selectedFamilies.includes(family)
+                                                    ? { backgroundColor: Colors[theme].icon }
+                                                    : { backgroundColor: Colors[theme].disabled },
+                                            ]}
+                                            onPress={() => toggleFamilySelection(family)}
+                                        >
+                                            <ThemedText
+                                                style={[styles.typeButtonText, { color: Colors[theme].background }]}
+                                            >
+                                                {family}
+                                            </ThemedText>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            </>
+                        )}
+                        {filtersVisible && (
+                            <>
+                                <FilterSlider
+                                    label="Cost"
+                                    min={0}
+                                    max={10}
+                                    step={1}
+                                    onValuesChangeFinish={(values) => setCostRange(values as [number, number])}
+                                    range={costRange}
+                                />
+                                <FilterSlider
+                                    label="Power"
+                                    min={0}
+                                    max={13000}
+                                    step={1000}
+                                    onValuesChangeFinish={(values) => setPowerRange(values as [number, number])}
+                                    range={powerRange}
+                                />
+                                <FilterSlider
+                                    label="Counter"
+                                    min={0}
+                                    max={2000}
+                                    step={1000}
+                                    onValuesChangeFinish={(values) => setCounterRange(values as [number, number])}
+                                    range={counterRange}
+                                />
+                            </>
+                        )}
+                    </View>
+                }
+                childrenStyle={{
+                    padding: 10,
+                    // cualquier otro estilo específico para la FlatList
+                }}
+                flatListProps={{
+                    data: filteredCards.slice(0, visibleCardsCount), // Display only the sliced portion of cards
+                    keyExtractor: (card) => card.id,
+                    renderItem: ({ item: card }) => (
+                        <CardItem
+                            card={card}
+                            height={height}
+                            imageStyle={imageStyle}
+                            cardSizeOption={cardSizeOption}
+                            theme={theme}
+                            onLoadStart={handleImageLoadStart}
+                            onLoadEnd={handleImageLoadEnd}
+                            getQuantityControlsStyle={getQuantityControlsStyle}
+                            updateCardQuantity={updateCardQuantity}
+                            selectedQuantity={selectedQuantity}
+                            limitDeckNum={limitDeckNum}
+                            deckCardCount={deckCardCount}
+                        />
+                    ),
+                    contentContainerStyle: [styles.cardList, { paddingBottom: 20 }],
+                    nestedScrollEnabled: false,
+                    removeClippedSubviews: true,
+                    initialNumToRender: 21, // Number of items to render initially
+                    maxToRenderPerBatch: 21, // Number of items to render per batch
+                    ListFooterComponent:
+                        visibleCardsCount < filteredCards.length ? (
+                            <View
                                 style={{
-                                    fontWeight: "bold",
-                                    color: deckCardCount === limitDeckNum ? Colors[theme].error : Colors[theme].success,
+                                    backgroundColor: Colors[theme].TabBarBackground,
+                                    paddingVertical: 10,
+                                    paddingHorizontal: 20,
+                                    borderRadius: 5,
+                                    marginBottom: 80,
                                 }}
                             >
-                                {deckCardCount}
-                            </Text>
-                            <Text style={{ fontWeight: "bold", color: Colors[theme].disabled }}>/{limitDeckNum}</Text>
-                        </Text>
-                        <TextInput
-                            style={[
-                                styles.searchInput,
-                                { borderColor: Colors[theme].TabBarBackground, color: Colors[theme].text },
-                            ]}
-                            placeholder={t("search_cards")}
-                            placeholderTextColor={Colors[theme].disabled}
-                            value={searchQuery}
-                            onChangeText={handleSearchChange}
-                        />
-                        <TouchableOpacity
-                            onPress={toggleFilterVisibility}
-                            style={styles.filterButton}
-                            delayPressIn={0} // Reduce delay
-                        >
-                            <MaterialIcons
-                                name="filter-list"
-                                size={24}
-                                color={filtersVisible ? Colors[theme].info : Colors[theme].text}
-                            />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={toggleCardSize}
-                            style={styles.viewModeButton}
-                            delayPressIn={0} // Reduce delay
-                        >
-                            <MaterialIcons
-                                name={
-                                    cardSizeOption === 0
-                                        ? "view-module"
-                                        : cardSizeOption === 1
-                                        ? "view-agenda"
-                                        : "view-list"
-                                }
-                                size={24}
-                                color={Colors[theme].text}
-                            />
-                        </TouchableOpacity>
-                    </View>
-                    {filtersVisible && (
-                        <View style={styles.filtersContainer}>
-                            {["CHARACTER", "EVENT", "STAGE"].map((type) => (
-                                <TouchableOpacity
-                                    key={type}
-                                    style={[
-                                        styles.typeButton,
-                                        selectedTypes.includes(type)
-                                            ? { backgroundColor: Colors[theme].icon }
-                                            : { backgroundColor: Colors[theme].disabled },
-                                    ]}
-                                    onPress={() => toggleTypeSelection(type)}
-                                >
-                                    <ThemedText style={[styles.typeButtonText, { color: Colors[theme].background }]}>
-                                        {type}
-                                    </ThemedText>
+                                <TouchableOpacity onPress={loadMoreCards}>
+                                    <Text style={{ color: Colors[theme].tabIconDefault, fontWeight: "bold" }}>
+                                        {t("load_more")}
+                                    </Text>
                                 </TouchableOpacity>
-                            ))}
-                        </View>
-                    )}
-
-                    {filtersVisible && (
-                        <View style={styles.filtersContainer}>
-                            {Array.from(new Set([...leaderCardFamilies, mostRepresentedFamily])).map((family) => (
-                                <TouchableOpacity
-                                    key={family}
-                                    style={[
-                                        styles.typeButton,
-                                        selectedFamilies.includes(family)
-                                            ? { backgroundColor: Colors[theme].icon }
-                                            : { backgroundColor: Colors[theme].disabled },
-                                    ]}
-                                    onPress={() => toggleFamilySelection(family)}
-                                >
-                                    <ThemedText style={[styles.typeButtonText, { color: Colors[theme].background }]}>
-                                        {family}
-                                    </ThemedText>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    )}
-                    {/* Render cards based on viewMode */}
-                    <FlatList
-                        data={filteredCardsByTypeAndFamily}
-                        keyExtractor={(card) => card.id}
-                        renderItem={({ item: card }) => (
-                            <CardItem
-                                card={card}
-                                height={height}
-                                imageStyle={imageStyle}
-                                cardSizeOption={cardSizeOption}
-                                theme={theme}
-                                onLoadStart={handleImageLoadStart}
-                                onLoadEnd={handleImageLoadEnd}
-                                getQuantityControlsStyle={getQuantityControlsStyle} // Pass as prop
-                                updateCardQuantity={updateCardQuantity} // Pass as prop
-                                selectedQuantity={selectedQuantity} // Pass as prop
-                            />
-                        )}
-                        contentContainerStyle={[styles.cardList, { paddingBottom: 20 }]}
-                        nestedScrollEnabled={true}
-                    />
-                </View>
-            </Modalize>
+                            </View>
+                        ) : null,
+                }}
+            />
         </>
     );
 }
 
-interface CardItemProps {
-    card: Card;
-    height: number;
-    imageStyle: any;
-    cardSizeOption: number;
-    theme: string;
-    onLoadStart: (cardId: string) => void;
-    onLoadEnd: (cardId: string) => void;
-    getQuantityControlsStyle: () => any;
-    updateCardQuantity: (cardId: string, change: number) => void;
-    selectedQuantity: (cardId: string) => number;
-}
-
+// Componente CardItem para modularizar el renderizado de las cartas
 const CardItem = React.memo(
     ({
         card,
@@ -1043,7 +1109,22 @@ const CardItem = React.memo(
         getQuantityControlsStyle,
         updateCardQuantity,
         selectedQuantity,
-    }: CardItemProps) => (
+        limitDeckNum,
+        deckCardCount,
+    }: {
+        card: Card;
+        height: number;
+        imageStyle: any;
+        cardSizeOption: number;
+        theme: string;
+        onLoadStart: (cardId: string) => void;
+        onLoadEnd: (cardId: string) => void;
+        getQuantityControlsStyle: () => any;
+        updateCardQuantity: (cardId: string, change: number) => void;
+        selectedQuantity: (cardId: string) => number;
+        limitDeckNum: number; // Added limitDeckNum to the props
+        deckCardCount: number; // Added deckCardCount to the props
+    }) => (
         <View key={card.id}>
             <View
                 style={[
@@ -1059,28 +1140,42 @@ const CardItem = React.memo(
                     source={{ uri: card.images_small }}
                     placeholder={require("@/assets/images/card_placeholder.webp")}
                     style={[styles.cardImage, imageStyle]}
-                    contentFit="contain" // Similar to resizeMode="contain"
-                    transition={300} // Smooth transition for image loading
-                    cachePolicy="memory-disk" // Cache for better performance
+                    contentFit="contain"
+                    transition={300}
+                    cachePolicy="memory-disk"
                     onLoadStart={() => onLoadStart(card.id)}
                     onLoadEnd={() => onLoadEnd(card.id)}
                 />
                 <View style={[styles.quantityControls, getQuantityControlsStyle()]}>
-                    <TouchableOpacity onPress={() => updateCardQuantity(card.id, -1)}>
+                    <TouchableOpacity
+                        onPress={() => updateCardQuantity(card.id, -1)}
+                        disabled={selectedQuantity(card.id) <= 0} // Desactiva si la cantidad es 0
+                    >
                         <MaterialIcons
                             name="remove-circle-outline"
                             size={24}
-                            color={Colors[theme as "light" | "dark"].icon}
+                            color={
+                                selectedQuantity(card.id) > 0
+                                    ? Colors[theme as keyof typeof Colors].icon
+                                    : Colors[theme as keyof typeof Colors].disabled
+                            }
                         />
                     </TouchableOpacity>
                     <ThemedText style={[styles.quantityTextSearch, { color: "white" }]}>
                         {selectedQuantity(card.id)}
                     </ThemedText>
-                    <TouchableOpacity onPress={() => updateCardQuantity(card.id, 1)}>
+                    <TouchableOpacity
+                        onPress={() => updateCardQuantity(card.id, 1)}
+                        disabled={deckCardCount >= limitDeckNum || selectedQuantity(card.id) >= 4} // Desactiva si se alcanza el límite
+                    >
                         <MaterialIcons
                             name="add-circle-outline"
                             size={24}
-                            color={Colors[theme as "light" | "dark"].icon}
+                            color={
+                                deckCardCount < limitDeckNum && selectedQuantity(card.id) < 4
+                                    ? Colors[theme as keyof typeof Colors].icon
+                                    : Colors[theme as keyof typeof Colors].disabled
+                            }
                         />
                     </TouchableOpacity>
                 </View>
@@ -1089,10 +1184,12 @@ const CardItem = React.memo(
                         <View
                             style={[
                                 styles.cardRarityContainer,
-                                { backgroundColor: Colors[theme as "light" | "dark"].background },
+                                { backgroundColor: Colors[theme as keyof typeof Colors].background },
                             ]}
                         >
-                            <ThemedText style={[styles.cardRarity, { color: Colors[theme as "light" | "dark"].icon }]}>
+                            <ThemedText
+                                style={[styles.cardRarity, { color: Colors[theme as keyof typeof Colors].icon }]}
+                            >
                                 {card.rarity}
                             </ThemedText>
                         </View>
@@ -1104,13 +1201,16 @@ const CardItem = React.memo(
                         </View>
                         <View style={styles.cardFooter}>
                             <ThemedText
-                                style={[styles.cardType, { color: Colors[theme as "light" | "dark"].tabIconDefault }]}
+                                style={[
+                                    styles.cardType,
+                                    { color: Colors[theme as keyof typeof Colors].tabIconDefault },
+                                ]}
                                 numberOfLines={1}
                             >
                                 {card.type}
                             </ThemedText>
                             <ThemedText
-                                style={[styles.cardSet, { color: Colors[theme as "light" | "dark"].tabIconDefault }]}
+                                style={[styles.cardSet, { color: Colors[theme as keyof typeof Colors].tabIconDefault }]}
                                 numberOfLines={1}
                             >
                                 {card.set_name}
@@ -1122,6 +1222,7 @@ const CardItem = React.memo(
         </View>
     )
 );
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -1184,8 +1285,10 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
     },
     containerModalize: {
-        padding: 20,
-        marginBottom: 65,
+        paddingTop: 15,
+        paddingHorizontal: 10,
+        // marginBottom: 65,
+        display: "flex",
     },
     searchContainer: {
         flexDirection: "row",
@@ -1338,5 +1441,20 @@ const styles = StyleSheet.create({
         marginHorizontal: 8,
         fontSize: 16,
         fontWeight: "bold",
+    },
+    floating: {
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 9999,
+
+        position: "absolute",
+        right: 20,
+        bottom: 80,
+
+        width: 60,
+        height: 60,
+
+        borderRadius: 30,
+        backgroundColor: "#c02222",
     },
 });

@@ -4,6 +4,7 @@ import MultiSlider from "@ptomasroos/react-native-multi-slider";
 import { ThemedText } from "@/components/ThemedText";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 interface FilterSliderProps {
     label: string;
@@ -16,11 +17,12 @@ interface FilterSliderProps {
 
 const FilterSlider: React.FC<FilterSliderProps> = ({ label, range, min, max, step, onValuesChangeFinish }) => {
     const { theme } = useTheme();
+    const { t } = useTranslation();
 
     return (
         <View style={styles.container}>
             <ThemedText style={styles.label}>
-                {label} <ThemedText style={{ color: Colors[theme].icon }}>({range[0]} - {range[1]})</ThemedText>
+                {t(label.toLowerCase())} <ThemedText style={{ color: Colors[theme].icon }}>({range[0]} - {range[1]})</ThemedText>
             </ThemedText>
             <MultiSlider
                 values={range}

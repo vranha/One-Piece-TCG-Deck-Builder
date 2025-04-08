@@ -82,9 +82,10 @@ const LegendItem = ({
     </View>
 );
 
-const BarSegment = ({ flex, color, opacity }: { flex: number; color: string; opacity: number }) => (
-    <View style={{ flex, backgroundColor: color, opacity }} />
-);
+const BarSegment = ({ flex, color, opacity }: { flex: number; color: string; opacity: number }) => {
+    const minimumFlex = 0.1; // Valor mínimo para que los segmentos con 0 aún sean visibles
+    return <View style={{ flex: flex > 0 ? flex : minimumFlex, backgroundColor: color, opacity }} />;
+};
 
 const NumberItem = ({ value, theme }: { value: number; theme: "light" | "dark" }) => (
     <View style={[styles.numberItem, { flex: value }]}>

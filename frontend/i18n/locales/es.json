@@ -87,5 +87,10 @@
     "success_rate": "Tasa de Éxito",
     "archetype": "Arquetipo",
     "power_curve": "Curva de Poder",
-    "average_power": "Poder Promedio"
+    "average_power": "Poder Promedio",
+    "load_more": "Cargar Más",
+    "deck_synced_title": "😍😍😍",
+    "deck_synced_message": "Mazo Modificado con Éxito.",
+    "deck_sync_error_title": "😰😰😰",
+    "deck_sync_error_message": "Ups! Algo salió mal al sincronizar el mazo."
 }

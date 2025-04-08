@@ -87,5 +87,14 @@
     "success_rate": "Success Rate",
     "archetype": "Archetype",
     "power_curve": "Power Curve",
-    "average_power": "Average Power"
+    "average_power": "Average Power",
+    "load_more": "Load More",
+    "close_to_make_changes": "Close to make changes",
+    "cost": "Cost",
+    "power": "Power",
+    "counter": "Counter",
+    "deck_synced_title": "😍😍😍",
+    "deck_synced_message": "Deck Modified Successfully.",
+    "deck_sync_error_title": "😰😰😰",
+    "deck_sync_error_message": "Ups! Something went wrong modifying the deck."
 }
