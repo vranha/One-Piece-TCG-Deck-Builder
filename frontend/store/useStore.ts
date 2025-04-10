@@ -33,6 +33,8 @@ interface StoreState {
     setCostRange: (range: [number, number]) => void;
     setPowerRange: (range: [number, number]) => void;
     setCounterRange: (range: [number, number]) => void;
+    selectedAttributes: string[];
+    setSelectedAttributes: (attributes: string[]) => void;
 }
 
 const useStore = create<StoreState>((set) => ({
@@ -151,6 +153,14 @@ const useStore = create<StoreState>((set) => ({
                 return { counterRange: range };
             }
             return state; // No actualiza si no hay cambios
+        }),
+    selectedAttributes: [],
+    setSelectedAttributes: (attributes) =>
+        set((state) => {
+            if (JSON.stringify(state.selectedAttributes) !== JSON.stringify(attributes)) {
+                return { selectedAttributes: attributes };
+            }
+            return state; // No update if no changes
         }),
 }));
 

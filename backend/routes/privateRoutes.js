@@ -437,6 +437,9 @@ router.get("/set_names", cardController.getAllSetNames);
 // Nueva ruta para obtener todos los valores únicos de family
 router.get("/families", cardController.getAllFamilies);
 
+// Nueva ruta para obtener todos los valores únicos de attribute
+router.get("/attributes", cardController.getAllAttributes);
+
 /**
  * @swagger
  * /cards/by-code/{code}:

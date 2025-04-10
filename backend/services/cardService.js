@@ -50,6 +50,9 @@ const searchCards = async (page = 1, limit = 10, search = "", filters = {}) => {
     if (filters.set_name) {
         query = query.eq("set_name", filters.set_name);
     }
+    if (filters.attribute_name && filters.attribute_name.length > 0) {
+        query = query.in("attribute_name", filters.attribute_name);
+    }
 
     // Filtros por rango para "cost"
     if (filters.cost_gte !== undefined || filters.cost_lte !== undefined) {
@@ -148,10 +151,21 @@ const getAllFamilies = async () => {
     return data; // Devuelve la lista de familias únicas
 };
 
+const getAllAttributes = async () => {
+    const { data, error } = await supabase.rpc('get_unique_attribute_names_list');
+
+    if (error) {
+        throw new Error("Error al obtener los atributos: " + error.message);
+    }
+
+    return data; // Devuelve la lista de atributos con nombre y color
+};
+
 module.exports = {
     searchCards,
     getCardById,
     getCardsByCode,
     getAllSetNames,
     getAllFamilies,
+    getAllAttributes,
 };

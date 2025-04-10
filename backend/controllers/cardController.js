@@ -94,7 +94,18 @@ const getAllSetNames = async (req, res) => {
     }
 };
 
-// Obtener todos los valores únicos de set_name
+// Obtener todos los valores únicos de attribute_name y attribute_color
+const getAllAttributes = async (req, res) => {
+    try {
+        const attributes = await cardService.getAllAttributes();
+        res.status(200).json(attributes);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+// Obtener todos los valores únicos de family
 const getAllFamilies = async (req, res) => {
     try {
         const setNames = await cardService.getAllFamilies();
@@ -125,4 +136,5 @@ module.exports = {
     getAllSetNames,
     getAllFamilies,
     getCardsByCode,
+    getAllAttributes,
 };

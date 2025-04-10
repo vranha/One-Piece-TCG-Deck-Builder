@@ -1,29 +1,23 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     View,
     TextInput,
     FlatList,
-    Image,
     StyleSheet,
     TouchableOpacity,
     ActivityIndicator,
     Platform,
     Dimensions,
-    Modal,
 } from "react-native";
 import { useNavigation, useRouter } from "expo-router";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
 import useApi from "@/hooks/useApi";
 import { ThemedText } from "@/components/ThemedText";
-import { MaterialIcons, FontAwesome, AntDesign } from "@expo/vector-icons";
-import { debounce } from "lodash";
+import { FontAwesome } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Modalize } from "react-native-modalize";
-import MultiSlider from "@ptomasroos/react-native-multi-slider";
 import FilterSlider from "@/components/FilterSlider";
-import { Portal } from "react-native-paper";
-import { Picker } from "@react-native-picker/picker";
 import useFormattedSetNames from "@/hooks/useFormattedSetNames";
 import DropDownPicker from "react-native-dropdown-picker";
 import { Animated, Easing } from "react-native";
@@ -43,6 +37,8 @@ import Toast from "react-native-toast-message";
 import { supabase } from "@/supabaseClient";
 import AddToButton from "@/components/AddToButton";
 import useStore from "@/store/useStore";
+import { abilityColorMap } from "@/constants/abilityColorMap";
+import AttributeFilters from "@/components/AttributeFilters"; // Import the new component
 
 interface Card {
     id: string;
@@ -64,23 +60,6 @@ type Deck = {
 };
 
 const userDecks: Deck[] = []; // Asegúrate de que tiene el tipo correcto
-
-const abilityColorMap: { [key: string]: string } = {
-    "[Blocker]": "#d67e1a", // Ejemplo de color para Blocker
-    "[Activate: Main]": "#2677A7",
-    "[On Play]": "#2677A7",
-    "[Rush]": "#d67e1a",
-    "[Banish]": "#d67e1a",
-    "[Double Attack]": "#d67e1a",
-    "[Main]": "#2677A7",
-    "[Once Per Turn]": "#e6006b",
-    "[When Attacking]": "#2677A7",
-    "[Opponent's Turn]": "#2677A7",
-    "[On K.O.]": "#2677A7",
-    "[Your Turn]": "#196b9b",
-    "[On Your Opponent's Attack]": "#186a99",
-    "[Counter]": "#BC0110",
-};
 
 export default function SearchScreen() {
     const { theme } = useTheme();
@@ -105,6 +84,7 @@ export default function SearchScreen() {
     const [userId, setUserId] = useState<string | null>(null);
     const [setNames, setSetNames] = useState<string[]>([]); // Add this line to define setNames
     const [families, setFamilies] = useState<string[]>([]); // Add this line to define setNames
+    const [attributes, setAttributes] = useState<{ attribute_name: string; attribute_image: string }[]>([]);
 
     DropDownPicker.setListMode("MODAL");
 
@@ -136,6 +116,8 @@ export default function SearchScreen() {
         updateCardQuantity,
         searchQuery,
         setSearchQuery,
+        selectedAttributes,
+        setSelectedAttributes,
     } = useStore();
     const [isSelectionEnabled, setIsSelectionEnabled] = useState(selectedCards.length > 0); // State for selection mode
 
@@ -304,7 +286,17 @@ export default function SearchScreen() {
                 console.error("Error fetching families:", err);
             }
         };
+        const fetchAttributes = async () => {
+            try {
+                const response = await api.get("/attributes");
+                console.log("Attributes:", response.data);
+                setAttributes(response.data);
+            } catch (err) {
+                console.error("Error fetching attributes:", err);
+            }
+        };
 
+        fetchAttributes();
         fetchSetNames();
         fetchFamilies();
     }, []);
@@ -345,9 +337,11 @@ export default function SearchScreen() {
         setTriggerFilter(!triggerFilter);
     };
 
-    const handleAbilityFilterToggle = (ability: string) => {
+    const handleAbilityFilterToggle = (ability: string | null) => {
         setAbilityFilters(
-            abilityFilters.includes(ability)
+            ability === null
+                ? [] // Clear all abilities if null is passed
+                : abilityFilters.includes(ability)
                 ? abilityFilters.filter((a) => a !== ability)
                 : [...abilityFilters, ability]
         );
@@ -362,7 +356,7 @@ export default function SearchScreen() {
         setIsAbilityAccordionOpen(newValue);
 
         Animated.timing(abilityAccordionHeight, {
-            toValue: newValue ? 300 : 0,
+            toValue: newValue ? 350 : 0,
             duration: 300,
             easing: Easing.linear,
             useNativeDriver: false, // Animamos altura, así que debe ser false
@@ -658,6 +652,21 @@ export default function SearchScreen() {
                             handleAbilityFilterToggle={handleAbilityFilterToggle}
                             abilityColorMap={abilityColorMap}
                         />
+                        <AttributeFilters
+                            theme={theme}
+                            attributes={attributes}
+                            selectedAttributes={selectedAttributes}
+                            onAttributeSelect={(attribute) =>
+                                setSelectedAttributes(
+                                    attribute === null
+                                        ? [] // Clear all attributes if null is passed
+                                        : selectedAttributes.includes(attribute)
+                                        ? selectedAttributes.filter((a) => a !== attribute)
+                                        : [...selectedAttributes, attribute]
+                                )
+                            }
+                        />
+                        <View style={[styles.separator, { backgroundColor: Colors[theme].tabIconDefault }]} />
                         <ApplyFiltersButton onPress={applyFilters} label={t("filter")} />
                     </View>
                 </ScrollView>

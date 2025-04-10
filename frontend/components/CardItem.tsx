@@ -1,9 +1,7 @@
 import React, { useState } from "react";
-import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { View, TouchableOpacity } from "react-native";
 import { Image as ExpoImage } from "expo-image";
 import { ThemedText } from "@/components/ThemedText";
-import { Colors } from "@/constants/Colors";
-import { useTheme } from "@/hooks/ThemeContext";
 import { MaterialIcons } from "@expo/vector-icons";
 
 interface Card {

@@ -11,7 +11,7 @@ interface AbilityAccordionProps {
     toggleAbilityAccordion: () => void;
     abilityAccordionHeight: Animated.Value;
     abilityFilters: string[];
-    handleAbilityFilterToggle: (ability: string) => void;
+    handleAbilityFilterToggle: (ability: string | null) => void;
     abilityColorMap: { [key: string]: string };
 }
 
@@ -41,7 +41,7 @@ const AbilityAccordion: React.FC<AbilityAccordionProps> = ({
                 </View>
                 {abilityFilters.length > 0 && (
                     <TouchableOpacity
-                        onPress={() => handleAbilityFilterToggle("")}
+                        onPress={() => handleAbilityFilterToggle(null)} // Clear all selected abilities
                         style={[styles.clearButton, { backgroundColor: Colors[theme].TabBarBackground }]}
                     >
                         <ThemedText style={[styles.abilityCount, { color: Colors[theme].text }]}>

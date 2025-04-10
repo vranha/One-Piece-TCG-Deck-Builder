@@ -2,18 +2,11 @@ import React, { useEffect, useState, useMemo, useRef } from "react";
 import {
     View,
     StyleSheet,
-    ActivityIndicator,
     TouchableOpacity,
     Text,
     ScrollView,
-    Dimensions,
     Platform,
-    ToastAndroid,
-    Alert,
     TextInput,
-    FlatList,
-    Modal,
-    Pressable,
 } from "react-native";
 import { Image as ExpoImage } from "expo-image";
 import { useNavigation, useLocalSearchParams, useRouter } from "expo-router";
@@ -21,8 +14,8 @@ import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
 import useApi from "@/hooks/useApi";
 import { ThemedText } from "@/components/ThemedText";
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { BarChart, PieChart } from "react-native-chart-kit";
+import { MaterialIcons } from "@expo/vector-icons";
+import { Animated, Easing } from "react-native";
 import { LoadingIndicator } from "@/components/LoadingIndicator"; // Import the new component
 import { NoDeckFound } from "@/components/NoDeckFound"; // Import the new component
 import { CostCurveChart } from "@/components/CostCurveChart"; // Import the new component
@@ -39,6 +32,7 @@ import { useTranslation } from "react-i18next";
 import FilterSlider from "@/components/FilterSlider";
 import ImageModal from "@/components/ImageModal"; // Import the new component
 import CardSelectionModal from "@/components/CardSelectionModal"; // Import the new component
+import TriggerFilter from "@/components/TriggerFilter";
 
 interface DeckDetail {
     id: string;
@@ -96,6 +90,7 @@ export default function DeckDetailScreen() {
 
     const [isImageModalVisible, setIsImageModalVisible] = useState(false); // State for image modal
     const [selectedImage, setSelectedImage] = useState<string | null>(null); // State for selected image
+    const [triggerFilter, setTriggerFilter] = useState<boolean>(false); // State for selected image
 
     const fetchRelatedCards = async (code: string) => {
         try {
@@ -105,6 +100,30 @@ export default function DeckDetailScreen() {
         } catch (error) {
             console.error("Error fetching related cards:", error);
         }
+    };
+
+    const handleTriggerFilterToggle = () => {
+        setTriggerFilter((prev) => !prev);
+    };
+
+    const [isAbilityAccordionOpen, setIsAbilityAccordionOpen] = useState(false);
+    const abilityAccordionHeight = useRef(new Animated.Value(0)).current;
+    // const scrollViewRef = useRef<ScrollView>(null); // Asegúrate de definir la referencia
+
+    const toggleAbilityAccordion = () => {
+        const newValue = !isAbilityAccordionOpen;
+        setIsAbilityAccordionOpen(newValue);
+
+        Animated.timing(abilityAccordionHeight, {
+            toValue: newValue ? 350 : 0,
+            duration: 300,
+            easing: Easing.linear,
+            useNativeDriver: false, // Animamos altura, así que debe ser false
+        }).start(() => {
+            // if (newValue) {
+            //     scrollViewRef.current?.scrollToEnd({ animated: true });
+            // }
+        });
     };
 
     const replaceCard = async (newCard: Card) => {
@@ -688,10 +707,14 @@ export default function DeckDetailScreen() {
 
     const fetchFilteredCards = async () => {
         try {
+            const triggerQuery = triggerFilter ? `&trigger=true` : "";
+
             const response = await api.get(
                 `/cards?search=${searchQuery}&color=${
                     Array.isArray(leaderColors) ? leaderColors.join(",") : leaderColors
-                }&type=${selectedTypes.join(",")}&family=${selectedFamilies.join(",")}&cost_gte=${transformSliderValue(
+                }&type=${selectedTypes.join(",")}&family=${selectedFamilies.join(
+                    ","
+                )}${triggerQuery}&cost_gte=${transformSliderValue(
                     costRange[0],
                     "null"
                 )}&cost_lte=${transformSliderValue(costRange[1], "null")}&power_gte=${powerRange[0]}&power_lte=${
@@ -744,6 +767,7 @@ export default function DeckDetailScreen() {
         powerRange,
         counterRange,
         showSelectedCardsOnly,
+        triggerFilter,
     ]); // Updated dependencies
 
     const toggleFilterVisibility = () => {
@@ -908,7 +932,17 @@ export default function DeckDetailScreen() {
                                     </View>
                                 </TouchableOpacity>
                                 <TouchableOpacity
-                                    style={[styles.changeArtIcon,  item.is_leader ? { transform: [{ scale: 1.1 }], bottom:-4, left:-4, backgroundColor: Colors[theme].tint } : { backgroundColor: Colors[theme].backgroundSoft } ]}
+                                    style={[
+                                        styles.changeArtIcon,
+                                        item.is_leader
+                                            ? {
+                                                  transform: [{ scale: 1.1 }],
+                                                  bottom: -4,
+                                                  left: -4,
+                                                  backgroundColor: Colors[theme].tint,
+                                              }
+                                            : { backgroundColor: Colors[theme].backgroundSoft },
+                                    ]}
                                     onPress={() => {
                                         setSelectedCard(item);
                                         fetchRelatedCards(item.code);
@@ -1002,7 +1036,8 @@ export default function DeckDetailScreen() {
                 ref={modalizeRef}
                 // snapPoint={100}
                 closeSnapPointStraightEnabled={false}
-                adjustToContentHeight
+                avoidKeyboardLikeIOS={true}
+                keyboardAvoidingBehavior={Platform.OS === "ios" ? undefined : "height"}
                 modalStyle={{ backgroundColor: Colors[theme].backgroundSoft }}
                 velocity={8000} // gesto extremadamente rápido necesario
                 threshold={200} // gesto muy largo también necesario si no supera velocity
@@ -1150,7 +1185,7 @@ export default function DeckDetailScreen() {
                                     showsHorizontalScrollIndicator={false}
                                     contentContainerStyle={{
                                         paddingHorizontal: 10,
-                                        paddingBottom: 20,
+                                        paddingBottom: 10,
                                         alignItems: "center",
                                         justifyContent: "center",
                                         width: "100%",
@@ -1187,10 +1222,11 @@ export default function DeckDetailScreen() {
                                         </TouchableOpacity>
                                     ))}
                                 </ScrollView>
+                                <TriggerFilter triggerFilter={triggerFilter} onToggle={handleTriggerFilterToggle} />
                             </>
                         )}
                         {filtersVisible && (
-                            <>
+                            <View style={{ marginTop: 10 }}>
                                 <FilterSlider
                                     label="Cost"
                                     min={0}
@@ -1215,7 +1251,7 @@ export default function DeckDetailScreen() {
                                     onValuesChangeFinish={(values) => setCounterRange(values as [number, number])}
                                     range={counterRange}
                                 />
-                            </>
+                            </View>
                         )}
                     </View>
                 }
@@ -1326,7 +1362,7 @@ const CardItem = React.memo(
                     placeholder={require("@/assets/images/card_placeholder.webp")}
                     style={[styles.cardImage, imageStyle, loading && { opacity: 0.3 }]}
                     contentFit="contain"
-                    transition={300}
+                    // transition={300}
                     cachePolicy="memory-disk"
                     onLoadStart={() => onLoadStart(card.id)}
                     onLoadEnd={() => onLoadEnd(card.id)}
