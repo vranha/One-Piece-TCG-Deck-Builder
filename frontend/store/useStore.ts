@@ -1,3 +1,4 @@
+import useApi from "@/hooks/useApi";
 import { create } from "zustand";
 
 interface SelectedCard {
@@ -35,6 +36,8 @@ interface StoreState {
     setCounterRange: (range: [number, number]) => void;
     selectedAttributes: string[];
     setSelectedAttributes: (attributes: string[]) => void;
+    refreshDecks: boolean;
+    setRefreshDecks: (refresh: boolean) => void;
 }
 
 const useStore = create<StoreState>((set) => ({
@@ -162,6 +165,8 @@ const useStore = create<StoreState>((set) => ({
             }
             return state; // No update if no changes
         }),
+    refreshDecks: false,
+    setRefreshDecks: (refresh) => set({ refreshDecks: refresh }),
 }));
 
 export default useStore;

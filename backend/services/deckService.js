@@ -287,14 +287,13 @@ async function addMultipleCardsToDeck(deckId, cards) {
 
 async function syncDeckCards(deckId, newCards) {
     try {
-        // Validar que cada carta tenga cardId y quantity
+        // Validar que cada carta tenga cardId, quantity, y opcionalmente is_leader
         if (!Array.isArray(newCards)) {
             throw new Error("newCards debe ser un array.");
         }
 
         newCards.forEach((card) => {
             if (!card.cardId || typeof card.quantity !== "number") {
-                // Cambiar "card.card" a "card.cardId"
                 throw new Error(`Datos inválidos en newCards: ${JSON.stringify(card)}`);
             }
         });
@@ -302,7 +301,7 @@ async function syncDeckCards(deckId, newCards) {
         // 1. Obtener el estado actual del mazo
         const { data: currentCards, error } = await supabase
             .from("deck_cards")
-            .select("id, card_id, quantity")
+            .select("id, card_id, quantity, is_leader")
             .eq("deck_id", deckId);
 
         if (error) {
@@ -317,7 +316,7 @@ async function syncDeckCards(deckId, newCards) {
         const processedCardIds = new Set();
 
         // 2. Procesar cada carta del nuevo array
-        for (const { cardId, quantity } of newCards) {
+        for (const { cardId, quantity, is_leader = false } of newCards) {
             if (!cardId) {
                 console.error("cardId es inválido:", cardId);
                 continue;
@@ -332,9 +331,12 @@ async function syncDeckCards(deckId, newCards) {
                 if (clampedQuantity === 0) {
                     // Si la nueva cantidad es 0, eliminar la carta
                     await supabase.from("deck_cards").delete().eq("id", existingCard.id);
-                } else if (existingCard.quantity !== clampedQuantity) {
-                    // Si la cantidad ha cambiado, actualizarla
-                    await supabase.from("deck_cards").update({ quantity: clampedQuantity }).eq("id", existingCard.id);
+                } else if (existingCard.quantity !== clampedQuantity || existingCard.is_leader !== is_leader) {
+                    // Si la cantidad o is_leader han cambiado, actualizar
+                    await supabase
+                        .from("deck_cards")
+                        .update({ quantity: clampedQuantity, is_leader })
+                        .eq("id", existingCard.id);
                 }
                 // Si es igual, no hacer nada
             } else if (clampedQuantity > 0) {
@@ -343,12 +345,14 @@ async function syncDeckCards(deckId, newCards) {
                     deck_id: deckId,
                     card_id: cardId,
                     quantity: clampedQuantity,
+                    is_leader,
                 });
                 await supabase.from("deck_cards").insert([
                     {
                         deck_id: deckId,
                         card_id: cardId,
                         quantity: clampedQuantity,
+                        is_leader,
                     },
                 ]);
             }

@@ -98,5 +98,17 @@
     "deck_sync_error_title": "😰😰😰",
     "deck_sync_error_message": "Ups! Something went wrong modifying the deck.",
     "change_art": "Change Art",
-    "close": "Close"
+    "close": "Close",
+    "ability": "Ability",
+    "abilities": "Abilities",
+    "attribute": "Attribute",
+    "attributes": "Attributes",
+    "new": "New",
+    "hi_nakama": "Hi Nakama!",
+    "welcome_to": "WELCOME TO",
+    "join_crew": "Join the crew! ",
+    "register": "Register",
+    "enter_new_world": "Enter the New World ",
+    "edit_cards": "Edit Cards"
+    
 }

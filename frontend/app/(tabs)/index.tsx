@@ -11,6 +11,7 @@ import { Portal } from "react-native-paper";
 import DeckCarousel from "@/components/DeckCarousel";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
+import useStore from "@/store/useStore";
 
 interface Deck {
     id: string;
@@ -30,6 +31,28 @@ export default function HomeScreen() {
     const [newDeckModalVisible, setNewDeckModalVisible] = useState(false);
     const router = useRouter();
 
+    const refreshDecks = useStore((state) => state.refreshDecks);
+    const setRefreshDecks = useStore((state) => state.setRefreshDecks);
+
+    const handleCreateDeck = (leader: string, name: string, description: string) => {
+        // Logic to create a new deck
+        useStore.getState().setRefreshDecks(true); // Notificar al DeckCarousel
+        console.log("Creating deck:", leader, name, description);
+    };
+
+    const fetchDecks = async (userId: string, token: string) => {
+        try {
+            const { data } = await api.get(`/decks/${userId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            setDecks([{ id: "new", name: t("create_new_deck"), deck_colors: [], leaderCardImage: null }, ...data.data]);
+        } catch (error) {
+            console.error("Error fetching decks:", error);
+        }
+    };
+
     useEffect(() => {
         async function fetchUser() {
             const {
@@ -44,24 +67,24 @@ export default function HomeScreen() {
             setLoading(false);
         }
 
-        async function fetchDecks(userId: string, token: string) {
-            try {
-                const { data } = await api.get(`/decks/${userId}`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-                setDecks([
-                    { id: "new", name: t("create_new_deck"), deck_colors: [], leaderCardImage: null },
-                    ...data.data,
-                ]);
-            } catch (error) {
-                console.error("Error fetching decks:", error);
-            }
-        }
-
         fetchUser();
     }, []);
+
+    useEffect(() => {
+        if (refreshDecks) {
+            async function refresh() {
+                const {
+                    data: { session },
+                } = await supabase.auth.getSession();
+                if (session && session.user) {
+                    fetchDecks(session.user.id, session.access_token); // Reuse fetchDecks
+                }
+            }
+
+            refresh();
+            setRefreshDecks(false); // Reset the state
+        }
+    }, [refreshDecks]); // Observe changes in refreshDecks
 
     if (loading) {
         return (
@@ -82,16 +105,13 @@ export default function HomeScreen() {
             <DeckCarousel
                 decks={decks}
                 onNewDeckPress={() => setNewDeckModalVisible(true)}
-                onDeckPress={(deckId) => router.push({pathname: `/(tabs)/deck/[deckId]`, params: { deckId: deckId }})}
+                onDeckPress={(deckId) => router.push({ pathname: `/(tabs)/deck/[deckId]`, params: { deckId: deckId } })}
             />
             <Portal>
                 <NewDeckModal
                     visible={newDeckModalVisible}
                     onClose={() => setNewDeckModalVisible(false)}
-                    onCreate={(leader, name, description) => {
-                        // Aquí puedes manejar la creación del nuevo mazo
-                        console.log("Nuevo mazo creado:", leader, name, description);
-                    }}
+                    onCreate={handleCreateDeck}
                 />
             </Portal>
         </ThemedView>

@@ -37,13 +37,15 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
 
     const handleCreate = async () => {
         try {
+            console.log("Selected Colors:", selectedColors); // Verifica los colores seleccionados
+            console.log("Leader:", leader); // Verifica el líder seleccionado
             // Aquí ahora usamos directamente selectedColors como array de colores.
             const colorsArray = selectedColors;
             const response = await api.post("/decks", {
                 userId: session?.user.id, // Obtén el user-id del contexto de autenticación
                 name,
                 description,
-                colors: colorsArray,
+                colors: leader?.color,
                 leaderCardId: leader?.id, // Añadir el ID de la carta LEADER seleccionada
             });
 
@@ -116,13 +118,7 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
     };
 
     const handleColorSelect = (color: string) => {
-        setSelectedColors((prevColors) => {
-            if (prevColors.includes(color)) {
-                return prevColors.filter((c) => c !== color); // Elimina el color si ya está seleccionado
-            } else {
-                return [...prevColors, color]; // Agrega el color sin límite
-            }
-        });
+        setSelectedColors([color]); // Replace the previous color with the new one
     };
 
     const capitalizeFirstLetter = (string: string) => {
@@ -221,45 +217,57 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
                         onPress={() => setLeaderModalVisible(false)}
                     />
                     <View style={[styles.centeredView]}>
-                        <View style={[styles.modalViewImages, { backgroundColor: Colors[theme].background }]}>
-                            {loading ? (
-                                <ActivityIndicator size="large" color={Colors[theme].text} />
-                            ) : (
-                                <>
-                                    <View style={styles.colorFilters}>
-                                        {["blue", "red", "green", "yellow", "purple", "black"].map((color) => (
-                                            <TouchableOpacity
-                                                key={color}
-                                                style={[
-                                                    styles.colorCircle,
-                                                    { backgroundColor: color },
-                                                    selectedColors.includes(color) && {
-                                                        borderColor: Colors[theme].success,
-                                                    },
-                                                ]}
-                                                onPress={() => handleColorSelect(color)}
-                                            />
-                                        ))}
-                                    </View>
-                                    <FlatList
-                                        data={leaders}
-                                        keyExtractor={(item) => item.id}
-                                        renderItem={({ item }) => (
-                                            <TouchableOpacity onPress={() => handleLeaderSelect(item)}>
-                                                <Image
-                                                    source={item.images_small}
-                                                    style={styles.leaderImage}
-                                                    contentFit="contain"
-                                                    cachePolicy="memory-disk"
-                                                />
-                                            </TouchableOpacity>
-                                        )}
-                                        numColumns={3}
-                                        contentContainerStyle={styles.leaderList}
-                                        columnWrapperStyle={{ gap: 10 }}
-                                    />
-                                </>
-                            )}
+                        <View
+                            style={[
+                                styles.modalViewImages,
+                                { backgroundColor: Colors[theme].background, maxHeight: "80%" },
+                            ]}
+                        >
+                            <View style={{ height: "100%", justifyContent: "center", alignItems: "center" }}>
+                                {loading ? (
+                                    <ActivityIndicator size="large" color={Colors[theme].text} />
+                                ) : (
+                                    <>
+                                        <View style={styles.colorFilters}>
+                                            {["blue", "red", "green", "yellow", "purple", "black"].map((color) => (
+                                                <TouchableOpacity
+                                                    key={color}
+                                                    style={[
+                                                        styles.colorCircleContainer,
+                                                        { borderColor: Colors[theme].backgroundSoft },
+                                                        selectedColors.includes(color)
+                                                            ? [
+                                                                  styles.selectedColorCircle,
+                                                                  { borderColor: Colors[theme].text },
+                                                              ]
+                                                            : "",
+                                                    ]}
+                                                    onPress={() => handleColorSelect(color)}
+                                                >
+                                                    <View style={[styles.colorCircle, { backgroundColor: color }]} />
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                        <FlatList
+                                            data={leaders}
+                                            keyExtractor={(item) => item.id}
+                                            renderItem={({ item }) => (
+                                                <TouchableOpacity onPress={() => handleLeaderSelect(item)}>
+                                                    <Image
+                                                        source={item.images_small}
+                                                        style={styles.leaderImage}
+                                                        contentFit="contain"
+                                                        cachePolicy="memory-disk"
+                                                    />
+                                                </TouchableOpacity>
+                                            )}
+                                            numColumns={3}
+                                            contentContainerStyle={styles.leaderList}
+                                            columnWrapperStyle={{ justifyContent: "space-between", gap: 10 }}
+                                        />
+                                    </>
+                                )}
+                            </View>
                         </View>
                     </View>
                 </View>
@@ -348,20 +356,27 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         gap: 15,
+        paddingBottom: 10, // Added padding for better spacing
     },
     colorFilters: {
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-        marginBottom: 20,
+        marginBottom: 15,
     },
     colorCircle: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        marginHorizontal: 8,
+        width: 24,
+        height: 24,
+        borderRadius: 15,
+    },
+    colorCircleContainer: {
+        padding: 2,
         borderWidth: 2,
-        borderColor: "transparent",
+        borderRadius: 25,
+        marginHorizontal: 5,
+    },
+    selectedColorCircle: {
+        borderWidth: 2,
     },
     leaderSelectedContainer: {
         marginVertical: 20,
@@ -372,8 +387,8 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     leaderImage: {
-        width: 96,
-        height: 128,
+        width: 80, // Adjusted width for better fit
+        height: 110, // Adjusted height for better fit
         borderRadius: 10,
     },
     deselectButton: {

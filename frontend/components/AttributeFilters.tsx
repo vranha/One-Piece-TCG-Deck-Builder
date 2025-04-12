@@ -4,6 +4,7 @@ import { Image as ExpoImage } from "expo-image";
 import { ThemedText } from "@/components/ThemedText";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "@/constants/Colors";
+import { useTranslation } from "react-i18next";
 
 interface AttributeFiltersProps {
     attributes: { attribute_name: string; attribute_image: string }[];
@@ -20,6 +21,7 @@ const AttributeFilters: React.FC<AttributeFiltersProps> = ({
 }) => {
     const [isAccordionOpen, setIsAccordionOpen] = useState(false);
     const accordionHeight = useRef(new Animated.Value(0)).current; // Use useRef to persist the value
+    const { t } = useTranslation();
 
     const toggleAccordion = () => {
         const newValue = !isAccordionOpen;
@@ -40,7 +42,7 @@ const AttributeFilters: React.FC<AttributeFiltersProps> = ({
             >
                 <View style={styles.headerContent}>
                     <ThemedText style={[styles.accordionHeaderText, { color: Colors[theme].text }]}>
-                        Attributes
+                        {t("attributes")}
                     </ThemedText>
                     <MaterialIcons
                         name={isAccordionOpen ? "expand-less" : "expand-more"}
@@ -53,7 +55,7 @@ const AttributeFilters: React.FC<AttributeFiltersProps> = ({
                         onPress={() => onAttributeSelect(null)} // Clear all selected attributes
                         style={[styles.clearButton, { backgroundColor: Colors[theme].TabBarBackground }]}
                     >
-                        <ThemedText style={[styles.attributeCount, { color: Colors[theme].text }]}>
+                        <ThemedText style={[styles.attributeCount, { color: Colors[theme].tint }]}>
                             {selectedAttributes.length}
                         </ThemedText>
                         <MaterialIcons name="close" size={16} color={Colors[theme].text} />
@@ -68,7 +70,7 @@ const AttributeFilters: React.FC<AttributeFiltersProps> = ({
                             key={attribute.attribute_name}
                             style={[
                                 styles.attributeButton,
-                                { borderColor: Colors[theme].tabIconDefault },
+                                {  backgroundColor: Colors[theme].TabBarBackground, borderColor: Colors[theme].background, opacity: 0.9 },
                                 selectedAttributes.includes(attribute.attribute_name) && {
                                     backgroundColor: Colors[theme].tint,
                                 },
@@ -95,8 +97,9 @@ const AttributeFilters: React.FC<AttributeFiltersProps> = ({
 const styles = StyleSheet.create({
     accordionHeader: {
         flexDirection: "row",
-        justifyContent: "space-between",
+        justifyContent: "center",
         alignItems: "center",
+        width: "100%",
         paddingVertical: 10,
         paddingHorizontal: 15,
         borderRadius: 8,
@@ -133,12 +136,21 @@ const styles = StyleSheet.create({
     attributeButton: {
         width: "30%", // Ensures 3 columns
         marginVertical: 5,
-        paddingTop: 5,
-        paddingHorizontal: 10,
+        paddingTop: 7,
+        paddingBottom: 4,
+        paddingHorizontal: 12,
         borderRadius: 5,
         alignItems: "center",
         justifyContent: "center",
-        borderWidth: 1,
+        // borderWidth: 2,
+        elevation: 2,
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
     },
     attributeImage: {
         width: 30,

@@ -52,6 +52,7 @@ const searchCards = async (req, res) => {
             life_lte: sanitizeParam(life_lte),
             set_name: sanitizeParam(set_name),
             ability: ability ? ability.split(",").map(sanitizeParam) : undefined,
+            attribute_name: req.query.attribute_name ? req.query.attribute_name.split(",") : undefined,
         };
 
         const { data, count } = await cardService.searchCards(page, limit, search, filters);
@@ -118,11 +119,30 @@ const getAllFamilies = async (req, res) => {
 
 const getCardsByCode = async (req, res) => {
     const { code } = req.params;
+    console.log("Received code:", code); // Log para verificar el valor de code
     try {
         const cards = await cardService.getCardsByCode(code);
         if (!cards.length) {
             return res.status(404).json({ message: "No se encontraron cartas con este código." });
         }
+        res.status(200).json(cards);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+const getCardsByCodes = async (req, res) => {
+    const { codes } = req.params; // Obtener los códigos desde los parámetros de la URL
+    console.log("getCardsByCodes called with codes:", codes);
+
+    if (!codes) {
+        return res.status(400).json({ error: "Codes parameter is required" });
+    }
+
+    try {
+        const codeArray = codes.split(","); // Dividir los códigos en un array
+        const cards = await cardService.getCardsByCodes(codeArray);
         res.status(200).json(cards);
     } catch (err) {
         console.error(err);
@@ -137,4 +157,5 @@ module.exports = {
     getAllFamilies,
     getCardsByCode,
     getAllAttributes,
+    getCardsByCodes,
 };

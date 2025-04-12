@@ -203,6 +203,7 @@ export default function SearchScreen() {
         setLoading(true);
         try {
             let colorQuery = selectedColors.length > 0 ? `&color=${selectedColors.join(",")}` : "";
+            let attributeQuery = selectedAttributes.length > 0 ? `&attribute_name=${selectedAttributes.join(",")}` : "";
 
             const transformCounterValue = (value: number | null | undefined) => {
                 if (value === 0 || value == null) {
@@ -226,7 +227,7 @@ export default function SearchScreen() {
             const abilityQuery = abilityFilters.length > 0 ? `&ability=${abilityFilters.join(",")}` : "";
 
             const response = await api.get(
-                `/cards?search=${query}&page=${page}${colorQuery}${setNameQuery}${setFamilyQuery}${typeQuery}${rarityQuery}${triggerQuery}${abilityQuery}&cost_gte=${transformCostValue(
+                `/cards?search=${query}&page=${page}${colorQuery}${attributeQuery}${setNameQuery}${setFamilyQuery}${typeQuery}${rarityQuery}${triggerQuery}${abilityQuery}&cost_gte=${transformCostValue(
                     costRange[0]
                 )}&cost_lte=${transformCostValue(costRange[1])}&power_gte=${powerRange[0]}&power_lte=${
                     powerRange[1]
@@ -248,6 +249,7 @@ export default function SearchScreen() {
             const isBase =
                 !query &&
                 !colorQuery &&
+                !attributeQuery &&
                 !setNameQuery &&
                 !setFamilyQuery &&
                 !typeQuery &&
@@ -488,6 +490,7 @@ export default function SearchScreen() {
         setSelectedSet(null);
         setSelectedFamily(null);
         setSelectedTypes([]);
+        setSelectedAttributes([]);
         setSelectedRarities([]);
         setTriggerFilter(false);
         setAbilityFilters([]);

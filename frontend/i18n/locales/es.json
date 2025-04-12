@@ -94,5 +94,19 @@
     "deck_sync_error_title": "😰😰😰",
     "deck_sync_error_message": "Ups! Algo salió mal al sincronizar el mazo.",
     "change_art": "Cambiar Arte",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "cost": "Coste",
+    "power": "Poder",
+    "ability": "Habilidad",
+    "abilities": "Habilidades",
+    "attribute": "Atributo",
+    "attributes": "Atributos",
+    "new": "Nuevo",
+    "hi_nakama": "Hola Nakama!",
+    "welcome_to": "BIENVENIDO A",
+    "join_crew": "¡Únete a la tripulación! ",
+    "register": "Registrarse",
+    "enter_new_world": "Entra al nuevo mundo ",
+    "edit_cards": "Editar Cartas"
+
 }

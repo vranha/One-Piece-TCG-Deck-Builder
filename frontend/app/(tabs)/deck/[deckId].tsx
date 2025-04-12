@@ -1,13 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
-import {
-    View,
-    StyleSheet,
-    TouchableOpacity,
-    Text,
-    ScrollView,
-    Platform,
-    TextInput,
-} from "react-native";
+import { View, StyleSheet, TouchableOpacity, Text, ScrollView, Platform, TextInput } from "react-native";
 import { Image as ExpoImage } from "expo-image";
 import { useNavigation, useLocalSearchParams, useRouter } from "expo-router";
 import { Colors } from "@/constants/Colors";
@@ -33,6 +25,11 @@ import FilterSlider from "@/components/FilterSlider";
 import ImageModal from "@/components/ImageModal"; // Import the new component
 import CardSelectionModal from "@/components/CardSelectionModal"; // Import the new component
 import TriggerFilter from "@/components/TriggerFilter";
+import { LinearGradient } from "expo-linear-gradient";
+import AbilityAccordion from "@/components/AbilityAccordion";
+import AttributeFilters from "@/components/AttributeFilters";
+import { abilityColorMap } from "@/constants/abilityColorMap";
+import useStore from "@/store/useStore";
 
 interface DeckDetail {
     id: string;
@@ -90,7 +87,10 @@ export default function DeckDetailScreen() {
 
     const [isImageModalVisible, setIsImageModalVisible] = useState(false); // State for image modal
     const [selectedImage, setSelectedImage] = useState<string | null>(null); // State for selected image
-    const [triggerFilter, setTriggerFilter] = useState<boolean>(false); // State for selected image
+    const [triggerFilter, setTriggerFilter] = useState<boolean>(false); // State for selected trigger filter
+    const [abilityFilters, setAbilityFilters] = useState<string[]>([]); // State for selected abilities
+    const [attributes, setAttributes] = useState<{ attribute_name: string; attribute_image: string }[]>([]);
+    const [selectedAttributes, setSelectedAttributes] = useState<string[]>([]); // State for selected attributes
 
     const fetchRelatedCards = async (code: string) => {
         try {
@@ -106,6 +106,48 @@ export default function DeckDetailScreen() {
         setTriggerFilter((prev) => !prev);
     };
 
+    const handleAbilityFilterToggle = (ability: string | null) => {
+        setAbilityFilters(
+            ability === null
+                ? [] // Clear all abilities if null is passed
+                : abilityFilters.includes(ability)
+                ? abilityFilters.filter((a) => a !== ability)
+                : [...abilityFilters, ability]
+        );
+    };
+
+    useEffect(() => {
+        // const fetchSetNames = async () => {
+        //     try {
+        //         const response = await api.get("/set_names");
+        //         setSetNames(response.data);
+        //     } catch (err) {
+        //         console.error("Error fetching set names:", err);
+        //     }
+        // };
+
+        // const fetchFamilies = async () => {
+        //     try {
+        //         const response = await api.get("/families");
+        //         setFamilies(response.data);
+        //     } catch (err) {
+        //         console.error("Error fetching families:", err);
+        //     }
+        // };
+        const fetchAttributes = async () => {
+            try {
+                const response = await api.get("/attributes");
+                console.log("Attributes:", response.data);
+                setAttributes(response.data);
+            } catch (err) {
+                console.error("Error fetching attributes:", err);
+            }
+        };
+
+        fetchAttributes();
+        // fetchSetNames();
+        // fetchFamilies();
+    }, []);
     const [isAbilityAccordionOpen, setIsAbilityAccordionOpen] = useState(false);
     const abilityAccordionHeight = useRef(new Animated.Value(0)).current;
     // const scrollViewRef = useRef<ScrollView>(null); // Asegúrate de definir la referencia
@@ -128,10 +170,13 @@ export default function DeckDetailScreen() {
 
     const replaceCard = async (newCard: Card) => {
         if (!deckDetail || !selectedCard) return;
+        console.log(newCard);
 
         // Update the deck detail locally
         const updatedCards = deckDetail.cards.map((card) =>
-            card.id === selectedCard.id ? { ...newCard, quantity: card.quantity } : card
+            card.id === selectedCard.id
+                ? { ...newCard, quantity: card.quantity, is_leader: newCard.type === "LEADER" }
+                : card
         );
 
         setDeckDetail((prev) => ({
@@ -144,6 +189,7 @@ export default function DeckDetailScreen() {
             const adjustedCards = updatedCards.map((card) => ({
                 cardId: card.id,
                 quantity: card.quantity ?? 1,
+                is_leader: card.is_leader ?? false,
             }));
 
             await api.post("/decks/cards/sync", {
@@ -166,7 +212,7 @@ export default function DeckDetailScreen() {
                 position: "bottom",
             });
         }
-
+        useStore.getState().setRefreshDecks(true); // Notify the DeckCarousel
         setIsModalVisible(false); // Close the modal
     };
 
@@ -207,9 +253,10 @@ export default function DeckDetailScreen() {
             const card = filteredCards.find((c) => c.id === cardId);
             if (!card) return prevSelectedCards;
 
-            const isCodeMaxedOut = deckDetail?.cards.some(
-                (deckCard) => deckCard.code === card.code && (deckCard.quantity ?? 0) >= 4
-            );
+            const isCodeMaxedOut = Object.entries(prevSelectedCards).some(([id, quantity]) => {
+                const selectedCard = filteredCards.find((c) => c.id === id);
+                return selectedCard?.code === card.code && quantity >= 4;
+            });
 
             if (isCodeMaxedOut && updatedQuantity > currentQuantity) return prevSelectedCards;
 
@@ -286,7 +333,7 @@ export default function DeckDetailScreen() {
             try {
                 const response = await api.get(`/deckById/${deckId}`);
                 setDeckDetail(response.data);
-                console.log(response.data);
+                console.log("DECKDATA", response.data);
             } catch (error: any) {
                 console.error("Error fetching deck detail:", error.response?.data || error.message);
             } finally {
@@ -303,7 +350,12 @@ export default function DeckDetailScreen() {
         navigation.setOptions({
             headerShown: true,
             headerLeft: () => (
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                <TouchableOpacity
+                    onPress={() => {
+                        router.back(), modalizeRef.current?.close();
+                    }}
+                    style={styles.backButton}
+                >
                     <MaterialIcons name="arrow-back" size={24} color={Colors[theme].text} />
                 </TouchableOpacity>
             ),
@@ -311,22 +363,18 @@ export default function DeckDetailScreen() {
             headerRight: () => (
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <TouchableOpacity
-                        onPress={deckCardCount < limitDeckNum ? openModal : undefined}
+                        onPress={openModal}
                         style={{
-                            backgroundColor: isModalOpen
-                                ? Colors[theme].disabled
-                                : deckCardCount < limitDeckNum
-                                ? Colors[theme].success
-                                : Colors[theme].disabled,
+                            backgroundColor: isModalOpen ? Colors[theme].disabled : Colors[theme].success,
                             paddingVertical: 5,
                             paddingHorizontal: 10,
                             borderRadius: 5,
                             marginRight: 10,
                         }}
-                        disabled={isModalOpen || deckCardCount >= limitDeckNum}
+                        disabled={isModalOpen}
                     >
                         <ThemedText style={{ color: Colors[theme].background, fontWeight: "bold" }}>
-                            {isModalOpen ? t("close_to_make_changes") : t("add_card")}
+                            {isModalOpen ? t("close_to_make_changes") : t("edit_cards")}
                         </ThemedText>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -627,20 +675,28 @@ export default function DeckDetailScreen() {
 
     const calculateLeaderLifes = () => {
         const leaderCard = deckDetail?.cards.find((card) => card.type === "LEADER");
-        if (!leaderCard) return 0; // Si no hay líder, no hay lifes
+        if (!leaderCard) return 0;
 
         if (leaderCard.cost) {
-            return leaderCard.cost; // Si tiene cost, ese es su lifes
+            return leaderCard.cost;
         }
 
-        const colors = leaderCard.color?.split("/") ?? []; // Dividimos los colores por "/"
+        // Aseguramos que color sea string o array
+        let colors: string[] = [];
+
+        if (typeof leaderCard.color === "string") {
+            colors = leaderCard.color.split("/");
+        } else if (Array.isArray(leaderCard.color)) {
+            colors = leaderCard.color;
+        }
+
         if (colors.length === 1) {
-            return 5; // Un color -> 5 lifes
+            return 5;
         } else if (colors.length === 2) {
-            return 4; // Dos colores -> 4 lifes
+            return 4;
         }
 
-        return 0; // Si no tiene cost ni colores, no hay lifes
+        return 0;
     };
 
     const calculateTriggerProbabilities = (lifes: number) => {
@@ -708,13 +764,15 @@ export default function DeckDetailScreen() {
     const fetchFilteredCards = async () => {
         try {
             const triggerQuery = triggerFilter ? `&trigger=true` : "";
+            let attributeQuery = selectedAttributes.length > 0 ? `&attribute_name=${selectedAttributes.join(",")}` : "";
+            const abilityQuery = abilityFilters.length > 0 ? `&ability=${abilityFilters.join(",")}` : "";
 
             const response = await api.get(
                 `/cards?search=${searchQuery}&color=${
                     Array.isArray(leaderColors) ? leaderColors.join(",") : leaderColors
                 }&type=${selectedTypes.join(",")}&family=${selectedFamilies.join(
                     ","
-                )}${triggerQuery}&cost_gte=${transformSliderValue(
+                )}${triggerQuery}${attributeQuery}${abilityQuery}&cost_gte=${transformSliderValue(
                     costRange[0],
                     "null"
                 )}&cost_lte=${transformSliderValue(costRange[1], "null")}&power_gte=${powerRange[0]}&power_lte=${
@@ -768,6 +826,8 @@ export default function DeckDetailScreen() {
         counterRange,
         showSelectedCardsOnly,
         triggerFilter,
+        selectedAttributes,
+        abilityFilters,
     ]); // Updated dependencies
 
     const toggleFilterVisibility = () => {
@@ -1125,134 +1185,171 @@ export default function DeckDetailScreen() {
                                 />
                             </TouchableOpacity>
                         </View>
-                        {filtersVisible && (
-                            <>
-                                <ThemedText
-                                    type="subtitle"
-                                    style={{
-                                        textAlign: "center",
-                                        marginBottom: 5,
-                                    }}
-                                >
-                                    {" "}
-                                    {t("type")}
-                                </ThemedText>
-                                <View style={styles.filtersContainer}>
-                                    {["CHARACTER", "EVENT", "STAGE"].map((type) => (
-                                        <TouchableOpacity
-                                            key={type}
-                                            style={[
-                                                styles.typeButton,
-                                                selectedTypes.includes(type)
-                                                    ? {
-                                                          backgroundColor: Colors[theme].icon,
-                                                      }
-                                                    : {
-                                                          backgroundColor: Colors[theme].disabled,
-                                                      },
-                                            ]}
-                                            onPress={() => toggleTypeSelection(type)}
-                                        >
-                                            <ThemedText
+                        <ScrollView style={{ maxHeight: 500 }} persistentScrollbar={true}>
+                            {filtersVisible && (
+                                <>
+                                    <ThemedText
+                                        type="subtitle"
+                                        style={{
+                                            textAlign: "center",
+                                            marginBottom: 5,
+                                        }}
+                                    >
+                                        {" "}
+                                        {t("type")}
+                                    </ThemedText>
+                                    <View style={styles.filtersContainer}>
+                                        {["CHARACTER", "EVENT", "STAGE"].map((type) => (
+                                            <TouchableOpacity
+                                                key={type}
                                                 style={[
-                                                    styles.typeButtonText,
-                                                    {
-                                                        color: Colors[theme].background,
-                                                    },
+                                                    styles.typeButton,
+                                                    selectedTypes.includes(type)
+                                                        ? {
+                                                              backgroundColor: Colors[theme].icon,
+                                                          }
+                                                        : {
+                                                              backgroundColor: Colors[theme].disabled,
+                                                          },
                                                 ]}
+                                                onPress={() => toggleTypeSelection(type)}
                                             >
-                                                {type}
-                                            </ThemedText>
-                                        </TouchableOpacity>
-                                    ))}
+                                                <ThemedText
+                                                    style={[
+                                                        styles.typeButtonText,
+                                                        {
+                                                            color: Colors[theme].background,
+                                                        },
+                                                    ]}
+                                                >
+                                                    {type}
+                                                </ThemedText>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </>
+                            )}
+                            {filtersVisible && (
+                                <>
+                                    <ThemedText
+                                        type="subtitle"
+                                        style={{
+                                            textAlign: "center",
+                                            marginBottom: 5,
+                                        }}
+                                    >
+                                        {" "}
+                                        {t("family")}
+                                    </ThemedText>
+                                    <ScrollView
+                                        horizontal
+                                        showsHorizontalScrollIndicator={false}
+                                        contentContainerStyle={{
+                                            paddingHorizontal: 10,
+                                            paddingBottom: 10,
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            width: "100%",
+                                        }}
+                                        style={{ maxHeight: 50 }}
+                                    >
+                                        {Array.from(
+                                            new Set([
+                                                ...leaderCardFamilies,
+                                                mostRepresentedFamily ?? mostRepresentedFamily,
+                                            ])
+                                        ).map((family) => (
+                                            <TouchableOpacity
+                                                key={family}
+                                                style={[
+                                                    styles.typeButton,
+                                                    selectedFamilies.includes(family)
+                                                        ? {
+                                                              backgroundColor: Colors[theme].icon,
+                                                          }
+                                                        : {
+                                                              backgroundColor: Colors[theme].disabled,
+                                                          },
+                                                ]}
+                                                onPress={() => toggleFamilySelection(family)}
+                                            >
+                                                <ThemedText
+                                                    style={[
+                                                        styles.typeButtonText,
+                                                        {
+                                                            color: Colors[theme].background,
+                                                        },
+                                                    ]}
+                                                >
+                                                    {family}
+                                                </ThemedText>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </ScrollView>
+                                    <TriggerFilter triggerFilter={triggerFilter} onToggle={handleTriggerFilterToggle} />
+                                </>
+                            )}
+                            {filtersVisible && (
+                                <View style={{ marginTop: 10 }}>
+                                    <FilterSlider
+                                        label="Cost"
+                                        min={0}
+                                        max={10}
+                                        step={1}
+                                        onValuesChangeFinish={(values) => setCostRange(values as [number, number])}
+                                        range={costRange}
+                                    />
+                                    <FilterSlider
+                                        label="Power"
+                                        min={0}
+                                        max={13000}
+                                        step={1000}
+                                        onValuesChangeFinish={(values) => setPowerRange(values as [number, number])}
+                                        range={powerRange}
+                                    />
+                                    <FilterSlider
+                                        label="Counter"
+                                        min={0}
+                                        max={2000}
+                                        step={1000}
+                                        onValuesChangeFinish={(values) => setCounterRange(values as [number, number])}
+                                        range={counterRange}
+                                    />
+                                    <AbilityAccordion
+                                        isAbilityAccordionOpen={isAbilityAccordionOpen}
+                                        toggleAbilityAccordion={toggleAbilityAccordion}
+                                        abilityAccordionHeight={abilityAccordionHeight}
+                                        abilityFilters={abilityFilters}
+                                        handleAbilityFilterToggle={handleAbilityFilterToggle}
+                                        abilityColorMap={abilityColorMap}
+                                    />
+                                    <AttributeFilters
+                                        theme={theme}
+                                        attributes={attributes}
+                                        selectedAttributes={selectedAttributes}
+                                        onAttributeSelect={(attribute) =>
+                                            setSelectedAttributes(
+                                                attribute === null
+                                                    ? [] // Clear all attributes if null is passed
+                                                    : selectedAttributes.includes(attribute)
+                                                    ? selectedAttributes.filter((a) => a !== attribute)
+                                                    : [...selectedAttributes, attribute]
+                                            )
+                                        }
+                                    />
                                 </View>
-                            </>
-                        )}
-                        {filtersVisible && (
-                            <>
-                                <ThemedText
-                                    type="subtitle"
-                                    style={{
-                                        textAlign: "center",
-                                        marginBottom: 5,
-                                    }}
-                                >
-                                    {" "}
-                                    {t("family")}
-                                </ThemedText>
-                                <ScrollView
-                                    horizontal
-                                    showsHorizontalScrollIndicator={false}
-                                    contentContainerStyle={{
-                                        paddingHorizontal: 10,
-                                        paddingBottom: 10,
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        width: "100%",
-                                    }}
-                                    style={{ maxHeight: 50 }}
-                                >
-                                    {Array.from(
-                                        new Set([...leaderCardFamilies, mostRepresentedFamily ?? mostRepresentedFamily])
-                                    ).map((family) => (
-                                        <TouchableOpacity
-                                            key={family}
-                                            style={[
-                                                styles.typeButton,
-                                                selectedFamilies.includes(family)
-                                                    ? {
-                                                          backgroundColor: Colors[theme].icon,
-                                                      }
-                                                    : {
-                                                          backgroundColor: Colors[theme].disabled,
-                                                      },
-                                            ]}
-                                            onPress={() => toggleFamilySelection(family)}
-                                        >
-                                            <ThemedText
-                                                style={[
-                                                    styles.typeButtonText,
-                                                    {
-                                                        color: Colors[theme].background,
-                                                    },
-                                                ]}
-                                            >
-                                                {family}
-                                            </ThemedText>
-                                        </TouchableOpacity>
-                                    ))}
-                                </ScrollView>
-                                <TriggerFilter triggerFilter={triggerFilter} onToggle={handleTriggerFilterToggle} />
-                            </>
-                        )}
-                        {filtersVisible && (
-                            <View style={{ marginTop: 10 }}>
-                                <FilterSlider
-                                    label="Cost"
-                                    min={0}
-                                    max={10}
-                                    step={1}
-                                    onValuesChangeFinish={(values) => setCostRange(values as [number, number])}
-                                    range={costRange}
-                                />
-                                <FilterSlider
-                                    label="Power"
-                                    min={0}
-                                    max={13000}
-                                    step={1000}
-                                    onValuesChangeFinish={(values) => setPowerRange(values as [number, number])}
-                                    range={powerRange}
-                                />
-                                <FilterSlider
-                                    label="Counter"
-                                    min={0}
-                                    max={2000}
-                                    step={1000}
-                                    onValuesChangeFinish={(values) => setCounterRange(values as [number, number])}
-                                    range={counterRange}
-                                />
-                            </View>
-                        )}
+                            )}
+                        </ScrollView>
+                        <LinearGradient
+                            colors={["transparent", "rgba(0,0,0,0.1)"]}
+                            style={{
+                                position: "absolute",
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                height: 20,
+                            }}
+                        />
                     </View>
                 }
                 childrenStyle={{
@@ -1280,8 +1377,9 @@ export default function DeckDetailScreen() {
                         />
                     ),
                     contentContainerStyle: [styles.cardList, { paddingBottom: 20 }],
-                    nestedScrollEnabled: false,
-                    removeClippedSubviews: true,
+                    keyboardShouldPersistTaps: "handled", // Allow taps to propagate while the keyboard is open
+                    showsVerticalScrollIndicator: true, // Ensure the vertical scroll indicator is visible
+                    nestedScrollEnabled: true, // Allow nested scrolling
                     initialNumToRender: 21, // Number of items to render initially
                     maxToRenderPerBatch: 21, // Number of items to render per batch
                     ListFooterComponent:

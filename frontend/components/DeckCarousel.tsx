@@ -27,9 +27,9 @@ const DeckCarousel: React.FC<DeckCarouselProps> = ({ decks, onNewDeckPress, onDe
     const renderDeckItem = ({ item, index }: { item: Deck; index: number }) => {
         if (item.id === "new") {
             return (
-                <TouchableOpacity style={[styles.newDeckItem, {borderColor: Colors[theme].tint}]} onPress={onNewDeckPress}>
+                <TouchableOpacity style={[styles.newDeckItem, {borderColor: Colors[theme].highlight}]} onPress={onNewDeckPress}>
                     <Ionicons name="add-circle-outline" size={50} color={Colors[theme].tint} />
-                    <ThemedText style={[styles.newDeckText]}>{t("new_deck")}</ThemedText>
+                    <ThemedText style={[styles.newDeckText]}>{t("deck")}</ThemedText>
                 </TouchableOpacity>
             );
         }
@@ -99,6 +99,7 @@ const styles = StyleSheet.create({
     newDeckText: {
         fontSize: 16,
         textAlign: "center",
+        fontWeight: "bold",
     },
     deckImage: {
         width: 90,

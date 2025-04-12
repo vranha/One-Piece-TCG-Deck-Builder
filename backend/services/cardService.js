@@ -51,7 +51,7 @@ const searchCards = async (page = 1, limit = 10, search = "", filters = {}) => {
         query = query.eq("set_name", filters.set_name);
     }
     if (filters.attribute_name && filters.attribute_name.length > 0) {
-        query = query.in("attribute_name", filters.attribute_name);
+        query = query.in("attribute_name", filters.attribute_name); // Ensure this matches your SQL logic
     }
 
     // Filtros por rango para "cost"
@@ -130,6 +130,22 @@ const getCardsByCode = async (code) => {
     return cards;
 };
 
+const getCardsByCodes = async (codes) => {
+    try {
+        console.log("Fetching cards by codes:", codes); // Log para depuración
+        const { data, error } = await supabase.from("cards").select("*").in("id", codes);
+
+        if (error) {
+            throw error;
+        }
+
+        return data;
+    } catch (err) {
+        console.error("Error fetching cards by codes:", err);
+        throw err;
+    }
+};
+
 // Obtener todos los valores únicos de set_name
 const getAllSetNames = async () => {
     const { data, error } = await supabase.rpc("get_unique_set_names");
@@ -152,7 +168,7 @@ const getAllFamilies = async () => {
 };
 
 const getAllAttributes = async () => {
-    const { data, error } = await supabase.rpc('get_unique_attribute_names_list');
+    const { data, error } = await supabase.rpc("get_unique_attribute_names_list");
 
     if (error) {
         throw new Error("Error al obtener los atributos: " + error.message);
@@ -168,4 +184,5 @@ module.exports = {
     getAllSetNames,
     getAllFamilies,
     getAllAttributes,
+    getCardsByCodes,
 };

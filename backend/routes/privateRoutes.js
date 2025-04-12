@@ -461,6 +461,29 @@ router.get("/attributes", cardController.getAllAttributes);
  */
 router.get("/cards/by-code/:code", cardController.getCardsByCode);
 
+/**
+ * @swagger
+ * /cards/by-codes:
+ *   get:
+ *     summary: Obtener todas las cartas cuyos card_id correspondan a los códigos enviados
+ *     tags: [Cards]
+ *     parameters:
+ *       - in: query
+ *         name: codes
+ *         required: true
+ *         description: Lista de códigos separados por comas
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Lista de cartas correspondientes a los códigos
+ *       400:
+ *         description: Solicitud inválida
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get("/cards/by-codes/:codes", cardController.getCardsByCodes);
+
 // Crear un endpoint para importar cartas
 router.post("/import-cards", async (req, res) => {
     try {

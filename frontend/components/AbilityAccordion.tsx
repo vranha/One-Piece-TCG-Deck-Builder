@@ -5,6 +5,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
 import AbilityFilters from "@/components/AbilityFilters";
+import { useTranslation } from "react-i18next";
 
 interface AbilityAccordionProps {
     isAbilityAccordionOpen: boolean;
@@ -24,6 +25,7 @@ const AbilityAccordion: React.FC<AbilityAccordionProps> = ({
     abilityColorMap,
 }) => {
     const { theme } = useTheme();
+    const { t } = useTranslation();
 
     return (
         <>
@@ -32,7 +34,7 @@ const AbilityAccordion: React.FC<AbilityAccordionProps> = ({
                 style={[styles.accordionHeader, { backgroundColor: Colors[theme].background }]}
             >
                 <View style={styles.abilityHeader}>
-                    <ThemedText style={[styles.accordionHeaderText, { color: Colors[theme].text }]}>Ability</ThemedText>
+                    <ThemedText style={[styles.accordionHeaderText, { color: Colors[theme].text }]}>{t('abilities')}</ThemedText>
                     <MaterialIcons
                         name={isAbilityAccordionOpen ? "expand-less" : "expand-more"}
                         size={24}
@@ -44,7 +46,7 @@ const AbilityAccordion: React.FC<AbilityAccordionProps> = ({
                         onPress={() => handleAbilityFilterToggle(null)} // Clear all selected abilities
                         style={[styles.clearButton, { backgroundColor: Colors[theme].TabBarBackground }]}
                     >
-                        <ThemedText style={[styles.abilityCount, { color: Colors[theme].text }]}>
+                        <ThemedText style={[styles.abilityCount, { color: Colors[theme].tint }]}>
                             {abilityFilters.length}
                         </ThemedText>
                         <MaterialIcons name="close" size={16} color={Colors[theme].text} />
@@ -66,8 +68,9 @@ const AbilityAccordion: React.FC<AbilityAccordionProps> = ({
 const styles = StyleSheet.create({
     accordionHeader: {
         flexDirection: "row",
-        justifyContent: "space-between",
+        justifyContent: "center",
         alignItems: "center",
+        width: "100%",
         paddingVertical: 10,
         paddingHorizontal: 15,
         backgroundColor: Colors.light.background,
