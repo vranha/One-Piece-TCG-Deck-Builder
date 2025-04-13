@@ -509,4 +509,90 @@ router.post("/card", async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /decks/{deckId}/tags:
+ *   get:
+ *     summary: Obtener las etiquetas de un mazo
+ *     tags: [Decks]
+ *     parameters:
+ *       - in: path
+ *         name: deckId
+ *         required: true
+ *         description: ID del mazo
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Lista de etiquetas del mazo
+ *       404:
+ *         description: Mazo no encontrado
+ */
+router.get("/decks/:deckId/tags", deckController.getDeckTags);
+
+/**
+ * @swagger
+ * /tags:
+ *   get:
+ *     summary: Obtener todas las etiquetas disponibles
+ *     tags: [Tags]
+ *     responses:
+ *       200:
+ *         description: Lista de etiquetas
+ */
+router.get("/tags", deckController.getAllTags);
+
+/**
+ * @swagger
+ * /decks/{deckId}/tags:
+ *   post:
+ *     summary: Añadir una etiqueta a un mazo
+ *     tags: [Decks]
+ *     parameters:
+ *       - in: path
+ *         name: deckId
+ *         required: true
+ *         description: ID del mazo
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               tagId:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Etiqueta añadida con éxito
+ */
+router.post("/decks/:deckId/tags", deckController.addTagToDeck);
+
+/**
+ * @swagger
+ * /decks/{deckId}/tags/{tagId}:
+ *   delete:
+ *     summary: Eliminar una etiqueta de un mazo
+ *     tags: [Decks]
+ *     parameters:
+ *       - in: path
+ *         name: deckId
+ *         required: true
+ *         description: ID del mazo
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: tagId
+ *         required: true
+ *         description: ID de la etiqueta
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Etiqueta eliminada con éxito
+ */
+router.delete("/decks/:deckId/tags/:tagId", deckController.removeTagFromDeck);
+
 module.exports = router;

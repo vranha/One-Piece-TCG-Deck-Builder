@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
-import { View, StyleSheet, TouchableOpacity, Text, ScrollView, Platform, TextInput } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Text, ScrollView, Platform, TextInput, Alert, Modal } from "react-native";
 import { Image as ExpoImage } from "expo-image";
 import { useNavigation, useLocalSearchParams, useRouter } from "expo-router";
 import { Colors } from "@/constants/Colors";
@@ -30,6 +30,7 @@ import AbilityAccordion from "@/components/AbilityAccordion";
 import AttributeFilters from "@/components/AttributeFilters";
 import { abilityColorMap } from "@/constants/abilityColorMap";
 import useStore from "@/store/useStore";
+import Tags from "@/components/Tags"; // Import the new Tags component
 
 interface DeckDetail {
     id: string;
@@ -37,6 +38,7 @@ interface DeckDetail {
     description: string;
     leaderCardImage: string;
     cards: Card[];
+    // Removed tags property
 }
 
 interface Card {
@@ -91,6 +93,13 @@ export default function DeckDetailScreen() {
     const [abilityFilters, setAbilityFilters] = useState<string[]>([]); // State for selected abilities
     const [attributes, setAttributes] = useState<{ attribute_name: string; attribute_image: string }[]>([]);
     const [selectedAttributes, setSelectedAttributes] = useState<string[]>([]); // State for selected attributes
+    const [tags, setTags] = useState<{ id: string; name: string; color: string }[]>([]); // State for tags
+    const [allTags, setAllTags] = useState<{ id: string; name: string; color: string }[]>([]); // State for all available tags
+
+    const [isEditing, setIsEditing] = useState(false); // State for edit mode
+    const [editedName, setEditedName] = useState(""); // State for edited name
+    const [editedDescription, setEditedDescription] = useState(""); // State for edited description
+    const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false); // State for delete modal visibility
 
     const fetchRelatedCards = async (code: string) => {
         try {
@@ -345,55 +354,59 @@ export default function DeckDetailScreen() {
     }, [deckId]);
 
     useEffect(() => {
-        if (!deckDetail) return; // Avoid setting options if deckDetail is null
+        const fetchTags = async () => {
+            try {
+                const response = await api.get(`/decks/${deckId}/tags`);
+                setTags(response.data);
+            } catch (error) {
+                console.error("Error fetching tags:", error);
+            }
+        };
 
-        navigation.setOptions({
-            headerShown: true,
-            headerLeft: () => (
-                <TouchableOpacity
-                    onPress={() => {
-                        router.back(), modalizeRef.current?.close();
-                    }}
-                    style={styles.backButton}
-                >
-                    <MaterialIcons name="arrow-back" size={24} color={Colors[theme].text} />
-                </TouchableOpacity>
-            ),
-            headerTitle: () => null, // No title in the center
-            headerRight: () => (
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <TouchableOpacity
-                        onPress={openModal}
-                        style={{
-                            backgroundColor: isModalOpen ? Colors[theme].disabled : Colors[theme].success,
-                            paddingVertical: 5,
-                            paddingHorizontal: 10,
-                            borderRadius: 5,
-                            marginRight: 10,
-                        }}
-                        disabled={isModalOpen}
-                    >
-                        <ThemedText style={{ color: Colors[theme].background, fontWeight: "bold" }}>
-                            {isModalOpen ? t("close_to_make_changes") : t("edit_cards")}
-                        </ThemedText>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={copyDeckToClipboard}
-                        style={{
-                            backgroundColor: Colors[theme].info,
-                            paddingVertical: 5,
-                            paddingHorizontal: 10,
-                            borderRadius: 5,
-                        }}
-                    >
-                        <ThemedText style={{ color: Colors[theme].background, fontWeight: "bold" }}>
-                            {t("copy_deck")}
-                        </ThemedText>
-                    </TouchableOpacity>
-                </View>
-            ),
-        });
-    }, [deckDetail?.cards.length, theme, isModalOpen]);
+        if (deckId) {
+            fetchTags();
+        }
+    }, [deckId]);
+
+    useEffect(() => {
+        const fetchTags = async () => {
+            try {
+                const response = await api.get(`/decks/${deckId}/tags`);
+                setTags(response.data);
+            } catch (error) {
+                console.error("Error fetching tags:", error);
+            }
+        };
+
+        const fetchAllTags = async () => {
+            try {
+                const response = await api.get(`/tags`);
+                setAllTags(response.data);
+            } catch (error) {
+                console.error("Error fetching all tags:", error);
+            }
+        };
+
+        if (deckId) {
+            fetchTags();
+            fetchAllTags();
+        }
+    }, [deckId]);
+
+    const handleTagToggle = async (tag: { id: string; name: string; color: string }) => {
+        try {
+            const isTagSelected = tags.some((t) => t.id === tag.id);
+            if (isTagSelected) {
+                await api.delete(`/decks/${deckId}/tags/${tag.id}`);
+                setTags((prev) => prev.filter((t) => t.id !== tag.id));
+            } else {
+                await api.post(`/decks/${deckId}/tags`, { tagId: tag.id });
+                setTags((prev) => [...prev, tag]);
+            }
+        } catch (error) {
+            console.error("Error toggling tag:", error);
+        }
+    };
 
     // Función para manejar el inicio de carga de una imagen
     const handleImageLoadStart = (cardId: string) => {
@@ -763,40 +776,54 @@ export default function DeckDetailScreen() {
 
     const fetchFilteredCards = async () => {
         try {
-            const triggerQuery = triggerFilter ? `&trigger=true` : "";
-            let attributeQuery = selectedAttributes.length > 0 ? `&attribute_name=${selectedAttributes.join(",")}` : "";
-            const abilityQuery = abilityFilters.length > 0 ? `&ability=${abilityFilters.join(",")}` : "";
-
-            const response = await api.get(
-                `/cards?search=${searchQuery}&color=${
-                    Array.isArray(leaderColors) ? leaderColors.join(",") : leaderColors
-                }&type=${selectedTypes.join(",")}&family=${selectedFamilies.join(
-                    ","
-                )}${triggerQuery}${attributeQuery}${abilityQuery}&cost_gte=${transformSliderValue(
-                    costRange[0],
-                    "null"
-                )}&cost_lte=${transformSliderValue(costRange[1], "null")}&power_gte=${powerRange[0]}&power_lte=${
-                    powerRange[1]
-                }&counter_gte=${transformSliderValue(counterRange[0], "")}&counter_lte=${transformSliderValue(
-                    counterRange[1],
-                    ""
-                )}&limit=10000`
-            );
-
-            const { data: cards } = response.data;
-
             if (showSelectedCardsOnly) {
-                // Filter cards to show only those in selectedCards with quantity > 0
+                // Fetch all selected cards ignoring filters
+                const response = await api.get(
+                    `/cards?search=&color=${
+                        Array.isArray(leaderColors) ? leaderColors.join(",") : leaderColors
+                    }&type=CHARACTER,EVENT,STAGE&family=&cost_gte=null&cost_lte=10&power_gte=0&power_lte=13000&counter_gte=&counter_lte=2000&limit=10000`
+                ); // Base state route
+                const { data: cards } = response.data;
+
                 const selectedCardIds = Object.entries(selectedCards)
                     .filter(([_, quantity]) => quantity > 0)
                     .map(([cardId]) => cardId);
+
                 setFilteredCards(cards.filter((card: Card) => selectedCardIds.includes(card.id)));
             } else {
+                // Fetch cards with current filters
+                const triggerQuery = triggerFilter ? `&trigger=true` : "";
+                let attributeQuery =
+                    selectedAttributes.length > 0 ? `&attribute_name=${selectedAttributes.join(",")}` : "";
+                const abilityQuery = abilityFilters.length > 0 ? `&ability=${abilityFilters.join(",")}` : "";
+
+                const response = await api.get(
+                    `/cards?search=${searchQuery}&color=${
+                        Array.isArray(leaderColors) ? leaderColors.join(",") : leaderColors
+                    }&type=${selectedTypes.join(",")}&family=${selectedFamilies.join(
+                        ","
+                    )}${triggerQuery}${attributeQuery}${abilityQuery}&cost_gte=${transformSliderValue(
+                        costRange[0],
+                        "null"
+                    )}&cost_lte=${transformSliderValue(costRange[1], "null")}&power_gte=${powerRange[0]}&power_lte=${
+                        powerRange[1]
+                    }&counter_gte=${transformSliderValue(counterRange[0], "")}&counter_lte=${transformSliderValue(
+                        counterRange[1],
+                        ""
+                    )}&limit=10000`
+                );
+
+                const { data: cards } = response.data;
                 setFilteredCards(cards); // Store all cards
             }
         } catch (error) {
             console.error("Error fetching filtered cards:", error);
         }
+    };
+
+    const toggleShowSelectedCardsOnly = () => {
+        setShowSelectedCardsOnly((prev) => !prev);
+        fetchFilteredCards(); // Trigger fetch with updated state
     };
 
     const [visibleCardsCount, setVisibleCardsCount] = useState(21); // Number of cards to display initially
@@ -856,10 +883,10 @@ export default function DeckDetailScreen() {
 
     const syncDeckCards = async () => {
         try {
-            const adjustedCards = Object.entries(selectedCards).map(([cardId, quantity]) => ({
-                cardId,
-                quantity,
-            }));
+            const adjustedCards = Object.entries(selectedCards).map(([cardId, quantity]) => {
+                const isLeader = deckDetail?.cards.find((card) => card.id === cardId)?.is_leader || false;
+                return { cardId, quantity, is_leader: isLeader };
+            });
 
             const response = await api.post("/decks/cards/sync", {
                 deckId,
@@ -913,6 +940,169 @@ export default function DeckDetailScreen() {
         setIsModalOpen(false);
     }, []);
 
+    useEffect(() => {
+        if (deckDetail) {
+            setEditedName(deckDetail.name);
+            setEditedDescription(deckDetail.description || "");
+        }
+    }, [deckDetail]);
+
+    useEffect(() => {
+        console.log("Edited Name updated:", editedName); // Debugging log
+        console.log("Edited Description updated:", editedDescription); // Debugging log
+    }, [editedName, editedDescription]);
+
+    const handleDeleteDeck = async () => {
+        try {
+            await api.delete(`/decks/${deckId}`);
+            Toast.show({
+                type: "success",
+                text1: t("deck_deleted_title"),
+                text2: t("deck_deleted_message"),
+                position: "bottom",
+            });
+            useStore.getState().setRefreshDecks(true); // Notificar al DeckCarousel
+            router.replace("/"); // Navigate back to the main screen
+        } catch (error) {
+            console.error("Error deleting deck:", error);
+            Toast.show({
+                type: "error",
+                text1: t("deck_delete_error_title"),
+                text2: t("deck_delete_error_message"),
+                position: "bottom",
+            });
+        }
+    };
+
+    const handleEditDeck = async () => {
+        try {
+            const updatedName = editedName.trim(); // Ensure no leading/trailing spaces
+            const updatedDescription = editedDescription.trim(); // Ensure no leading/trailing spaces
+
+            await api.put(`/deck/${deckId}`, {
+                name: updatedName,
+                description: updatedDescription,
+            });
+
+            setDeckDetail((prev) => ({
+                ...prev!,
+                name: updatedName,
+                description: updatedDescription,
+            }));
+
+            setIsEditing(!isEditing); // Close edit mode
+
+            Toast.show({
+                type: "success",
+                text1: t("deck_updated_title"),
+                text2: t("deck_updated_message"),
+                position: "bottom",
+            });
+            useStore.getState().setRefreshDecks(true); // Notificar al DeckCarousel
+        } catch (error) {
+            console.error("Error editing deck:", error);
+            Toast.show({
+                type: "error",
+                text1: t("deck_update_error_title"),
+                text2: t("deck_update_error_message"),
+                position: "bottom",
+            });
+        }
+    };
+
+    // Define el header fuera del useEffect para evitar closures
+    const headerOptions = useMemo(
+        () => ({
+            headerShown: true,
+            headerLeft: () => (
+                <TouchableOpacity
+                    onPress={() => {
+                        router.back();
+                        modalizeRef.current?.close();
+                    }}
+                    style={styles.backButton}
+                >
+                    <MaterialIcons name="arrow-back" size={24} color={Colors[theme].text} />
+                </TouchableOpacity>
+            ),
+            headerTitle: () => null, // No title in the center
+            headerRight: () => (
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <TouchableOpacity
+                        onPress={openModal}
+                        style={{
+                            backgroundColor: isModalOpen ? Colors[theme].disabled : Colors[theme].success,
+                            paddingVertical: 5,
+                            paddingHorizontal: 10,
+                            borderRadius: 5,
+                            marginRight: 10,
+                        }}
+                        disabled={isModalOpen}
+                    >
+                        <ThemedText style={{ color: Colors[theme].background, fontWeight: "bold" }}>
+                            {isModalOpen ? t("close_to_make_changes") : t("cards")}
+                        </ThemedText>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        onPress={copyDeckToClipboard}
+                        style={{
+                            backgroundColor: Colors[theme].info,
+                            paddingVertical: 5,
+                            paddingHorizontal: 10,
+                            borderRadius: 5,
+                            marginRight: 10,
+                        }}
+                    >
+                        <ThemedText style={{ color: Colors[theme].background, fontWeight: "bold" }}>
+                            {t("copy_deck")}
+                        </ThemedText>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={{
+                            backgroundColor: Colors[theme].highlight,
+                            paddingVertical: 5,
+                            paddingHorizontal: 5,
+                            borderRadius: 5,
+                            marginRight: 10,
+                        }}
+                        onPress={() => {
+                            setIsEditing(!isEditing);
+                            setEditedName(deckDetail?.name || ""); // Reset name
+                            setEditedDescription(deckDetail?.description || ""); // Reset description
+                        }}
+                    >
+                        <MaterialIcons name="edit" size={24} color={Colors[theme].background} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        onPress={() => setIsDeleteModalVisible(true)}
+                        style={{
+                            backgroundColor: Colors[theme].error,
+                            paddingVertical: 5,
+                            paddingHorizontal: 5,
+                            borderRadius: 5,
+                        }}
+                    >
+                        <MaterialIcons name="delete" size={24} color={Colors[theme].background} />
+                    </TouchableOpacity>
+                </View>
+            ),
+        }),
+        [isEditing, isModalOpen, editedName, editedDescription, theme]
+    );
+
+    useEffect(() => {
+        navigation.setOptions(headerOptions);
+    }, [navigation, headerOptions]);
+
+    useEffect(() => {
+        // Close all modals, including the delete modal, when navigating away
+        return () => {
+            modalizeRef.current?.close();
+            setIsModalOpen(false);
+            setIsDeleteModalVisible(false); // Close the delete modal
+        };
+    }, []);
+
     if (loading) {
         return <LoadingIndicator />;
     }
@@ -937,12 +1127,44 @@ export default function DeckDetailScreen() {
                 style={[styles.container, { backgroundColor: Colors[theme].background }]}
                 contentContainerStyle={{ paddingBottom: 150 }}
             >
-                <ThemedText style={[styles.title, { color: Colors[theme].text }]}>{deckDetail.name}</ThemedText>
-                {deckDetail.description ? (
-                    <ThemedText style={[styles.description, { color: Colors[theme].disabled }]}>
-                        {deckDetail.description}
-                    </ThemedText>
-                ) : null}
+                {isEditing ? (
+                    <View style={styles.editContainer}>
+                        <TextInput
+                            style={[
+                                styles.editInput,
+                                { color: Colors[theme].text, backgroundColor: Colors[theme].TabBarBackground },
+                            ]}
+                            value={editedName}
+                            onChangeText={setEditedName}
+                            numberOfLines={1}
+                        />
+                        <TextInput
+                            style={[
+                                styles.editTextarea,
+                                { color: Colors[theme].text, backgroundColor: Colors[theme].TabBarBackground },
+                            ]}
+                            value={editedDescription}
+                            onChangeText={setEditedDescription}
+                            multiline
+                        />
+                        <TouchableOpacity
+                            style={[styles.tickButton, { backgroundColor: Colors[theme].success }]}
+                            onPress={handleEditDeck} // Call handleEditDeck directly
+                        >
+                            <MaterialIcons name="check" size={24} color={Colors[theme].background} />
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    <>
+                        <ThemedText style={[styles.title, { color: Colors[theme].text }]}>{deckDetail.name}</ThemedText>
+                        {deckDetail.description ? (
+                            <ThemedText style={[styles.description, { color: Colors[theme].disabled }]}>
+                                {deckDetail.description}
+                            </ThemedText>
+                        ) : null}
+                    </>
+                )}
+                <Tags tags={tags} allTags={allTags} onTagToggle={handleTagToggle} />
                 <View style={styles.cardsContainer}>
                     {deckDetail.cards
                         .sort((a, b) => {
@@ -1013,7 +1235,6 @@ export default function DeckDetailScreen() {
                             </View>
                         ))}
                 </View>
-
                 <View
                     style={{
                         flexDirection: "row",
@@ -1023,7 +1244,6 @@ export default function DeckDetailScreen() {
                         overflow: "hidden",
                     }}
                 ></View>
-
                 {nonLeaderCards.length > 0 && (
                     <>
                         <CounterDistributionChart counterDistribution={counterDistribution} theme={theme} />
@@ -1376,7 +1596,7 @@ export default function DeckDetailScreen() {
                             loading={loading}
                         />
                     ),
-                    contentContainerStyle: [styles.cardList, { paddingBottom: 20 }],
+                    contentContainerStyle: [styles.cardList, { paddingBottom: 80 }],
                     keyboardShouldPersistTaps: "handled", // Allow taps to propagate while the keyboard is open
                     showsVerticalScrollIndicator: true, // Ensure the vertical scroll indicator is visible
                     nestedScrollEnabled: true, // Allow nested scrolling
@@ -1390,6 +1610,7 @@ export default function DeckDetailScreen() {
                                     paddingVertical: 10,
                                     paddingHorizontal: 20,
                                     borderRadius: 5,
+                                    marginTop: 20,
                                     marginBottom: 80,
                                 }}
                             >
@@ -1398,6 +1619,8 @@ export default function DeckDetailScreen() {
                                         style={{
                                             color: Colors[theme].tabIconDefault,
                                             fontWeight: "bold",
+                                            paddingVertical: 10,
+                                            paddingHorizontal: 10,
                                         }}
                                     >
                                         {t("load_more")}
@@ -1407,6 +1630,54 @@ export default function DeckDetailScreen() {
                         ) : null,
                 }}
             />
+            <Modal
+                visible={isDeleteModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setIsDeleteModalVisible(false)} // Close modal on back press
+            >
+                <TouchableOpacity
+                    style={styles.modalContainer}
+                    activeOpacity={1}
+                    onPressOut={() => setIsDeleteModalVisible(false)} // Close modal when clicking outside
+                >
+                    <View style={[styles.modalContent, { backgroundColor: Colors[theme].backgroundSoft }]}>
+                        <View style={{ alignItems: "center", marginBottom: 20 }}>
+                            <ThemedText type="subtitle" style={styles.modalText}>
+                                {t("delete_confirmation")}
+                            </ThemedText>
+                            <ThemedText type="subtitle">🙄⚠️</ThemedText>
+                        </View>
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                style={[
+                                    styles.modalButton,
+                                    { backgroundColor: Colors[theme].backgroundSoft, borderColor: Colors[theme].error },
+                                ]}
+                                onPress={() => setIsDeleteModalVisible(false)}
+                            >
+                                <ThemedText style={[styles.modalButtonText, { color: Colors[theme].error }]}>
+                                    {t("no")}
+                                </ThemedText>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[
+                                    styles.modalButton,
+                                    { backgroundColor: Colors[theme].success, borderColor: Colors[theme].success },
+                                ]}
+                                onPress={() => {
+                                    handleDeleteDeck();
+                                    setIsDeleteModalVisible(false);
+                                }}
+                            >
+                                <ThemedText style={[styles.modalButtonText, { color: Colors[theme].text }]}>
+                                    {t("yes")}
+                                </ThemedText>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </>
     );
 }
@@ -1574,11 +1845,12 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: "bold",
         textAlign: "center",
-        marginBottom: 10,
+        marginBottom: 15,
+        marginTop: 20,
     },
     description: {
         fontSize: 16,
-        textAlign: "left",
+        textAlign: "center",
         marginBottom: 20,
         padding: 12,
     },
@@ -1587,6 +1859,7 @@ const styles = StyleSheet.create({
         flexWrap: "wrap",
         justifyContent: "center",
         gap: 10,
+        marginTop: 10,
     },
     cardContainer: {
         marginVertical: 2,
@@ -1771,5 +2044,80 @@ const styles = StyleSheet.create({
         left: 0,
         padding: 5,
         borderRadius: 5,
+    },
+    editContainer: {
+        width: "100%",
+        paddingHorizontal: 10,
+        alignItems: "center",
+        paddingTop: 20,
+    },
+    editInput: {
+        fontSize: 24,
+        fontWeight: "bold",
+        textAlign: "center",
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: "#ccc",
+        paddingVertical: 8,
+        paddingHorizontal: 10,
+        width: "90%",
+        maxWidth: 500,
+        borderRadius: 5,
+    },
+    editTextarea: {
+        fontSize: 16,
+        textAlignVertical: "top", // clave para multiline
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: "#ccc",
+        padding: 10,
+        borderRadius: 5,
+        width: "90%",
+        maxWidth: 500,
+        height: 120,
+    },
+
+    modalContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(0, 0, 0, 0.719)",
+    },
+    modalContent: {
+        width: "80%",
+        borderRadius: 10,
+        padding: 20,
+        alignItems: "center",
+        gap: 20,
+    },
+    modalText: {
+        fontSize: 18,
+        marginBottom: 10,
+        textAlign: "center",
+    },
+    modalButtons: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        width: "100%",
+    },
+    modalButton: {
+        flex: 1,
+        marginHorizontal: 5,
+        paddingVertical: 10,
+        borderRadius: 5,
+        alignItems: "center",
+        borderWidth: 1,
+    },
+    modalButtonText: {
+        fontWeight: "bold",
+    },
+    tickButton: {
+        position: "absolute",
+        bottom: 10,
+        right: 10,
+        padding: 10,
+        borderRadius: 5,
+        justifyContent: "center",
+        alignItems: "center",
     },
 });

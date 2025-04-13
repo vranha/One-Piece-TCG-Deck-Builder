@@ -111,6 +111,50 @@ const deleteDeck = async (req, res) => {
     }
 };
 
+const getDeckTags = async (req, res) => {
+    const { deckId } = req.params;
+    try {
+        const tags = await deckService.getDeckTags(deckId);
+        res.status(200).json(tags);
+    } catch (err) {
+        console.error("Error en getDeckTags:", err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+const getAllTags = async (req, res) => {
+    try {
+        const tags = await deckService.getAllTags();
+        res.status(200).json(tags);
+    } catch (err) {
+        console.error("Error en getAllTags:", err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+const addTagToDeck = async (req, res) => {
+    const { deckId } = req.params;
+    const { tagId } = req.body;
+    try {
+        await deckService.addTagToDeck(deckId, tagId);
+        res.status(201).json({ message: "Etiqueta añadida con éxito" });
+    } catch (err) {
+        console.error("Error en addTagToDeck:", err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+const removeTagFromDeck = async (req, res) => {
+    const { deckId, tagId } = req.params;
+    try {
+        await deckService.removeTagFromDeck(deckId, tagId);
+        res.status(200).json({ message: "Etiqueta eliminada con éxito" });
+    } catch (err) {
+        console.error("Error en removeTagFromDeck:", err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
 module.exports = {
     createDeck,
     editDeck,
@@ -120,4 +164,8 @@ module.exports = {
     getDeckById, // Añadir la nueva función al módulo exportado
     addMultipleCardsToDeck,
     syncDeckCards,
+    getDeckTags,
+    getAllTags,
+    addTagToDeck,
+    removeTagFromDeck,
 };

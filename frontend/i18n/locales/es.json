@@ -107,6 +107,17 @@
     "join_crew": "¡Únete a la tripulación! ",
     "register": "Registrarse",
     "enter_new_world": "Entra al nuevo mundo ",
-    "edit_cards": "Editar Cartas"
+    "edit_cards": "Editar Cartas",
+    "deck_deleted_title": "Mazo Eliminado",
+    "deck_deleted_message": "Mazo eliminado con éxito.",
+    "deck_delete_error_title": "Error al eliminar mazo",
+    "deck_delete_error_message": "Error al eliminar el mazo.",
+    "deck_updated_title": "Mazo Actualizado",
+    "deck_updated_message": "Mazo actualizado con éxito.",
+    "deck_update_error_title": "Error al actualizar mazo",
+    "deck_update_error_message": "Error al actualizar el mazo.",
+    "delete_confirmation": "¿Estás seguro de que deseas eliminar este mazo?",
+    "no": "No",
+    "yes": "Sí"
 
 }

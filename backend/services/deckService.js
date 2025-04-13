@@ -73,6 +73,8 @@ const createDeck = async (userId, name, description, colors, leaderCardId) => {
 
 // Editar un mazo (nombre, descripción, y colores)
 const editDeck = async (deckId, name, description, colors) => {
+    console.log("Received payload:", { name, description, colors }); // Debugging log
+
     let validColors = [];
     if (colors) {
         validColors = await validateColors(colors);
@@ -85,7 +87,12 @@ const editDeck = async (deckId, name, description, colors) => {
         .select()
         .single();
 
-    if (updateError) throw new Error("Error al actualizar el mazo.");
+    if (updateError) {
+        console.error("Error updating deck:", updateError);
+        throw new Error("Error al actualizar el mazo.");
+    }
+
+    console.log("Updated deck:", updatedDeck); // Debugging log
 
     if (colors) {
         const { error: deleteError } = await supabase.from("deck_colors").delete().eq("deck_id", deckId);
@@ -322,9 +329,15 @@ async function syncDeckCards(deckId, newCards) {
                 continue;
             }
 
-            const clampedQuantity = Math.max(0, Math.min(quantity, 4)); // límites del juego
             const existingCard = currentMap.get(cardId);
 
+            // Proteger la carta líder
+            if (existingCard?.is_leader) {
+                processedCardIds.add(cardId); // Marcar como procesada
+                continue; // Saltar cualquier modificación de la carta líder
+            }
+
+            const clampedQuantity = Math.max(0, Math.min(quantity, 4)); // límites del juego
             processedCardIds.add(cardId);
 
             if (existingCard) {
@@ -358,9 +371,9 @@ async function syncDeckCards(deckId, newCards) {
             }
         }
 
-        // 3. Eliminar cartas que ya no están en el nuevo array
+        // 3. Eliminar cartas que ya no están en el nuevo array, excepto la carta líder
         for (const card of currentCards) {
-            if (!processedCardIds.has(card.card_id)) {
+            if (!processedCardIds.has(card.card_id) && !card.is_leader) {
                 await supabase.from("deck_cards").delete().eq("id", card.id);
             }
         }
@@ -373,11 +386,62 @@ async function syncDeckCards(deckId, newCards) {
 
 // Eliminar un mazo y sus asociaciones
 const deleteDeck = async (deckId) => {
-    const { error } = await supabase.from("decks").delete().eq("id", deckId);
+    // Eliminar las cartas asociadas al mazo
+    const { error: cardsError } = await supabase.from("deck_cards").delete().eq("deck_id", deckId);
+    if (cardsError) throw new Error("Error al eliminar las cartas asociadas al mazo.");
 
-    if (error) throw new Error("Error al eliminar el mazo.");
+    // Eliminar los colores asociados al mazo
+    const { error: colorsError } = await supabase.from("deck_colors").delete().eq("deck_id", deckId);
+    if (colorsError) throw new Error("Error al eliminar los colores asociados al mazo.");
+
+    // Eliminar las etiquetas asociadas al mazo
+    const { error: tagsError } = await supabase.from("deck_tags").delete().eq("deck_id", deckId);
+    if (tagsError) throw new Error("Error al eliminar las etiquetas asociadas al mazo.");
+
+    // Eliminar el mazo
+    const { error: deckError } = await supabase.from("decks").delete().eq("id", deckId);
+    if (deckError) throw new Error("Error al eliminar el mazo.");
 
     return { message: "Mazo eliminado con éxito" };
+};
+
+const getDeckTags = async (deckId) => {
+    const { data: tags, error } = await supabase
+        .from("deck_tags")
+        .select("tags(id, name, color)")
+        .eq("deck_id", deckId);
+
+    if (error) {
+        console.error("Error al obtener etiquetas del mazo:", error);
+        throw new Error("Error al obtener etiquetas del mazo.");
+    }
+
+    return tags.map((tag) => tag.tags); // Map to return only the tag details
+};
+
+const getAllTags = async () => {
+    const { data: tags, error } = await supabase.from("tags").select("*");
+    if (error) {
+        console.error("Error al obtener todas las etiquetas:", error);
+        throw new Error("Error al obtener todas las etiquetas.");
+    }
+    return tags;
+};
+
+const addTagToDeck = async (deckId, tagId) => {
+    const { error } = await supabase.from("deck_tags").insert([{ deck_id: deckId, tag_id: tagId }]);
+    if (error) {
+        console.error("Error al añadir etiqueta al mazo:", error);
+        throw new Error("Error al añadir etiqueta al mazo.");
+    }
+};
+
+const removeTagFromDeck = async (deckId, tagId) => {
+    const { error } = await supabase.from("deck_tags").delete().eq("deck_id", deckId).eq("tag_id", tagId);
+    if (error) {
+        console.error("Error al eliminar etiqueta del mazo:", error);
+        throw new Error("Error al eliminar etiqueta del mazo.");
+    }
 };
 
 module.exports = {
@@ -389,4 +453,8 @@ module.exports = {
     addMultipleCardsToDeck,
     syncDeckCards,
     getDeckById,
+    getDeckTags,
+    getAllTags,
+    addTagToDeck,
+    removeTagFromDeck,
 };
