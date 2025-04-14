@@ -14,7 +14,7 @@ export default function LoginScreen() {
     const [isEmailFocused, setIsEmailFocused] = useState(false);
     const [isPasswordFocused, setIsPasswordFocused] = useState(false);
     const router = useRouter();
-    const { theme } = useTheme();
+    const { theme } = useTheme(); 
     const { t } = useTranslation();
 
     const handleLogin = async () => {
@@ -86,7 +86,7 @@ export default function LoginScreen() {
                         borderColor: isPasswordFocused ? Colors[theme].tint : Colors[theme].background,
                     },
                 ]}
-                placeholder="Contraseña"
+                placeholder={t("password")}
                 placeholderTextColor={Colors[theme].tabIconDefault}
                 value={password}
                 onChangeText={setPassword}
@@ -97,7 +97,7 @@ export default function LoginScreen() {
             />
 
             <TouchableOpacity style={[styles.button, { backgroundColor: Colors[theme].tint }]} onPress={handleLogin}>
-                <ThemedText style={styles.buttonText}>Iniciar sesión</ThemedText>
+                <ThemedText style={styles.buttonText}>{t('sign_in')}</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -107,7 +107,7 @@ export default function LoginScreen() {
                 ]}
                 onPress={() => router.push("/register")}
             >
-                <ThemedText style={[styles.buttonText, { color: Colors[theme].tint }]}>Registrarse</ThemedText>
+                <ThemedText style={[styles.buttonText, { color: Colors[theme].tint }]}>{t(`register`)}</ThemedText>
             </TouchableOpacity>
 
             <ThemedText
@@ -119,7 +119,7 @@ export default function LoginScreen() {
                     zIndex: 1,
                 }}
             >
-                Or continue with
+                {t('or_continue_with')}
             </ThemedText>
 
             <View style={styles.othersContainer}>

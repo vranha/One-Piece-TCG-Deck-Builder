@@ -31,6 +31,8 @@ import AttributeFilters from "@/components/AttributeFilters";
 import { abilityColorMap } from "@/constants/abilityColorMap";
 import useStore from "@/store/useStore";
 import Tags from "@/components/Tags"; // Import the new Tags component
+import { useAuth } from "@/contexts/AuthContext";
+import AsyncStorage from "@react-native-async-storage/async-storage"; // Import AsyncStorage
 
 interface DeckDetail {
     id: string;
@@ -65,6 +67,7 @@ export default function DeckDetailScreen() {
     const { t } = useTranslation();
     const { theme } = useTheme() as { theme: keyof typeof Colors };
     const api = useApi();
+    const { session } = useAuth();
     const { deckId } = useLocalSearchParams();
     const [deckDetail, setDeckDetail] = useState<DeckDetail | null>(null);
     const [loading, setLoading] = useState(true);
@@ -418,22 +421,50 @@ export default function DeckDetailScreen() {
         setImageLoading((prev) => ({ ...prev, [cardId]: false }));
     };
 
-    const copyDeckToClipboard = () => {
+    const copyDeckToClipboard = async () => {
         if (!deckDetail || !deckDetail.cards.length) return;
 
-        // Generar el string con los códigos y cantidades, separando cada carta con un salto de línea
-        const deckString = deckDetail.cards.map((card) => `${card.quantity ?? 1}x${card.code}`).join("\n"); // Aseguramos que cada carta esté en una línea nueva
+        const deckString = deckDetail.cards.map((card) => `${card.quantity ?? 1}x${card.code}`).join("\n");
 
-        // Copiar al portapapeles
+        // Copy to clipboard
         Clipboard.setStringAsync(deckString);
 
-        // Mostrar el mensaje de confirmación personalizado
-        Toast.show({
-            type: "success", // Tipo de mensaje (success, error, info)
-            text1: t("deck_copied_title"), // Título del mensaje
-            text2: t("deck_copied_message"), // Subtítulo opcional
-            position: "bottom", // Posición del toast (top, bottom)
-        });
+        try {
+            // Check if email preference is enabled
+            const emailPreference = await AsyncStorage.getItem("emailPreference");
+            const shouldSendEmail = emailPreference === null || emailPreference === "true"; // Default to true
+
+            if (shouldSendEmail) {
+                await api.post("/send-deck-email", {
+                    email: session?.user?.email,
+                    deckName: deckDetail.name,
+                    userName: session?.user?.user_metadata?.name,
+                    deckString,
+                });
+
+                Toast.show({
+                    type: "success",
+                    text1: t("deck_copied_title"),
+                    text2: t("deck_copied_and_emailed_message"),
+                    position: "bottom",
+                });
+            } else {
+                Toast.show({
+                    type: "success",
+                    text1: t("deck_copied_title"),
+                    text2: t("deck_copied_message"),
+                    position: "bottom",
+                });
+            }
+        } catch (error) {
+            console.error("Error sending deck email:", error);
+            Toast.show({
+                type: "error",
+                text1: t("email_error_title"),
+                text2: t("email_error_message"),
+                position: "bottom",
+            });
+        }
     };
 
     const calculateCardCosts = () => {
@@ -1074,7 +1105,9 @@ export default function DeckDetailScreen() {
                         <MaterialIcons name="edit" size={24} color={Colors[theme].background} />
                     </TouchableOpacity>
                     <TouchableOpacity
-                        onPress={() => setIsDeleteModalVisible(true)}
+                        onPress={() => {
+                            setIsDeleteModalVisible(true); // Asegúrate de que este estado se actualice correctamente
+                        }}
                         style={{
                             backgroundColor: Colors[theme].error,
                             paddingVertical: 5,

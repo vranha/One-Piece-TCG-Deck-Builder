@@ -12,6 +12,10 @@
             "bundleIdentifier": "com.oplab.frontend",
             "supportsTablet": true
         },
+        "androidStatusBar": {
+            "barStyle": "light-content",
+            "backgroundColor": "#000000"
+          },
         "android": {
             "package": "com.oplab.frontend",
             "adaptiveIcon": {

@@ -1,0 +1,150 @@
+import React from "react";
+import { View, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import { ThemedText } from "@/components/ThemedText";
+import { Accordion } from "@/components/Accordion";
+import { Colors } from "@/constants/Colors";
+
+interface UserDetailsAccordionProps {
+    username: string;
+    setUsername: (value: string) => void;
+    bio: string;
+    setBio: (value: string) => void;
+    location: string;
+    setLocation: (value: string) => void;
+    region: string;
+    setRegion: (value: string) => void;
+    handleUpdateUserDetails: () => void;
+    theme: 'light' | 'dark';
+    t: (key: string) => string;
+}
+
+export default function UserDetailsAccordion({
+    username,
+    setUsername,
+    bio,
+    setBio,
+    location,
+    setLocation,
+    region,
+    setRegion,
+    handleUpdateUserDetails,
+    theme,
+    t,
+}: UserDetailsAccordionProps) {
+    return (
+        <Accordion title={t("user_details")}>
+            <View style={styles.inputContainer}>
+                <ThemedText style={[styles.label, { color: Colors[theme].tabIconDefault }]}>{t("name")}</ThemedText>
+                <TextInput
+                    style={[styles.input, { color: Colors[theme].text, borderColor: Colors[theme].tabIconDefault }]}
+                    value={username}
+                    onChangeText={setUsername}
+                />
+            </View>
+            <View style={styles.inputContainer}>
+                <ThemedText style={[styles.label, { color: Colors[theme].tabIconDefault }]}>{t("bio")}</ThemedText>
+                <TextInput
+                    style={[styles.textarea, { color: Colors[theme].text, borderColor: Colors[theme].tabIconDefault }]}
+                    value={bio}
+                    onChangeText={setBio}
+                    multiline
+                />
+            </View>
+            <View style={styles.inputContainer}>
+                <ThemedText style={[styles.label, { color: Colors[theme].tabIconDefault }]}>{t("location")}</ThemedText>
+                <TextInput
+                    style={[styles.input, { color: Colors[theme].text, borderColor: Colors[theme].tabIconDefault }]}
+                    value={location}
+                    onChangeText={setLocation}
+                />
+            </View>
+            <View style={styles.regionContainer}>
+                <TouchableOpacity
+                    style={[
+                        styles.regionButton,
+                        { backgroundColor: Colors[theme].info },
+                        region === "west" && styles.activeRegion,
+                    ]}
+                    onPress={() => setRegion("west")}
+                >
+                    <ThemedText style={[styles.regionText, { color: Colors[theme].background }]}>
+                        {t("west")}
+                    </ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[
+                        styles.regionButton,
+                        { backgroundColor: Colors[theme].highlight },
+                        region === "east" && styles.activeRegion,
+                    ]}
+                    onPress={() => setRegion("east")}
+                >
+                    <ThemedText style={[styles.regionText, { color: Colors[theme].background }]}>
+                        {t("east")}
+                    </ThemedText>
+                </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+                style={[styles.changeButton, { backgroundColor: Colors[theme].success }]}
+                onPress={handleUpdateUserDetails}
+            >
+                <ThemedText style={styles.changeButtonText}>{t("change")}</ThemedText>
+            </TouchableOpacity>
+        </Accordion>
+    );
+}
+
+const styles = StyleSheet.create({
+    inputContainer: {
+        marginBottom: 15,
+    },
+    label: {
+        fontSize: 14,
+        fontWeight: "bold",
+        marginBottom: 5,
+    },
+    input: {
+        borderWidth: 1,
+        borderRadius: 8,
+        padding: 10,
+        fontWeight: "bold",
+    },
+    textarea: {
+        borderWidth: 1,
+        borderColor: "#ccc",
+        borderRadius: 8,
+        padding: 10,
+        height: 80,
+    },
+    regionContainer: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginVertical: 15,
+    },
+    regionButton: {
+        flex: 1,
+        padding: 10,
+        borderRadius: 8,
+        alignItems: "center",
+        marginHorizontal: 5,
+        opacity: 0.5,
+    },
+    activeRegion: {
+        opacity: 1,
+    },
+    regionText: {
+        fontSize: 16,
+        fontWeight: "bold",
+    },
+    changeButton: {
+        alignSelf: "flex-end",
+        padding: 10,
+        borderRadius: 8,
+        marginTop: 10,
+        marginBottom: 30,
+    },
+    changeButtonText: {
+        color: "#fff",
+        fontSize: 14,
+    },
+});

@@ -21,6 +21,7 @@
     "jose": "^5.9.6",
     "jsdom": "^26.0.0",
     "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^6.10.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
   },

@@ -53,7 +53,7 @@ const DeckCarousel: React.FC<DeckCarouselProps> = ({ decks, onNewDeckPress, onDe
         <View style={[styles.carouselContainer, { backgroundColor: Colors[theme].TabBarBackground }]}>
             <Carousel
                 loop={false}
-                width={itemWidth}
+                width={itemWidth} 
                 vertical={false}
                 height={145}
                 autoPlay={false}

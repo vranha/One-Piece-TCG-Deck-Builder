@@ -8,6 +8,7 @@ import { Colors } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
+import useApi from "@/hooks/useApi";
 
 export default function RegisterScreen() {
     const [email, setEmail] = useState("");
@@ -15,31 +16,82 @@ export default function RegisterScreen() {
     const [isEmailFocused, setIsEmailFocused] = useState(false);
     const [isPasswordFocused, setIsPasswordFocused] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [isConfirmPasswordFocused, setIsConfirmPasswordFocused] = useState(false);
     const router = useRouter();
     const { theme } = useTheme();
     const { t } = useTranslation();
+    const api = useApi(); // Initialize the API hook
 
     const handleRegister = async () => {
-        const { error } = await supabase.auth.signUp({ email, password });
-
-        if (error) {
+        if (password !== confirmPassword) {
             Toast.show({
                 type: "error",
                 text1: "Error",
-                text2: error.message,
+                text2: t("passwords_do_not_match"),
+                position: "bottom",
             });
             return;
         }
 
-        const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
-        if (loginError) {
+        // Registrar al usuario en Supabase Authentication
+        const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
+
+        if (authError) {
             Toast.show({
                 type: "error",
                 text1: "Error",
-                text2: loginError.message,
+                text2: authError.message,
+                position: "bottom",
             });
-        } else {
+            return;
+        }
+
+        if (!authData.user) {
+            Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: t("registration_failed"),
+                position: "bottom",
+            });
+            return;
+        }
+
+        try {
+            // Agregar el usuario a la tabla 'users' en Supabase
+            const { error: dbError } = await supabase
+                .from("users")
+                .insert([{ id: authData.user.id, email, username: email.split("@")[0] }]);
+
+            if (dbError) {
+                throw new Error(dbError.message || t("backend_registration_failed"));
+            }
+
+            Toast.show({
+                type: "success",
+                text1: t("success"),
+                text2: t("user_registered_successfully"),
+                position: "bottom",
+            });
+
+            // Verifica si el email necesita confirmación
+            if (!authData.user.email_confirmed_at) {
+                Toast.show({
+                    type: "info",
+                    text1: t("email_confirmation"),
+                    text2: t("check_email_for_confirmation"),
+                    position: "bottom",
+                });
+            }
+
             router.push("/(tabs)");
+        } catch (error) {
+            Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: error instanceof Error ? error.message : t("unknown_error"),
+                position: "bottom",
+            });
         }
     };
 
@@ -50,7 +102,6 @@ export default function RegisterScreen() {
             </ThemedText>
             <Image source={require("@/assets/images/OPLAB-logo.png")} style={styles.logo} />
             <ThemedText type="subtitle" style={[styles.title, { color: Colors[theme].tint }]}>
-
                 {t("¡Únete a la tripulación!")}🏴‍☠️
             </ThemedText>
 
@@ -90,7 +141,7 @@ export default function RegisterScreen() {
                         fontSize: 16,
                         paddingRight: 40, // Add padding to avoid overlap with the eye icon
                     }}
-                    placeholder="Contraseña"
+                    placeholder={t("password")}
                     placeholderTextColor={Colors[theme].tabIconDefault}
                     value={password}
                     onChangeText={setPassword}
@@ -105,9 +156,38 @@ export default function RegisterScreen() {
                     <Ionicons name={showPassword ? "eye-off" : "eye"} size={24} color={Colors[theme].tabIconDefault} />
                 </TouchableOpacity>
             </View>
+            <View
+                style={[
+                    styles.input,
+                    styles.passwordWrapper,
+                    {
+                        backgroundColor: Colors[theme].backgroundSoft,
+                        borderColor: isConfirmPasswordFocused ? Colors[theme].tint : Colors[theme].background,
+                    },
+                ]}
+            >
+                <TextInput
+                    style={{
+                        flex: 1,
+                        color: Colors[theme].text,
+                        fontSize: 16,
+                        paddingRight: 40,
+                    }}
+                    placeholder={t("confirm_password")}
+                    placeholderTextColor={Colors[theme].tabIconDefault}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry={!showPassword}
+                    onFocus={() => setIsConfirmPasswordFocused(true)}
+                    onBlur={() => setIsConfirmPasswordFocused(false)}
+                />
+                <TouchableOpacity style={styles.eyeIconWrapper} onPress={() => setShowPassword(!showPassword)}>
+                    <Ionicons name={showPassword ? "eye-off" : "eye"} size={24} color={Colors[theme].tabIconDefault} />
+                </TouchableOpacity>
+            </View>
 
             <TouchableOpacity style={[styles.button, { backgroundColor: Colors[theme].tint }]} onPress={handleRegister}>
-                <ThemedText style={styles.buttonText}>Registrarse</ThemedText>
+                <ThemedText style={styles.buttonText}>{t("register")}</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -117,7 +197,9 @@ export default function RegisterScreen() {
                 ]}
                 onPress={() => router.push("/login")}
             >
-                <ThemedText style={[styles.buttonText, { color: Colors[theme].tint }]}>Ya tengo cuenta</ThemedText>
+                <ThemedText style={[styles.buttonText, { color: Colors[theme].tint }]}>
+                    {t("already_account")}
+                </ThemedText>
             </TouchableOpacity>
 
             <Image
@@ -156,6 +238,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         marginBottom: 12,
         fontSize: 16,
+        zIndex: 1,
     },
     passwordWrapper: {
         flexDirection: "row",
@@ -165,7 +248,7 @@ const styles = StyleSheet.create({
     eyeIconWrapper: {
         position: "absolute",
         right: 10, // Position the eye icon inside the input field
-        zIndex: 1,
+        zIndex: 2,
     },
     button: {
         width: "100%",

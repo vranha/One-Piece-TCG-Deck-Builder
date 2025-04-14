@@ -55,16 +55,30 @@ export default function HomeScreen() {
 
     useEffect(() => {
         async function fetchUser() {
-            const {
-                data: { session },
-            } = await supabase.auth.getSession();
-            if (session && session.user) {
-                const name =
-                    session.user.user_metadata.full_name || session.user.user_metadata.name || session.user.email;
-                setUserName(name);
-                fetchDecks(session.user.id, session.access_token);
+            try {
+                const {
+                    data: { session },
+                } = await supabase.auth.getSession();
+                if (session && session.user) {
+                    try {
+                        const { data: user } = await api.get(`/me?id=${session.user.id}`, {
+                            headers: {
+                                Authorization: `Bearer ${session.access_token}`,
+                            },
+                        }); // Fetch user info
+                        setUserName(user.username || session.user.email); // Use name from API
+                        fetchDecks(session.user.id, session.access_token);
+                    } catch (apiError) {
+                        console.error("Error fetching user info from /me:", apiError);
+                    }
+                } else {
+                    console.warn("No active session found.");
+                }
+            } catch (sessionError) {
+                console.error("Error fetching session:", sessionError);
+            } finally {
+                setLoading(false); // Ensure loading is set to false
             }
-            setLoading(false);
         }
 
         fetchUser();

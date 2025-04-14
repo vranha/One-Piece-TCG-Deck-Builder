@@ -1,10 +1,10 @@
-const express = require('express');
-const validate = require('../middlewares/validate');
-const { registerUserSchema, loginUserSchema } = require('../validators/userValidator');
-const userController = require('../controllers/userController');
+const express = require("express");
+const validate = require("../middlewares/validate");
+const { registerUserSchema, loginUserSchema } = require("../validators/userValidator");
+const userController = require("../controllers/userController");
+const authenticate = require("../middlewares/authenticate"); // Import authentication middleware
 
 const router = express.Router();
-
 
 /**
  * @swagger
@@ -16,7 +16,7 @@ const router = express.Router();
  *       200:
  *         description: Confirmación exitosa
  */
-router.get('/auth/callback', userController.getCallback);
+router.get("/auth/callback", userController.getCallback);
 
 /**
  * @swagger
@@ -41,7 +41,7 @@ router.get('/auth/callback', userController.getCallback);
  *       400:
  *         description: Datos incorrectos
  */
-router.post('/register', validate(registerUserSchema), userController.registerUserController);
+router.post("/register", validate(registerUserSchema), userController.registerUserController);
 
 /**
  * @swagger
@@ -66,6 +66,6 @@ router.post('/register', validate(registerUserSchema), userController.registerUs
  *       401:
  *         description: Credenciales incorrectas
  */
-router.post('/login', validate(loginUserSchema), userController.loginUserController);
+router.post("/login", validate(loginUserSchema), userController.loginUserController);
 
 module.exports = router;

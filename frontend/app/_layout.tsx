@@ -84,6 +84,7 @@ function ThemeConsumer({ isAuthenticated }: { isAuthenticated: boolean }) {
 
     return (
         <NavigationThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
+            <StatusBar style={theme === "dark" ? "light" : "dark"} backgroundColor="transparent" translucent />
             <Stack screenOptions={{ headerShown: false }}>
                 {isAuthenticated ? (
                     <>
@@ -96,8 +97,6 @@ function ThemeConsumer({ isAuthenticated }: { isAuthenticated: boolean }) {
                     <Stack.Screen name="login" options={{ headerShown: false }} />
                 )}
             </Stack>
-            <StatusBar style="auto" />
         </NavigationThemeProvider>
     );
 }
-

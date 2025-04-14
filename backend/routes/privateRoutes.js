@@ -5,9 +5,11 @@ const { loginUserSchema, registerUserSchema } = require("../validators/userValid
 const userController = require("../controllers/userController");
 const deckController = require("../controllers/deckController");
 const cardController = require("../controllers/cardController");
+const friendController = require("../controllers/friendController");
 const authenticate = require("../middlewares/authMiddleware");
 const { importarCartas } = require("../scripts/importCards");
 const { supabase } = require("../services/supabaseClient");
+const nodemailer = require("nodemailer");
 
 const router = express.Router();
 
@@ -594,5 +596,187 @@ router.post("/decks/:deckId/tags", deckController.addTagToDeck);
  *         description: Etiqueta eliminada con éxito
  */
 router.delete("/decks/:deckId/tags/:tagId", deckController.removeTagFromDeck);
+
+router.post("/friends/request", friendController.sendFriendRequest);
+router.get("/friends", friendController.getFriends);
+router.put("/friends/:friendId/accept", friendController.acceptFriendRequest);
+router.delete("/friends/:friendId", friendController.removeFriend);
+router.get("/friends/:friendId/decks", friendController.getFriendDecks);
+
+/**
+ * @swagger
+ * /me:
+ *   get:
+ *     summary: Obtener información del usuario actual
+ *     tags: [User]
+ *     parameters:
+ *       - in: query
+ *         name: id
+ *         required: true
+ *         description: ID del usuario
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Información del usuario actual
+ *       401:
+ *         description: No autenticado
+ */
+router.get("/me", userController.getCurrentUserController); // Apply middleware
+
+/**
+ * @swagger
+ * /send-deck-email:
+ *   post:
+ *     summary: Enviar un mazo por correo electrónico
+ *     tags: [Email]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               deckName:
+ *                 type: string
+ *               deckString:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Correo enviado con éxito
+ *       400:
+ *         description: Datos incorrectos
+ *       500:
+ *         description: Error al enviar el correo
+ */
+router.post("/send-deck-email", async (req, res) => {
+    const { email, deckName, userName, deckString } = req.body;
+
+    if (!email || !deckName || !deckString) {
+        return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    try {
+        const transporter = nodemailer.createTransport({
+            service: "gmail", // Use your email provider
+            host: "smtp.gmail.com",
+            port: 465,
+            secure: true,
+            auth: {
+                user: process.env.EMAIL_USER, // Your email
+                pass: process.env.EMAIL_PASS, // Your email password or app password
+            },
+        });
+
+        const mailOptions = {
+            from: `"OP LAB" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: `Your Deck: ${deckName}`,
+            html: `
+            <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #ffffff; padding: 32px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); max-width: 640px; margin: auto; color: #2c2c2c; border: 1px solid #eaeaea;">
+              
+              <!-- Header -->
+              <div style="display: flex; align-items: flex-start; margin-bottom: 24px;">
+                <span style="font-size: 30px; color: #a84848; font-weight: bold;">O</span>
+                <span style="font-size: 30px; color: #a84848; font-weight: bold; margin-right: 6px;">P</span>
+                <span style="font-size: 30px; color: #000; font-weight: bold;">lab</span>
+              </div>
+          
+              <!-- Greeting -->
+              <p style="font-size: 17px; margin: 0 0 8px;">Hi <strong>${userName}</strong> 😆</p>
+              <p style="font-size: 16px; margin: 0 0 24px;">Here is the deck you requested:</p>
+          
+              <!-- Deck name -->
+              <div style="background: #f9f9f9; padding: 12px 20px; border-left: 4px solid #a84848; margin-bottom: 20px; border-radius: 6px;">
+                <h3 style="font-size: 18px; margin: 0; color: #a84848;">${deckName}</h3>
+              </div>
+          
+              <!-- Deck list -->
+              <pre style="background: #f4f4f4; padding: 20px; border-radius: 10px; font-family: Consolas, monospace; font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; color: #333;">
+          ${deckString}
+              </pre>
+          
+              <!-- Footer -->
+              <div style="margin-top: 36px; text-align: center;">
+                <p style="font-size: 14px; color: #888; margin: 0;">Thank you for using <strong>OP Lab</strong>! ❤️</p>
+                <p style="font-size: 12px; color: #bbb; margin-top: 6px;">Need help? Contact us anytime.</p>
+              </div>
+          
+            </div>
+          `,
+        };
+
+        await transporter.sendMail(mailOptions);
+
+        res.status(200).json({ message: "Email sent successfully" });
+    } catch (error) {
+        console.error("Error sending email:", error);
+        res.status(500).json({ error: "Failed to send email" });
+    }
+});
+
+router.post("/send-feedback", async (req, res) => {
+    const { feedback, userName, userEmail } = req.body;
+
+    if (!feedback || !userName || !userEmail) {
+        return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    try {
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            host: "smtp.gmail.com",
+            port: 465,
+            secure: true,
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS,
+            },
+        });
+
+        const mailOptions = {
+            from: `"OP LAB Feedback" <${process.env.EMAIL_USER}>`,
+            to: process.env.EMAIL_USER, // Email address to receive feedback
+            subject: `Feedback from ${userName ? userName : userEmail}`,
+            html: `
+            <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #ffffff; padding: 32px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); max-width: 640px; margin: auto; color: #2c2c2c; border: 1px solid #eaeaea;">
+              
+              <!-- Header -->
+              <div style="display: flex; align-items: flex-start; margin-bottom: 24px;">
+                <span style="font-size: 30px; color: #a84848; font-weight: bold;">O</span>
+                <span style="font-size: 30px; color: #a84848; font-weight: bold; margin-right: 6px;">P</span>
+                <span style="font-size: 30px; color: #000; font-weight: bold;">lab</span>
+              </div>
+          
+              <!-- Greeting -->
+              <p style="font-size: 17px; margin: 0 0 8px;">Feedback from <strong>${userName}</strong> (${userEmail})</p>
+              <p style="font-size: 16px; margin: 0 0 24px;">Here is the feedback:</p>
+          
+              <!-- Feedback content -->
+              <div style="background: #f9f9f9; padding: 12px 20px; border-left: 4px solid #a84848; margin-bottom: 20px; border-radius: 6px;">
+                <p style="font-size: 16px; margin: 0; color: #333;">${feedback}</p>
+              </div>
+          
+              <!-- Footer -->
+              <div style="margin-top: 36px; text-align: center;">
+                <p style="font-size: 14px; color: #888; margin: 0;">Thank you boss <strong>OP Lab</strong>! ❤️</p>
+              </div>
+          
+            </div>
+          `,
+        };
+
+        await transporter.sendMail(mailOptions);
+
+        res.status(200).json({ message: "Feedback sent successfully" });
+    } catch (error) {
+        console.error("Error sending feedback email:", error);
+        res.status(500).json({ error: "Failed to send feedback" });
+    }
+});
+
+router.put("/users/update-details", userController.updateUserDetails);
 
 module.exports = router;

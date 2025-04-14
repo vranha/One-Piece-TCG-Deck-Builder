@@ -5,7 +5,7 @@ const useApi = () => {
     const { token } = useAuth();
 
     const api = axios.create({
-        baseURL: "http://192.168.1.180:5000/private",
+        baseURL: "http://192.168.1.180:5000/private", // Ensure this URL is correct and reachable
         headers: {
             Authorization: `Bearer ${token}`,
         },
