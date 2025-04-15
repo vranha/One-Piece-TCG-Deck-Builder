@@ -168,6 +168,7 @@ export default function TabLayout() {
                             headerLeft: () => <Header.LeftButton />,
                             headerRight: () => (
                                 <>
+                                    <Header.RightButtonDeckSearcher onPress={() => router.push("/deckSearcher")} />
                                     <Header.RightButtonSearch onPress={() => router.push("/search")} />
                                     <Header.RightButton onPress={() => router.push("/settings")} />
                                 </>

@@ -8,12 +8,30 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 // Funciones para interactuar con la base de datos
 
 // Obtener todos los usuarios
-const getUsers = async () => {
-    const { data, error } = await supabase.from("users").select("*");
+const getUsers = async (page = 1, limit = 10, search = "") => {
+    const offset = (page - 1) * limit;
+
+    const {
+        data: users,
+        error,
+        count,
+    } = await supabase
+        .from("users")
+        .select("*", { count: "exact" })
+        .ilike("username", `%${search}%`)
+        .range(offset, offset + limit - 1);
+
     if (error) {
         throw new Error(error.message);
     }
-    return data;
+
+    return {
+        data: users,
+        total: count,
+        page,
+        limit,
+        totalPages: Math.ceil(count / limit),
+    };
 };
 
 // Crear un nuevo usuario en la tabla 'users'

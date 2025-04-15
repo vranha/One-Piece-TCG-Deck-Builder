@@ -155,6 +155,17 @@ const removeTagFromDeck = async (req, res) => {
     }
 };
 
+const getAllDecks = async (req, res) => {
+    const { page = 1, limit = 10 } = req.query;
+    try {
+        const decks = await deckService.getAllDecks(page, limit);
+        res.status(200).json(decks);
+    } catch (err) {
+        console.error("Error en getAllDecks:", err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
 module.exports = {
     createDeck,
     editDeck,
@@ -168,4 +179,5 @@ module.exports = {
     getAllTags,
     addTagToDeck,
     removeTagFromDeck,
+    getAllDecks,
 };

@@ -23,11 +23,69 @@ router.use(authenticate);
  * @swagger
  * /users:
  *   get:
- *     summary: Obtener todos los usuarios
+ *     summary: Obtener todos los usuarios con paginación y búsqueda
  *     tags: [Users]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         description: Número de página (por defecto es 1)
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         description: Número de elementos por página (por defecto es 10)
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *       - in: query
+ *         name: search
+ *         required: false
+ *         description: Texto de búsqueda para filtrar los usuarios por nombre de usuario
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
- *         description: Lista de usuarios
+ *         description: Lista de usuarios con la información de paginación
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       username:
+ *                         type: string
+ *                       email:
+ *                         type: string
+ *                       created_at:
+ *                         type: string
+ *                       role:
+ *                         type: string
+ *                       avatar_url:
+ *                         type: string
+ *                       bio:
+ *                         type: string
+ *                       location:
+ *                         type: string
+ *                       region:
+ *                         type: string
+ *                 total:
+ *                   type: integer
+ *                 page:
+ *                   type: integer
+ *                 limit:
+ *                   type: integer
+ *                 totalPages:
+ *                   type: integer
  */
 router.get("/users", userController.getAllUsers);
 
@@ -778,5 +836,33 @@ router.post("/send-feedback", async (req, res) => {
 });
 
 router.put("/users/update-details", userController.updateUserDetails);
+
+/**
+ * @swagger
+ * /decks:
+ *   get:
+ *     summary: Obtener todos los mazos con sus datos relacionados
+ *     tags: [Decks]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         description: Número de página (por defecto es 1)
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         description: Número de elementos por página (por defecto es 10)
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *     responses:
+ *       200:
+ *         description: Lista de mazos con datos relacionados
+ */
+router.get("/decks", deckController.getAllDecks);
 
 module.exports = router;

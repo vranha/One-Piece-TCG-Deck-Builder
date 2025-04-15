@@ -444,6 +444,41 @@ const removeTagFromDeck = async (deckId, tagId) => {
     }
 };
 
+const getAllDecks = async (page = 1, limit = 10) => {
+    const offset = (page - 1) * limit;
+
+    const {
+        data: decks,
+        error,
+        count,
+    } = await supabase
+        .from("decks")
+        .select(
+            `
+            *,
+            deck_cards(card_id, quantity, is_leader, cards(*)),
+            deck_colors(color_id, colors(*)),
+            deck_tags(tag_id, tags(*)),
+            users(id, username, avatar_url)
+        `,
+            { count: "exact" }
+        )
+        .range(offset, offset + limit - 1);
+
+    if (error) {
+        console.error("Error al obtener mazos:", error);
+        throw new Error("Error al obtener mazos.");
+    }
+
+    return {
+        data: decks,
+        total: count,
+        page,
+        limit,
+        totalPages: Math.ceil(count / limit),
+    };
+};
+
 module.exports = {
     createDeck,
     editDeck,
@@ -457,4 +492,5 @@ module.exports = {
     getAllTags,
     addTagToDeck,
     removeTagFromDeck,
+    getAllDecks,
 };

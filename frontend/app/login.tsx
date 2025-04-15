@@ -13,8 +13,9 @@ export default function LoginScreen() {
     const [password, setPassword] = useState("");
     const [isEmailFocused, setIsEmailFocused] = useState(false);
     const [isPasswordFocused, setIsPasswordFocused] = useState(false);
+    const [showPassword, setShowPassword] = useState(false); // Add state for toggling password visibility
     const router = useRouter();
-    const { theme } = useTheme(); 
+    const { theme } = useTheme();
     const { t } = useTranslation();
 
     const handleLogin = async () => {
@@ -77,27 +78,41 @@ export default function LoginScreen() {
                 autoComplete="email" // Habilita el autocompletado para el email
             />
 
-            <TextInput
+            <View
                 style={[
                     styles.input,
+                    styles.passwordWrapper,
                     {
-                        color: Colors[theme].text,
                         backgroundColor: Colors[theme].backgroundSoft,
                         borderColor: isPasswordFocused ? Colors[theme].tint : Colors[theme].background,
                     },
                 ]}
-                placeholder={t("password")}
-                placeholderTextColor={Colors[theme].tabIconDefault}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                onKeyPress={handleKeyPress}
-                onFocus={() => setIsPasswordFocused(true)}
-                onBlur={() => setIsPasswordFocused(false)}
-            />
+            >
+                <TextInput
+                    style={{
+                        flex: 1,
+                        color: Colors[theme].text,
+                        fontSize: 16,
+                        paddingRight: 40, // Add padding to avoid overlap with the eye icon
+                    }}
+                    placeholder={t("password")}
+                    placeholderTextColor={Colors[theme].tabIconDefault}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                    onFocus={() => setIsPasswordFocused(true)}
+                    onBlur={() => setIsPasswordFocused(false)}
+                />
+                <TouchableOpacity
+                    style={styles.eyeIconWrapper} // Add a wrapper style for positioning
+                    onPress={() => setShowPassword(!showPassword)}
+                >
+                    <Ionicons name={showPassword ? "eye-off" : "eye"} size={24} color={Colors[theme].tabIconDefault} />
+                </TouchableOpacity>
+            </View>
 
             <TouchableOpacity style={[styles.button, { backgroundColor: Colors[theme].tint }]} onPress={handleLogin}>
-                <ThemedText style={styles.buttonText}>{t('sign_in')}</ThemedText>
+                <ThemedText style={styles.buttonText}>{t("sign_in")}</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -119,7 +134,7 @@ export default function LoginScreen() {
                     zIndex: 1,
                 }}
             >
-                {t('or_continue_with')}
+                {t("or_continue_with")}
             </ThemedText>
 
             <View style={styles.othersContainer}>
@@ -216,5 +231,15 @@ const styles = StyleSheet.create({
         marginBottom: 30,
         zIndex: 0,
         // transform: [{ rotate: "-50deg" }],
+    },
+    passwordWrapper: {
+        flexDirection: "row",
+        alignItems: "center",
+        position: "relative", // Ensure proper positioning
+    },
+    eyeIconWrapper: {
+        position: "absolute",
+        right: 10, // Position the eye icon inside the input field
+        zIndex: 2,
     },
 });

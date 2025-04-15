@@ -4,6 +4,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 interface HeaderProps {
     title: string;
@@ -30,7 +31,7 @@ export default function Header({ title }: HeaderProps) {
             >
                 {title.split(" ")[0].slice(1).toUpperCase()}
             </ThemedText>
-            <ThemedText type="title" style={{ fontSize: 28,position: "relative", right: 2 }}>
+            <ThemedText type="title" style={{ fontSize: 28, position: "relative", right: 2 }}>
                 {title.split(" ")[1].toLowerCase()}
             </ThemedText>
         </View>
@@ -55,6 +56,15 @@ Header.RightButton = function RightButton({ onPress }: any) {
 };
 
 Header.RightButtonSearch = function RightButtonSearch({ onPress }: any) {
+    const { theme } = useTheme();
+    return (
+        <TouchableOpacity onPress={onPress} style={{ marginRight: 16 }}>
+            <MaterialIcons name="style" size={28} color={Colors[theme].text} />
+        </TouchableOpacity>
+    );
+};
+
+Header.RightButtonDeckSearcher = function RightButtonDeckSearcher({ onPress }: any) {
     const { theme } = useTheme();
     return (
         <TouchableOpacity onPress={onPress} style={{ marginRight: 16 }}>

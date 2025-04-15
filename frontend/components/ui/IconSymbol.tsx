@@ -20,6 +20,8 @@ const MAPPING = {
   'heart.fill': 'favorite',
   'plus.square.fill': 'add-box',
   'magnifyingglass': 'search',
+  'list.bullet': 'list',
+  'style.fill': 'style',
 } as Partial<
   Record<
     import('expo-symbols').SymbolViewProps['name'],
