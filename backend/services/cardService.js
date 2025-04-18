@@ -8,8 +8,7 @@ const searchCards = async (page = 1, limit = 10, search = "", filters = {}) => {
         .from("cards")
         .select("*", { count: "exact" })
         // Búsqueda parcial por nombre o código
-        .or(`name.ilike.%${search}%,code.ilike.%${search}%`)
-        .range(offset, offset + limit - 1);
+        .or(`name.ilike.%${search}%,code.ilike.%${search}%`);
 
     // Filtros exactos
     if (filters.rarity && filters.rarity.length > 0) {
@@ -100,6 +99,34 @@ const searchCards = async (page = 1, limit = 10, search = "", filters = {}) => {
     if (filters.counter_lte !== undefined) {
         query = query.lte("counter", String(filters.counter_lte));
     }
+    console.log("UNIQUECODES", filters.uniqueCodes);
+    if (filters.uniqueCodes === true || filters.uniqueCodes === "true") {
+        // Ensure uniqueCodes is interpreted correctly
+        console.log("Fetching unique cards with pagination:");
+        query = query.order("code", { ascending: true }).order("id", { ascending: true });
+        const { data: allCards, error } = await query;
+
+        if (error) {
+            throw new Error("Error al buscar las cartas: " + error.message);
+        }
+
+        // Filter to keep only the card with the smallest id for each unique code
+        const uniqueCards = Object.values(
+            allCards.reduce((acc, card) => {
+                if (!acc[card.code] || card.id < acc[card.code].id) {
+                    acc[card.code] = card;
+                }
+                return acc;
+            }, {})
+        );
+
+        return {
+            data: uniqueCards.slice(offset, offset + limit), // Apply pagination after filtering
+            count: uniqueCards.length,
+        };
+    }
+
+    query = query.range(offset, offset + limit - 1); // Apply pagination for non-unique queries
 
     const { data: cards, error, count } = await query;
 

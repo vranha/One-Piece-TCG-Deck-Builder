@@ -9,6 +9,7 @@ const secondaryColor = "#edc398"; // Beige cálido
 export const Colors = {
     light: {
         text: "#2D2D2D",
+        textSoft: "#393939",
         background: "#FFFFFF",
         backgroundSoft: "#e3e3e3",
         tint: tintColorLight,
@@ -19,6 +20,7 @@ export const Colors = {
         close: "#B71C1C", // Rojo más oscuro para botones de cierre
         highlight: secondaryColor,
         disabled: "#BDBDBD",
+        disabledButton: "#E0E0E0", // Light gray for disabled buttons
         triggerActive: "#F8E92B",
         triggerInactive: "#757575",
         triggerActiveText: "#2D2D2D",
@@ -29,6 +31,7 @@ export const Colors = {
     },
     dark: {
         text: "#EAEAEA",
+        textSoft: "#D2D2D2",
         background: "#121212",
         backgroundSoft: "#2e2e2e",
         tint: tintColorDark,
@@ -39,6 +42,7 @@ export const Colors = {
         close: "#FF1744", // Rojo más vivo en modo oscuro
         highlight: secondaryColor,
         disabled: "#616161",
+        disabledButton: "#424242", // Dark gray for disabled buttons
         triggerActive: "#F8E92B",
         triggerInactive: "#424242",
         triggerActiveText: "#2D2D2D",

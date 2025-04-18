@@ -8,18 +8,20 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 // Funciones para interactuar con la base de datos
 
 // Obtener todos los usuarios
-const getUsers = async (page = 1, limit = 10, search = "") => {
+const getUsers = async (page = 1, limit = 10, search = "", excludeUserId) => {
     const offset = (page - 1) * limit;
 
-    const {
-        data: users,
-        error,
-        count,
-    } = await supabase
+    let query = supabase
         .from("users")
         .select("*", { count: "exact" })
         .ilike("username", `%${search}%`)
         .range(offset, offset + limit - 1);
+
+    if (excludeUserId) {
+        query = query.neq("id", excludeUserId);
+    }
+
+    const { data: users, error, count } = await query;
 
     if (error) {
         throw new Error(error.message);

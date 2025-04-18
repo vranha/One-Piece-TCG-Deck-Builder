@@ -11,10 +11,10 @@ const {
 
 // Obtener todos los usuarios
 const getAllUsers = async (req, res) => {
-    const { page = 1, limit = 10, search = "" } = req.query;
+    const { page = 1, limit = 10, search = "", excludeUserId } = req.query;
 
     try {
-        const users = await getUsers(page, limit, search);
+        const users = await getUsers(page, limit, search, excludeUserId);
         res.status(200).json(users);
     } catch (err) {
         console.error("Error en getAllUsers:", err.message);

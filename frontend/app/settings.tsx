@@ -36,6 +36,7 @@ export default function SettingsScreen() {
     const [bio, setBio] = useState("");
     const [location, setLocation] = useState("");
     const [region, setRegion] = useState("West");
+    const [isAccordionOpen, setIsAccordionOpen] = useState(true); // State to control accordion visibility
 
     useEffect(() => {
         navigation.setOptions({ headerShown: true, title: t("settings") });
@@ -132,7 +133,7 @@ export default function SettingsScreen() {
         });
     };
 
-    const handleUpdateUserDetails = async () => {
+    const handleUpdateUserDetails = async (): Promise<boolean> => {
         try {
             setIsLoading(true);
             const {
@@ -145,12 +146,37 @@ export default function SettingsScreen() {
                     location,
                     region,
                 });
-                Alert.alert("Success", response.data.message);
+                Toast.show({
+                    type: "success",
+                    text1: t("user_details_update_success_title"),
+                    text2: t("user_details_update_success_message"),
+                    position: "bottom",
+                    visibilityTime: 4000,
+                    autoHide: true,
+                });
+                setIsAccordionOpen(false); // Close the accordion after success
+                return true; // Indicate success
             } else {
-                Alert.alert("Error", "User session not found.");
+                Toast.show({
+                    type: "error",
+                    text1: t("user_details_update_error_title"),
+                    text2: t("user_session_not_found"),
+                    position: "bottom",
+                    visibilityTime: 4000,
+                    autoHide: true,
+                });
+                return false; // Indicate failure
             }
         } catch (error: any) {
-            Alert.alert("Error", error.response?.data?.error || "Failed to update user details.");
+            Toast.show({
+                type: "error",
+                text1: t("user_details_update_error_title"),
+                text2: t("user_details_update_error_message"),
+                position: "bottom",
+                visibilityTime: 4000,
+                autoHide: true,
+            });
+            return false; // Indicate failure
         } finally {
             setIsLoading(false);
         }
@@ -380,42 +406,5 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         padding: 10,
         fontWeight: "bold",
-    },
-    textarea: {
-        borderWidth: 1,
-        borderColor: "#ccc",
-        borderRadius: 8,
-        padding: 10,
-        height: 80,
-    },
-    regionContainer: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        marginVertical: 15,
-    },
-    regionButton: {
-        flex: 1,
-        padding: 10,
-        borderRadius: 8,
-        alignItems: "center",
-        marginHorizontal: 5,
-        opacity: 0.5,
-    },
-    activeRegion: {
-        opacity: 1,
-    },
-    regionText: {
-        fontSize: 16,
-        fontWeight: "bold",
-    },
-    changeButton: {
-        alignSelf: "flex-end",
-        padding: 10,
-        borderRadius: 8,
-        marginTop: 10,
-    },
-    changeButtonText: {
-        color: "#fff",
-        fontSize: 14,
     },
 });

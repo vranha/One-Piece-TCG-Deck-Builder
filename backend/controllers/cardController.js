@@ -29,6 +29,7 @@ const searchCards = async (req, res) => {
         life_lte,
         set_name,
         ability,
+        uniqueCodes, // Add uniqueCodes to destructured query parameters
     } = req.query;
 
     try {
@@ -53,6 +54,7 @@ const searchCards = async (req, res) => {
             set_name: sanitizeParam(set_name),
             ability: ability ? ability.split(",").map(sanitizeParam) : undefined,
             attribute_name: req.query.attribute_name ? req.query.attribute_name.split(",") : undefined,
+            uniqueCodes: uniqueCodes === "true", // Convert uniqueCodes to a boolean
         };
 
         const { data, count } = await cardService.searchCards(page, limit, search, filters);

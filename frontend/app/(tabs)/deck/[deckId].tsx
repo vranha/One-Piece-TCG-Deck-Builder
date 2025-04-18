@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { View, StyleSheet, TouchableOpacity, Text, ScrollView, Platform, TextInput, Alert, Modal } from "react-native";
 import { Image as ExpoImage } from "expo-image";
 import { useNavigation, useLocalSearchParams, useRouter } from "expo-router";
@@ -184,24 +184,39 @@ export default function DeckDetailScreen() {
         if (!deckDetail || !selectedCard) return;
         console.log(newCard);
 
-        // Update the deck detail locally
-        const updatedCards = deckDetail.cards.map((card) =>
-            card.id === selectedCard.id
-                ? { ...newCard, quantity: card.quantity, is_leader: newCard.type === "LEADER" }
-                : card
-        );
+        // Check if the new card already exists in the deck
+        const existingCardIndex = deckDetail.cards.findIndex((card) => card.id === newCard.id);
+
+        let updatedCards;
+        if (existingCardIndex !== -1) {
+            // If the new card already exists, sum the quantities
+            updatedCards = deckDetail.cards.map((card, index) =>
+                index === existingCardIndex
+                    ? { ...card, quantity: (card.quantity ?? 0) + (selectedCard?.quantity ?? 0) }
+                    : card.id === selectedCard.id
+                    ? null // Remove the replaced card
+                    : card
+            ).filter(Boolean); // Remove null entries
+        } else {
+            // If the new card does not exist, replace the selected card
+            updatedCards = deckDetail.cards.map((card) =>
+                card.id === selectedCard.id
+                    ? { ...newCard, quantity: card.quantity, is_leader: newCard.type === "LEADER" }
+                    : card
+            );
+        }
 
         setDeckDetail((prev) => ({
             ...prev!,
-            cards: updatedCards,
+            cards: updatedCards.filter((card): card is Card => card !== null),
         }));
 
         try {
             // Sync the updated deck with the server
             const adjustedCards = updatedCards.map((card) => ({
-                cardId: card.id,
-                quantity: card.quantity ?? 1,
-                is_leader: card.is_leader ?? false,
+                cardId: card?.id ?? "",
+                quantity: card ? card.quantity ?? 1 : 1,
+                is_leader: card?.is_leader ?? false,
             }));
 
             await api.post("/decks/cards/sync", {
@@ -254,27 +269,10 @@ export default function DeckDetailScreen() {
         setSelectedCards((prevSelectedCards) => {
             const currentQuantity = prevSelectedCards[cardId] || 0;
             const updatedQuantity = currentQuantity + change;
-
-            // Ensure the quantity is within the valid range (0 to 4)
+    
+            // Asegúrate de que la cantidad esté dentro del rango válido (0 a 4)
             if (updatedQuantity < 0 || updatedQuantity > 4) return prevSelectedCards;
-
-            // Prevent adding cards if the deckCardCount exceeds the limit
-            if (deckCardCount + change > limitDeckNum) return prevSelectedCards;
-
-            // Check if the card's code already exists in the deck with quantity 4
-            const card = filteredCards.find((c) => c.id === cardId);
-            if (!card) return prevSelectedCards;
-
-            const isCodeMaxedOut = Object.entries(prevSelectedCards).some(([id, quantity]) => {
-                const selectedCard = filteredCards.find((c) => c.id === id);
-                return selectedCard?.code === card.code && quantity >= 4;
-            });
-
-            if (isCodeMaxedOut && updatedQuantity > currentQuantity) return prevSelectedCards;
-
-            // Update deckCardCount directly
-            setDeckCardCount((prevCount) => prevCount + change);
-
+    
             return { ...prevSelectedCards, [cardId]: updatedQuantity };
         });
     };
@@ -290,6 +288,7 @@ export default function DeckDetailScreen() {
         rarity: string;
         family?: string; // Add the 'family' property to match the usage
         cost?: number; // Add the 'cost' property to fix the error
+        quantity?: number; // Add the 'cost' property to fix the error
         // Add other properties of the card if needed
     }
 
@@ -841,7 +840,7 @@ export default function DeckDetailScreen() {
                     }&counter_gte=${transformSliderValue(counterRange[0], "")}&counter_lte=${transformSliderValue(
                         counterRange[1],
                         ""
-                    )}&limit=10000`
+                    )}&uniqueCodes=true&limit=10000` // Ensure uniqueCodes=true is passed
                 );
 
                 const { data: cards } = response.data;
@@ -865,17 +864,49 @@ export default function DeckDetailScreen() {
 
     const handleSearchChange = (query: string) => {
         setSearchQuery(query);
-        fetchFilteredCards(); // Reinicia la búsqueda
+        // fetchFilteredCards(); // Reinicia la búsqueda
     };
+
+    const isAddDisabled = useCallback(
+        (card: Card): boolean => {
+            const cardCode = card.code;
+    
+            // Depuración: Imprime información detallada
+            console.log(`Evaluando isAddDisabled para la carta: ${card.name} (code: ${cardCode})`);
+    
+            const totalCardsWithSameCode = Object.entries(selectedCards).reduce((sum, [id, quantity]) => {
+                const selectedCard = filteredCards.find((c) => c.id === id) || deckDetail?.cards.find((c) => c.id === id);
+                if (selectedCard?.code === cardCode) {
+                    console.log(`Incluyendo carta: ${selectedCard.name} (id: ${id}, cantidad: ${quantity})`);
+                }
+                return selectedCard?.code === cardCode ? sum + quantity : sum;
+            }, 0);
+    
+            console.log(`Total de cartas con el mismo code (${cardCode}): ${totalCardsWithSameCode}`);
+    
+            return totalCardsWithSameCode >= 4;
+        },
+        [selectedCards, filteredCards, deckDetail]
+    );
 
     const [filtersVisible, setFiltersVisible] = useState(false);
     const [selectedTypes, setSelectedTypes] = useState(["CHARACTER", "EVENT", "STAGE"]);
     const [selectedFamilies, setSelectedFamilies] = useState<string[]>([]); // Move this above the useEffect
+    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearchQuery(searchQuery); // Actualiza el valor después del retraso
+        }, 300); // 300ms de retraso (puedes ajustarlo)
+    
+        return () => {
+            clearTimeout(handler); // Limpia el timeout si el usuario sigue escribiendo
+        };
+    }, [searchQuery]);
 
     useEffect(() => {
         fetchFilteredCards(); // Reset search whenever filters change
     }, [
-        searchQuery,
+        debouncedSearchQuery,
         leaderColors,
         selectedTypes,
         selectedFamilies,
@@ -1356,6 +1387,7 @@ export default function DeckDetailScreen() {
                 threshold={200} // gesto muy largo también necesario si no supera velocity
                 dragToss={0.01} // poca inercia, más control
                 onClose={() => {
+                    setSearchQuery("");
                     setIsModalOpen(false); // Ensure the state is updated when the modal closes
                     if (hasDeckChanged()) {
                         syncDeckCards();
@@ -1627,6 +1659,7 @@ export default function DeckDetailScreen() {
                             limitDeckNum={limitDeckNum}
                             deckCardCount={deckCardCount}
                             loading={loading}
+                            isAddDisabled={isAddDisabled} // Pasa la función directamente
                         />
                     ),
                     contentContainerStyle: [styles.cardList, { paddingBottom: 80 }],
@@ -1731,6 +1764,7 @@ const CardItem = React.memo(
         limitDeckNum,
         deckCardCount,
         loading,
+        isAddDisabled
     }: {
         card: Card;
         height: number;
@@ -1745,6 +1779,7 @@ const CardItem = React.memo(
         limitDeckNum: number; // Added limitDeckNum to the props
         deckCardCount: number; // Added deckCardCount to the props
         loading: boolean;
+        isAddDisabled: (card: Card) => boolean; // Added isAddDisabled to the props
     }) => (
         <View key={card.id}>
             <View
@@ -1772,7 +1807,7 @@ const CardItem = React.memo(
                 <View style={[styles.quantityControls, getQuantityControlsStyle()]}>
                     <TouchableOpacity
                         onPress={() => updateCardQuantity(card.id, -1)}
-                        disabled={selectedQuantity(card.id) <= 0} // Desactiva si la cantidad es 0
+                        disabled={selectedQuantity(card.id) <= 0} // Desactiva si la cantidad es 0 // Usar la prop aquí
                     >
                         <MaterialIcons
                             name="remove-circle-outline"
@@ -1789,13 +1824,17 @@ const CardItem = React.memo(
                     </ThemedText>
                     <TouchableOpacity
                         onPress={() => updateCardQuantity(card.id, 1)}
-                        disabled={deckCardCount >= limitDeckNum || selectedQuantity(card.id) >= 4} // Desactiva si se alcanza el límite
+                        disabled={
+                            isAddDisabled(card) || // Verifica si el total de cartas con el mismo code alcanza 4
+                            deckCardCount >= limitDeckNum || // Verifica si se alcanza el límite del deck
+                            selectedQuantity(card.id) >= 4 // Verifica si la cantidad de la carta seleccionada es 4
+                        }
                     >
                         <MaterialIcons
                             name="add-circle-outline"
                             size={24}
                             color={
-                                deckCardCount < limitDeckNum && selectedQuantity(card.id) < 4
+                                !isAddDisabled(card) && deckCardCount < limitDeckNum && selectedQuantity(card.id) < 4
                                     ? Colors[theme as keyof typeof Colors].icon
                                     : Colors[theme as keyof typeof Colors].disabled
                             }

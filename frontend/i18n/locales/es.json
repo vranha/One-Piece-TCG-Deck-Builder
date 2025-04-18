@@ -1,5 +1,5 @@
 {
-    "welcome": "Bienvenido, {{name}}",
+    "welcome": "Bienvenido/a, {{name}}",
     "new_deck": "Nuevo Mazo",
     "create_new_deck": "Crear Nuevo Mazo",
     "search_cards": "Buscar cartas...",
@@ -90,6 +90,7 @@
     "power_curve": "Curva de Poder",
     "average_power": "Poder Promedio",
     "load_more": "Cargar Más",
+    "close_to_make_changes": "Cierra para hacer cambios",
     "deck_synced_title": "😍😍😍",
     "deck_synced_message": "Mazo Modificado con Éxito.",
     "deck_sync_error_title": "😰😰😰",
@@ -144,5 +145,11 @@
     "location": "Localización",
     "west": "Oeste",
     "east": "Este",
-    "change": "Cambiar"
+    "change": "Cambiar",
+    "add_tag": "Etiquetas",
+    "user_details_update_success_title": "Detalles de Usuario Actualizados",
+    "user_details_update_success_message": "Tus detalles se han actualizado con éxito.",
+    "user_details_update_error_title": "Error de Actualización",
+    "user_details_update_error_message": "Algo salió mal al actualizar tus detalles. Por favor, inténtalo de nuevo.",
+    "user_session_not_found": "Sesión de usuario no encontrada. Por favor, inicia sesión nuevamente."
 }

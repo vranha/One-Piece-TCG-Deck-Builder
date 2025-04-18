@@ -444,14 +444,10 @@ const removeTagFromDeck = async (deckId, tagId) => {
     }
 };
 
-const getAllDecks = async (page = 1, limit = 10) => {
+const getAllDecks = async (page = 1, limit = 10, excludeUserId) => {
     const offset = (page - 1) * limit;
 
-    const {
-        data: decks,
-        error,
-        count,
-    } = await supabase
+    let query = supabase
         .from("decks")
         .select(
             `
@@ -463,7 +459,14 @@ const getAllDecks = async (page = 1, limit = 10) => {
         `,
             { count: "exact" }
         )
+        .eq("is_public", true) // Filter for public decks
         .range(offset, offset + limit - 1);
+
+    if (excludeUserId) {
+        query = query.neq("user_id", excludeUserId);
+    }
+
+    const { data: decks, error, count } = await query;
 
     if (error) {
         console.error("Error al obtener mazos:", error);

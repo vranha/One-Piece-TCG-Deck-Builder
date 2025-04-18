@@ -18,6 +18,7 @@ export default function RegisterScreen() {
     const [showPassword, setShowPassword] = useState(false);
     const [confirmPassword, setConfirmPassword] = useState("");
     const [isConfirmPasswordFocused, setIsConfirmPasswordFocused] = useState(false);
+    const [region, setRegion] = useState("west"); // Default region
     const router = useRouter();
     const { theme } = useTheme();
     const { t } = useTranslation();
@@ -61,7 +62,7 @@ export default function RegisterScreen() {
             // Agregar el usuario a la tabla 'users' en Supabase
             const { error: dbError } = await supabase
                 .from("users")
-                .insert([{ id: authData.user.id, email, username: email.split("@")[0] }]);
+                .insert([{ id: authData.user.id, email, username: email.split("@")[0], region }]);
 
             if (dbError) {
                 throw new Error(dbError.message || t("backend_registration_failed"));
@@ -186,6 +187,33 @@ export default function RegisterScreen() {
                 </TouchableOpacity>
             </View>
 
+            <View style={styles.regionContainer}>
+                <TouchableOpacity
+                    style={[
+                        styles.regionButton,
+                        { backgroundColor: Colors[theme].info },
+                        region === "west" && styles.activeRegion,
+                    ]}
+                    onPress={() => setRegion("west")}
+                >
+                    <ThemedText style={[styles.regionText, { color: Colors[theme].background }]}>
+                        {t("west")}
+                    </ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[
+                        styles.regionButton,
+                        { backgroundColor: Colors[theme].highlight },
+                        region === "east" && styles.activeRegion,
+                    ]}
+                    onPress={() => setRegion("east")}
+                >
+                    <ThemedText style={[styles.regionText, { color: Colors[theme].background }]}>
+                        {t("east")}
+                    </ThemedText>
+                </TouchableOpacity>
+            </View>
+
             <TouchableOpacity style={[styles.button, { backgroundColor: Colors[theme].tint }]} onPress={handleRegister}>
                 <ThemedText style={styles.buttonText}>{t("register")}</ThemedText>
             </TouchableOpacity>
@@ -218,7 +246,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         paddingHorizontal: 20,
-        marginTop: -40,
+        marginTop: -20,
     },
     logo: {
         width: 220,
@@ -279,5 +307,25 @@ const styles = StyleSheet.create({
         height: 400,
         marginBottom: 30,
         zIndex: 0,
+    },
+    regionContainer: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginVertical: 15,
+    },
+    regionButton: {
+        flex: 1,
+        padding: 10,
+        borderRadius: 8,
+        alignItems: "center",
+        marginHorizontal: 5,
+        opacity: 0.5,
+    },
+    activeRegion: {
+        opacity: 1,
+    },
+    regionText: {
+        fontSize: 16,
+        fontWeight: "bold",
     },
 });

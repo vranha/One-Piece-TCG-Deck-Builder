@@ -14,8 +14,9 @@ interface UserDetailsAccordionProps {
     region: string;
     setRegion: (value: string) => void;
     handleUpdateUserDetails: () => void;
-    theme: 'light' | 'dark';
+    theme: "light" | "dark";
     t: (key: string) => string;
+    // Removed setAccordionOpen prop
 }
 
 export default function UserDetailsAccordion({
@@ -86,7 +87,7 @@ export default function UserDetailsAccordion({
             </View>
             <TouchableOpacity
                 style={[styles.changeButton, { backgroundColor: Colors[theme].success }]}
-                onPress={handleUpdateUserDetails}
+                onPress={handleUpdateUserDetails} // Directly call the function
             >
                 <ThemedText style={styles.changeButtonText}>{t("change")}</ThemedText>
             </TouchableOpacity>

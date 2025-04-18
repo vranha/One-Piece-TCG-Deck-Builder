@@ -172,11 +172,29 @@ export default function SearchScreen() {
         setIsSelectionEnabled((prev) => !prev);
     };
 
+    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery); // Estado para el debounce
+
+    // Implementa el debounce
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearchQuery(searchQuery); // Actualiza el valor después del retraso
+        }, 300); // 300ms de retraso (puedes ajustarlo)
+    
+        return () => {
+            clearTimeout(handler); // Limpia el timeout si el usuario sigue escribiendo
+        };
+    }, [searchQuery]);
+    
+    // Usa debouncedSearchQuery para las búsquedas
+    useEffect(() => {
+        fetchCards(debouncedSearchQuery, 1); // Llama a fetchCards solo cuando debouncedSearchQuery cambia
+    }, [debouncedSearchQuery]);
+    
+    // Modifica handleSearchChange para que solo actualice searchQuery
     const handleSearchChange = (text: string) => {
-        setSearchQuery(text);
-        setPage(1);
-        setHasMore(true);
-        fetchCards(text, 1);
+        setSearchQuery(text); // Actualiza el estado de búsqueda
+        setPage(1); // Reinicia la paginación
+        setHasMore(true); // Permite cargar más resultados
     };
 
     useEffect(() => {

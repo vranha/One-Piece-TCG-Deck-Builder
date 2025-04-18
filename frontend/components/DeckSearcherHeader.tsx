@@ -22,7 +22,7 @@ const DeckSearcherHeader: React.FC<DeckSearcherHeaderProps> = ({ onSearchChange,
     };
 
     return (
-        <View style={styles.headerContainer}>
+        <View style={[styles.headerContainer, { backgroundColor: Colors[theme].background }]}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                 <MaterialIcons name="arrow-back" size={24} color={Colors[theme].text} />
             </TouchableOpacity>
@@ -36,13 +36,21 @@ const DeckSearcherHeader: React.FC<DeckSearcherHeaderProps> = ({ onSearchChange,
             />
             <TouchableOpacity
                 onPress={() => toggleSearchMode(true)}
-                style={[styles.toggleButton, isDeckSearch && styles.activeButton, { borderBottomColor: Colors[theme].tint }]}
+                style={[
+                    styles.toggleButton,
+                    isDeckSearch && styles.activeButton,
+                    { borderBottomColor: Colors[theme].tint },
+                ]}
             >
-                <MaterialIcons name="style" size={24} color={isDeckSearch ? Colors[theme].tint : Colors[theme].text} />
+                <Ionicons name="albums" size={24} color={isDeckSearch ? Colors[theme].tint : Colors[theme].text} />
             </TouchableOpacity>
             <TouchableOpacity
                 onPress={() => toggleSearchMode(false)}
-                style={[styles.toggleButton, !isDeckSearch && styles.activeButton, { borderBottomColor: Colors[theme].tint }]}
+                style={[
+                    styles.toggleButton,
+                    !isDeckSearch && styles.activeButton,
+                    { borderBottomColor: Colors[theme].tint },
+                ]}
             >
                 <Ionicons name="person" size={24} color={!isDeckSearch ? Colors[theme].tint : Colors[theme].text} />
             </TouchableOpacity>

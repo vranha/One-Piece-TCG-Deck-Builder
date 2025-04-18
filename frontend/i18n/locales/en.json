@@ -147,8 +147,11 @@
     "location": "Location",
     "west": "West",
     "east": "East",
-    "change": "Change"
-
-    
-    
+    "change": "Change",
+    "add_tag": "Add Tag",
+    "user_details_update_success_title": "User Details Updated",
+    "user_details_update_success_message": "Your details have been updated successfully.",
+    "user_details_update_error_title": "Update Failed",
+    "user_details_update_error_message": "Something went wrong while updating your details. Please try again.",
+    "user_session_not_found": "User session not found. Please log in again."
 }
