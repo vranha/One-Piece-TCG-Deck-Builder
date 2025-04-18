@@ -217,7 +217,7 @@ export default function DeckSearcher() {
                 },
             ]}
         >
-            <Image source={{ uri: item.avatar_url }} style={{ width: 50, height: 50, borderRadius: 25 }} />
+            <Image source={{ uri: item.avatar_url }} style={{ width: 60, height: 60, borderRadius: 25 }} />
             <View style={{ flex: 1, gap: 5 }}>
                 <Text style={[styles.itemTitle, { color: Colors[theme].text }]}>{item.username}</Text>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>

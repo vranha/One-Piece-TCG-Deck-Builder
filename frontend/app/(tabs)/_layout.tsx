@@ -33,7 +33,6 @@ export default function TabLayout() {
         new Animated.Value(0),
         new Animated.Value(0),
         new Animated.Value(0),
-        new Animated.Value(0),
     ]);
     const modalizeRef = useRef<Modalize>(null);
     const [isNewDeckModalVisible, setIsNewDeckModalVisible] = useState(false);
@@ -70,7 +69,7 @@ export default function TabLayout() {
             setIsImportDeckModalVisible(true);
             toggleBubbles();
         }
-        if (index === 4) {
+        if (index === 3) {
             // Index for "Nuevo Mazo"
             setIsNewDeckModalVisible(true);
             toggleBubbles();

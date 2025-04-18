@@ -102,8 +102,6 @@ function getBubbleIconName(index: number): CustomIconNames {
         case 2:
             return "folder.fill";
         case 3:
-            return "heart.fill";
-        case 4:
             return "plus.square.fill";
         default:
             return "questionmark";
@@ -119,8 +117,6 @@ function getBubbleText(index: number): string {
         case 2:
             return "new_collection";
         case 3:
-            return "new_wishlist";
-        case 4:
             return "new_deck_bubble";
         default:
             return "unknown";
