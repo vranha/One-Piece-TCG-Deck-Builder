@@ -10,9 +10,10 @@ interface DeckSearcherHeaderProps {
     onSearchChange: (text: string) => void;
     isDeckSearch: boolean;
     toggleSearchMode: (isDeck: boolean) => void;
+    t: any
 }
 
-const DeckSearcherHeader: React.FC<DeckSearcherHeaderProps> = ({ onSearchChange, isDeckSearch, toggleSearchMode }) => {
+const DeckSearcherHeader: React.FC<DeckSearcherHeaderProps> = ({ onSearchChange, isDeckSearch, toggleSearchMode, t }) => {
     const { theme } = useTheme();
     const [searchQuery, setSearchQuery] = useState("");
 
@@ -28,7 +29,7 @@ const DeckSearcherHeader: React.FC<DeckSearcherHeaderProps> = ({ onSearchChange,
             </TouchableOpacity>
             <TextInput
                 style={[styles.searchBar, { color: Colors[theme].text }]}
-                placeholder="Search..."
+                placeholder={`${t("search")}...`}
                 placeholderTextColor={Colors[theme].tabIconDefault}
                 value={searchQuery}
                 onChangeText={handleSearchChange}

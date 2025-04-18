@@ -9,6 +9,9 @@ import {
     ActivityIndicator,
     TextInput,
     ScrollView,
+    FlatList,
+    Platform,
+    Dimensions,
 } from "react-native";
 import { useTheme } from "@/hooks/ThemeContext";
 import { ThemedText } from "@/components/ThemedText";
@@ -23,6 +26,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import FeedbackModal from "@/components/FeedbackModal"; // Import the new modal component
 import Toast from "react-native-toast-message";
 import UserDetailsAccordion from "@/components/UserDetailsAccordion"; // Import the new component
+import { Modalize } from "react-native-modalize";
 
 export default function SettingsScreen() {
     const navigation = useNavigation();
@@ -33,10 +37,13 @@ export default function SettingsScreen() {
     const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(true); // Estado para notificaciones
     const [isFeedbackModalVisible, setIsFeedbackModalVisible] = useState(false); // State for modal visibility
     const [username, setUsername] = useState("");
+    const [avatar, setAvatar] = useState("");
     const [bio, setBio] = useState("");
     const [location, setLocation] = useState("");
     const [region, setRegion] = useState("West");
     const [isAccordionOpen, setIsAccordionOpen] = useState(true); // State to control accordion visibility
+    const [presetAvatars, setPresetAvatars] = useState<string[]>([]);
+    const modalizeRef = React.useRef<Modalize>(null);
 
     useEffect(() => {
         navigation.setOptions({ headerShown: true, title: t("settings") });
@@ -60,11 +67,12 @@ export default function SettingsScreen() {
                 } = await supabase.auth.getSession();
                 if (session && session.user) {
                     const response = await api.get(`/me?id=${session.user.id}`);
-                    const { username, bio, location, region } = response.data;
+                    const { username, bio, location, region, avatar_url } = response.data;
                     setUsername(username || "");
                     setBio(bio || "");
                     setLocation(location || "");
                     setRegion(region || "West");
+                    setAvatar(avatar_url || "West");
                 }
             } catch (error: any) {
                 Alert.alert("Error", error.response?.data?.error || "Failed to fetch user data.");
@@ -75,6 +83,28 @@ export default function SettingsScreen() {
 
         fetchUserData();
         // Ensure this effect runs only once
+    }, []);
+
+    useEffect(() => {
+        const fetchAvatars = async () => {
+            const { data, error } = await supabase.storage.from("avatars").list("presets", {
+                limit: 100,
+                offset: 0,
+                sortBy: { column: "name", order: "asc" },
+            });
+
+            if (error) {
+                console.error("Error fetching avatars:", error.message);
+            } else if (!data || data.length === 0) {
+                console.warn("No avatars found in the 'presets' folder.");
+            } else {
+                const urls = data.map(
+                    (file) => supabase.storage.from("avatars").getPublicUrl(`presets/${file.name}`).data.publicUrl
+                );
+                setPresetAvatars(urls);
+            }
+        };
+        fetchAvatars();
     }, []);
 
     const { theme, toggleTheme } = useTheme();
@@ -145,6 +175,7 @@ export default function SettingsScreen() {
                     bio,
                     location,
                     region,
+                    avatar_url: avatar,
                 });
                 Toast.show({
                     type: "success",
@@ -182,123 +213,172 @@ export default function SettingsScreen() {
         }
     };
 
+    const openAvatarModal = () => {
+        modalizeRef.current?.open();
+    };
+
+    const selectAvatar = (url: string) => {
+        setAvatar(url);
+        modalizeRef.current?.close();
+    };
+
     return (
-        <ScrollView contentContainerStyle={{ flexGrow: 1, backgroundColor: Colors[theme].background }}>
-            <View style={[styles.container, { backgroundColor: Colors[theme].background }]}>
-                {/* User Details Accordion */}
-                <UserDetailsAccordion
-                    username={username}
-                    setUsername={setUsername}
-                    bio={bio}
-                    setBio={setBio}
-                    location={location}
-                    setLocation={setLocation}
-                    region={region}
-                    setRegion={setRegion}
-                    handleUpdateUserDetails={handleUpdateUserDetails}
-                    theme={theme}
-                    t={t}
-                />
+        <>
+            <ScrollView contentContainerStyle={{ flexGrow: 1, backgroundColor: Colors[theme].background }}>
+                <View style={[styles.container, { backgroundColor: Colors[theme].background }]}>
+                    {/* User Details Accordion */}
+                    <UserDetailsAccordion
+                        username={username}
+                        setUsername={setUsername}
+                        bio={bio}
+                        setBio={setBio}
+                        location={location}
+                        setLocation={setLocation}
+                        region={region}
+                        setRegion={setRegion}
+                        avatar={avatar}
+                        setAvatar={setAvatar}
+                        handleUpdateUserDetails={handleUpdateUserDetails}
+                        theme={theme}
+                        t={t}
+                        openAvatarModal={openAvatarModal} // Pass the new prop
+                    />
 
-                {/* Selección de Idioma */}
-                <View style={[styles.card, { backgroundColor: Colors[theme].TabBarBackground }]}>
-                    <View style={styles.row}>
-                        <Ionicons name="language" size={24} color={Colors[theme].icon} />
-                        <ThemedText style={[styles.optionText, { color: Colors[theme].text }]}>
-                            {t("language")}
-                        </ThemedText>
+                    {/* Selección de Idioma */}
+                    <View style={[styles.card, { backgroundColor: Colors[theme].TabBarBackground }]}>
+                        <View style={styles.row}>
+                            <Ionicons name="language" size={24} color={Colors[theme].icon} />
+                            <ThemedText style={[styles.optionText, { color: Colors[theme].text }]}>
+                                {t("language")}
+                            </ThemedText>
+                        </View>
+                        <View style={styles.languageContainer}>
+                            <TouchableOpacity
+                                style={[
+                                    styles.languageOption,
+                                    i18n.language === "en" ? styles.activeLanguage : styles.inactiveLanguage,
+                                ]}
+                                onPress={() => handleLanguageChange("en")}
+                            >
+                                <Image source={require("../assets/flags/en.png")} style={styles.flag} />
+                                <ThemedText style={styles.languageText}>English</ThemedText>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[
+                                    styles.languageOption,
+                                    i18n.language === "es" ? styles.activeLanguage : styles.inactiveLanguage,
+                                ]}
+                                onPress={() => handleLanguageChange("es")}
+                            >
+                                <Image source={require("../assets/flags/es.png")} style={styles.flag} />
+                                <ThemedText style={styles.languageText}>Español</ThemedText>
+                            </TouchableOpacity>
+                        </View>
                     </View>
-                    <View style={styles.languageContainer}>
-                        <TouchableOpacity
-                            style={[
-                                styles.languageOption,
-                                i18n.language === "en" ? styles.activeLanguage : styles.inactiveLanguage,
-                            ]}
-                            onPress={() => handleLanguageChange("en")}
-                        >
-                            <Image source={require("../assets/flags/en.png")} style={styles.flag} />
-                            <ThemedText style={styles.languageText}>English</ThemedText>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[
-                                styles.languageOption,
-                                i18n.language === "es" ? styles.activeLanguage : styles.inactiveLanguage,
-                            ]}
-                            onPress={() => handleLanguageChange("es")}
-                        >
-                            <Image source={require("../assets/flags/es.png")} style={styles.flag} />
-                            <ThemedText style={styles.languageText}>Español</ThemedText>
-                        </TouchableOpacity>
+                    {/* Modo Oscuro */}
+                    <View style={[styles.card, { backgroundColor: Colors[theme].TabBarBackground }]}>
+                        <View style={styles.row}>
+                            <Ionicons name={isDarkMode ? "moon" : "sunny"} size={24} color={Colors[theme].icon} />
+                            <ThemedText style={[styles.optionText, { color: Colors[theme].text }]}>
+                                {t("light/dark_mode")}
+                            </ThemedText>
+                        </View>
+                        <Switch value={isDarkMode} onValueChange={toggleTheme} />
                     </View>
-                </View>
-                {/* Modo Oscuro */}
-                <View style={[styles.card, { backgroundColor: Colors[theme].TabBarBackground }]}>
-                    <View style={styles.row}>
-                        <Ionicons name={isDarkMode ? "moon" : "sunny"} size={24} color={Colors[theme].icon} />
-                        <ThemedText style={[styles.optionText, { color: Colors[theme].text }]}>
-                            {t("light/dark_mode")}
-                        </ThemedText>
-                    </View>
-                    <Switch value={isDarkMode} onValueChange={toggleTheme} />
-                </View>
 
-                {/* Preferencia de Email */}
-                <View style={[styles.card, { backgroundColor: Colors[theme].TabBarBackground }]}>
-                    <View style={styles.row}>
-                        <Ionicons name="mail-outline" size={24} color={Colors[theme].icon} />
-                        <ThemedText style={[styles.optionText, { color: Colors[theme].text }]}>
-                            {t("send_email_on_copy")}
-                        </ThemedText>
+                    {/* Preferencia de Email */}
+                    <View style={[styles.card, { backgroundColor: Colors[theme].TabBarBackground }]}>
+                        <View style={styles.row}>
+                            <Ionicons name="mail-outline" size={24} color={Colors[theme].icon} />
+                            <ThemedText style={[styles.optionText, { color: Colors[theme].text }]}>
+                                {t("send_email_on_copy")}
+                            </ThemedText>
+                        </View>
+                        <Switch
+                            value={isEmailEnabled}
+                            onValueChange={toggleEmailPreference}
+                            thumbColor={isEmailEnabled ? Colors[theme].success : Colors[theme].disabled}
+                        />
                     </View>
-                    <Switch
-                        value={isEmailEnabled}
-                        onValueChange={toggleEmailPreference}
-                        thumbColor={isEmailEnabled ? Colors[theme].success : Colors[theme].disabled}
+                    {/* Gestión de Notificaciones */}
+                    <View style={[styles.card, { backgroundColor: Colors[theme].TabBarBackground }]}>
+                        <View style={styles.row}>
+                            <Ionicons name="notifications-outline" size={24} color={Colors[theme].icon} />
+                            <ThemedText style={[styles.optionText, { color: Colors[theme].text }]}>
+                                {t("notifications")}
+                            </ThemedText>
+                        </View>
+                        <Switch
+                            value={isNotificationsEnabled}
+                            onValueChange={toggleNotifications}
+                            thumbColor={isNotificationsEnabled ? Colors[theme].success : Colors[theme].disabled}
+                        />
+                    </View>
+
+                    {/* Botón de Soporte y Feedback */}
+                    <TouchableOpacity
+                        style={[styles.feedbackButton, { backgroundColor: Colors[theme].TabBarBackground }]}
+                        onPress={handleFeedback}
+                    >
+                        <Ionicons name="chatbox-ellipses-outline" size={30} color={Colors[theme].tint} />
+                        <ThemedText style={[styles.feedbackText, { color: Colors[theme].text }]}>
+                            {t("send_feedback")}
+                        </ThemedText>
+                    </TouchableOpacity>
+
+                    {/* Botón de Logout */}
+                    <TouchableOpacity
+                        style={[styles.logoutButton, { backgroundColor: Colors[theme].error }]}
+                        onPress={handleLogout}
+                    >
+                        <Ionicons name="log-out-outline" size={20} color={Colors[theme].text} />
+                        <ThemedText style={styles.logoutText}>{t("logout")}</ThemedText>
+                    </TouchableOpacity>
+
+                    <FeedbackModal
+                        visible={isFeedbackModalVisible}
+                        onClose={() => setIsFeedbackModalVisible(false)} // Close the modal
+                        t={t} // Pass the translation function to the modal
+                        showToast={handleFeedbackToast} // Pass the Toast handler to the modal
                     />
                 </View>
-                {/* Gestión de Notificaciones */}
-                <View style={[styles.card, { backgroundColor: Colors[theme].TabBarBackground }]}>
-                    <View style={styles.row}>
-                        <Ionicons name="notifications-outline" size={24} color={Colors[theme].icon} />
-                        <ThemedText style={[styles.optionText, { color: Colors[theme].text }]}>
-                            {t("notifications")}
-                        </ThemedText>
-                    </View>
-                    <Switch
-                        value={isNotificationsEnabled}
-                        onValueChange={toggleNotifications}
-                        thumbColor={isNotificationsEnabled ? Colors[theme].success : Colors[theme].disabled}
-                    />
-                </View>
-
-                {/* Botón de Soporte y Feedback */}
-                <TouchableOpacity
-                    style={[styles.feedbackButton, { backgroundColor: Colors[theme].TabBarBackground }]}
-                    onPress={handleFeedback}
-                >
-                    <Ionicons name="chatbox-ellipses-outline" size={30} color={Colors[theme].tint} />
-                    <ThemedText style={[styles.feedbackText, { color: Colors[theme].text }]}>
-                        {t("send_feedback")}
-                    </ThemedText>
-                </TouchableOpacity>
-
-                {/* Botón de Logout */}
-                <TouchableOpacity
-                    style={[styles.logoutButton, { backgroundColor: Colors[theme].error }]}
-                    onPress={handleLogout}
-                >
-                    <Ionicons name="log-out-outline" size={20} color={Colors[theme].text} />
-                    <ThemedText style={styles.logoutText}>{t("logout")}</ThemedText>
-                </TouchableOpacity>
-
-                <FeedbackModal
-                    visible={isFeedbackModalVisible}
-                    onClose={() => setIsFeedbackModalVisible(false)} // Close the modal
-                    t={t} // Pass the translation function to the modal
-                    showToast={handleFeedbackToast} // Pass the Toast handler to the modal
-                />
-            </View>
-        </ScrollView>
+            </ScrollView>
+            <Modalize
+                ref={modalizeRef}
+                modalHeight={
+                    Platform.OS === "ios"
+                        ? 0.75 * Dimensions.get("screen").height
+                        : 0.75 * Dimensions.get("window").height
+                }
+                avoidKeyboardLikeIOS={true}
+                keyboardAvoidingBehavior={Platform.OS === "ios" ? undefined : "height"}
+                handleStyle={{
+                    backgroundColor: Colors[theme].backgroundSoft,
+                    height: 6,
+                    width: 60,
+                    borderRadius: 3,
+                    alignSelf: "center",
+                    marginVertical: 10,
+                }}
+                modalStyle={{
+                    backgroundColor: Colors[theme].background,
+                    borderTopLeftRadius: 20,
+                    borderTopRightRadius: 20,
+                    padding: 15,
+                }}
+                flatListProps={{
+                    data: presetAvatars,
+                    keyExtractor: (item, index) => index.toString(),
+                    numColumns: 3,
+                    renderItem: ({ item }) => (
+                        <TouchableOpacity onPress={() => selectAvatar(item)} style={{ margin: 10 }}>
+                            <Image source={{ uri: item }} style={styles.presetAvatar} />
+                        </TouchableOpacity>
+                    ),
+                    contentContainerStyle: { paddingBottom: 20, alignItems: "center" },
+                }}
+            ></Modalize>
+        </>
     );
 }
 
@@ -406,5 +486,11 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         padding: 10,
         fontWeight: "bold",
+    },
+    presetAvatar: {
+        width: 80,
+        height: 80,
+        margin: 5,
+        borderRadius: 40,
     },
 });

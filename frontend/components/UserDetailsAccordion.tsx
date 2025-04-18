@@ -1,8 +1,9 @@
-import React from "react";
-import { View, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import { View, TextInput, TouchableOpacity, StyleSheet, Image, FlatList } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { Accordion } from "@/components/Accordion";
 import { Colors } from "@/constants/Colors";
+import { supabase } from "@/supabaseClient";
 
 interface UserDetailsAccordionProps {
     username: string;
@@ -13,10 +14,12 @@ interface UserDetailsAccordionProps {
     setLocation: (value: string) => void;
     region: string;
     setRegion: (value: string) => void;
+    avatar: string;
+    setAvatar: (value: string) => void;
     handleUpdateUserDetails: () => void;
     theme: "light" | "dark";
     t: (key: string) => string;
-    // Removed setAccordionOpen prop
+    openAvatarModal: () => void; // New prop to open the avatar modal
 }
 
 export default function UserDetailsAccordion({
@@ -28,19 +31,65 @@ export default function UserDetailsAccordion({
     setLocation,
     region,
     setRegion,
+    avatar,
+    setAvatar,
     handleUpdateUserDetails,
     theme,
     t,
+    openAvatarModal,
 }: UserDetailsAccordionProps) {
+    const selectAvatar = (url: string) => {
+        setAvatar(url);
+    };
+
     return (
         <Accordion title={t("user_details")}>
-            <View style={styles.inputContainer}>
-                <ThemedText style={[styles.label, { color: Colors[theme].tabIconDefault }]}>{t("name")}</ThemedText>
-                <TextInput
-                    style={[styles.input, { color: Colors[theme].text, borderColor: Colors[theme].tabIconDefault }]}
-                    value={username}
-                    onChangeText={setUsername}
-                />
+            <View
+                style={{
+                    flexDirection: "row",
+                    justifyContent: "flex-start",
+                    alignItems: "flex-start",
+                    marginBottom: 0,
+                    gap: 30,
+                    width: "100%",
+                }}
+            >
+                <View style={[styles.inputContainer, { alignItems: "center" }]}>
+                    <ThemedText style={[styles.label, { color: Colors[theme].tabIconDefault }]}>
+                        {t("avatar")}
+                    </ThemedText>
+                    <TouchableOpacity onPress={openAvatarModal}>
+                        <Image source={{ uri: avatar }} style={styles.avatar} />
+                    </TouchableOpacity>
+                </View>
+                <View style={{ flex: 1 }}>
+                    <View style={styles.inputContainer}>
+                        <ThemedText style={[styles.label, { color: Colors[theme].tabIconDefault }]}>
+                            {t("name")}
+                        </ThemedText>
+                        <TextInput
+                            style={[
+                                styles.input,
+                                { color: Colors[theme].text, borderColor: Colors[theme].tabIconDefault },
+                            ]}
+                            value={username}
+                            onChangeText={setUsername}
+                        />
+                    </View>
+                    <View style={styles.inputContainer}>
+                        <ThemedText style={[styles.label, { color: Colors[theme].tabIconDefault }]}>
+                            {t("location")}
+                        </ThemedText>
+                        <TextInput
+                            style={[
+                                styles.input,
+                                { color: Colors[theme].text, borderColor: Colors[theme].tabIconDefault },
+                            ]}
+                            value={location}
+                            onChangeText={setLocation}
+                        />
+                    </View>
+                </View>
             </View>
             <View style={styles.inputContainer}>
                 <ThemedText style={[styles.label, { color: Colors[theme].tabIconDefault }]}>{t("bio")}</ThemedText>
@@ -51,14 +100,7 @@ export default function UserDetailsAccordion({
                     multiline
                 />
             </View>
-            <View style={styles.inputContainer}>
-                <ThemedText style={[styles.label, { color: Colors[theme].tabIconDefault }]}>{t("location")}</ThemedText>
-                <TextInput
-                    style={[styles.input, { color: Colors[theme].text, borderColor: Colors[theme].tabIconDefault }]}
-                    value={location}
-                    onChangeText={setLocation}
-                />
-            </View>
+
             <View style={styles.regionContainer}>
                 <TouchableOpacity
                     style={[
@@ -147,5 +189,18 @@ const styles = StyleSheet.create({
     changeButtonText: {
         color: "#fff",
         fontSize: 14,
+    },
+    avatar: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        borderWidth: 2,
+        borderColor: "#ccc",
+    },
+    presetAvatar: {
+        width: 80,
+        height: 80,
+        margin: 5,
+        borderRadius: 40,
     },
 });

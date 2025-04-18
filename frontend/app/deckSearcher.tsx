@@ -6,8 +6,11 @@ import DeckSearcherHeader from "@/components/DeckSearcherHeader";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
 import { Ionicons } from "@expo/vector-icons"; // Add this import for icons
+import { useTranslation } from "react-i18next";
+import { useRouter } from "expo-router";
 
 export default function DeckSearcher() {
+    const router = useRouter();
     const [isDeckSearch, setIsDeckSearch] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [data, setData] = useState<
@@ -18,6 +21,7 @@ export default function DeckSearcher() {
     const [totalPages, setTotalPages] = useState(1);
     const api = useApi();
     const [isDropdownVisible, setDropdownVisible] = useState(false); // State for dropdown visibility
+    const { t } = useTranslation();
 
     const userId = useMemo(async () => {
         const session = await supabase.auth.getSession();
@@ -99,7 +103,8 @@ export default function DeckSearcher() {
         const { costAverage, powerAverage } = calculateAverages(item.deck_cards);
 
         return (
-            <View
+            <TouchableOpacity
+                onPress={() => router.push({ pathname: `/(tabs)/deck/[deckId]`, params: { deckId: item.id } })}
                 style={[
                     styles.item,
                     { backgroundColor: Colors[theme].TabBarBackground, borderColor: Colors[theme].tint },
@@ -120,6 +125,11 @@ export default function DeckSearcher() {
                 </View>
                 <View style={styles.cornerRight}>
                     <View style={[styles.ownerContainerBack, { backgroundColor: Colors[theme].background }]}>
+                        {/* añadimos una imagen con el item.users.avatar_url */}
+                        <Image
+                            source={{ uri: item.users.avatar_url }}
+                            style={[styles.ownerContainer, { borderRadius: 50, width: 30, height: 30 }]}
+                        />
                         <View style={[styles.ownerContainer, { backgroundColor: Colors[theme].background }]}>
                             <Text
                                 style={{
@@ -153,7 +163,9 @@ export default function DeckSearcher() {
                     </View>
                     <View style={styles.itemAverages}>
                         <View style={{ flexDirection: "row", gap: 4, alignItems: "center" }}>
-                            <Text style={{ color: Colors[theme].tabIconDefault, fontWeight: "bold" }}>Cost:</Text>
+                            <Text style={{ color: Colors[theme].tabIconDefault, fontWeight: "bold" }}>
+                                {t("cost")}:
+                            </Text>
                             <View
                                 style={[
                                     styles.averageBall,
@@ -169,7 +181,9 @@ export default function DeckSearcher() {
                             </View>
                         </View>
                         <View style={{ flexDirection: "row", gap: 4, alignItems: "center" }}>
-                            <Text style={{ color: Colors[theme].tabIconDefault, fontWeight: "bold" }}>Power:</Text>
+                            <Text style={{ color: Colors[theme].tabIconDefault, fontWeight: "bold" }}>
+                                {t("power")}:
+                            </Text>
                             <View
                                 style={[
                                     styles.averageBall,
@@ -186,15 +200,69 @@ export default function DeckSearcher() {
                         </View>
                     </View>
                 </View>
-            </View>
+            </TouchableOpacity>
         );
     };
 
     const renderUserItem = ({ item }: any) => (
-        <View style={styles.item}>
-            <Text style={styles.itemTitle}>{item.username}</Text>
-            <Text>Email: {item.email}</Text>
-        </View>
+        <TouchableOpacity
+            // onPress={}
+            style={[
+                styles.item,
+                {
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 10,
+                    backgroundColor: Colors[theme].TabBarBackground,
+                },
+            ]}
+        >
+            <Image source={{ uri: item.avatar_url }} style={{ width: 50, height: 50, borderRadius: 25 }} />
+            <View style={{ flex: 1, gap: 5 }}>
+                <Text style={[styles.itemTitle, { color: Colors[theme].text }]}>{item.username}</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                    <Text style={{ color: Colors[theme].tabIconDefault, fontWeight: "bold" }}>{t("deck")}s:</Text>
+                    <Text style={{ color: Colors[theme].tint, fontWeight: "bold" }}>{item.deck_count || 0}</Text>
+                </View>
+                {item.top_colors?.length > 0 && (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                        <Text style={{ color: Colors[theme].tabIconDefault, fontWeight: "bold" }}>
+                            Top {t("colors")}:
+                        </Text>
+                        <View style={{ flexDirection: "row", gap: 2, alignItems: "center" }}>
+                            {item.top_colors?.map((color: string, index: number) => (
+                                <View
+                                    key={index}
+                                    style={[
+                                        styles.colorCircle,
+                                        { backgroundColor: color, borderColor: Colors[theme].background },
+                                    ]}
+                                />
+                            ))}
+                        </View>
+                    </View>
+                )}
+            </View>
+            <View style={{ alignItems: "flex-end", gap: 10, justifyContent: "center" }}>
+                {item.location && (
+                    <Text style={{ color: Colors[theme].tabIconDefault, fontWeight: "bold", fontSize: 14 }}>
+                        {item.location}
+                    </Text>
+                )}
+                <View
+                    style={[
+                        styles.regionButton,
+                        {
+                            backgroundColor: item.region === "west" ? Colors[theme].info : Colors[theme].highlight,
+                        },
+                    ]}
+                >
+                    <Text style={[styles.regionText, { color: Colors[theme].background }]}>
+                        {item.region === "west" ? "West" : "East"}
+                    </Text>
+                </View>
+            </View>
+        </TouchableOpacity>
     );
 
     const renderDropdown = () => (
@@ -209,8 +277,12 @@ export default function DeckSearcher() {
                     <ScrollView>
                         {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
                             <TouchableOpacity
-                                key={pageNum}   
-                                style={[styles.dropdownItem, {borderColor: Colors[theme].backgroundSoft}, page === pageNum && styles.selectedDropdownItem]}
+                                key={pageNum}
+                                style={[
+                                    styles.dropdownItem,
+                                    { borderColor: Colors[theme].backgroundSoft },
+                                    page === pageNum && styles.selectedDropdownItem,
+                                ]}
                                 onPress={() => {
                                     setPage(pageNum);
                                     setDropdownVisible(false);
@@ -218,8 +290,10 @@ export default function DeckSearcher() {
                             >
                                 <Text
                                     style={[
-                                        styles.dropdownItemText, {color: Colors[theme].tabIconDefault},
-                                        page === pageNum && styles.selectedDropdownItemText,page === pageNum && {color: Colors[theme].tint},
+                                        styles.dropdownItemText,
+                                        { color: Colors[theme].tabIconDefault },
+                                        page === pageNum && styles.selectedDropdownItemText,
+                                        page === pageNum && { color: Colors[theme].tint },
                                     ]}
                                 >
                                     Page {pageNum}
@@ -238,6 +312,7 @@ export default function DeckSearcher() {
                 onSearchChange={setSearchQuery}
                 isDeckSearch={isDeckSearch}
                 toggleSearchMode={setIsDeckSearch}
+                t={t}
             />
             <FlatList
                 data={data}
@@ -255,8 +330,11 @@ export default function DeckSearcher() {
                     onPress={() => page > 1 && setPage((prev) => Math.max(prev - 1, 1))}
                     style={[styles.paginationIcon, page === 1 && styles.disabledIcon]}
                 />
-                <TouchableOpacity style={[styles.customDropdown, {backgroundColor: Colors[theme].text}]} onPress={() => setDropdownVisible(true)}>
-                    <Text style={[styles.customDropdownText, {color: Colors[theme]. background}]}>Page {page}</Text>
+                <TouchableOpacity
+                    style={[styles.customDropdown, { backgroundColor: Colors[theme].text }]}
+                    onPress={() => setDropdownVisible(true)}
+                >
+                    <Text style={[styles.customDropdownText, { color: Colors[theme].background }]}>Page {page}</Text>
                 </TouchableOpacity>
                 <Ionicons
                     name="chevron-forward"
@@ -293,7 +371,8 @@ const styles = StyleSheet.create({
     itemAverages: {
         alignItems: "flex-end", // Center content vertically
         justifyContent: "flex-end",
-        gap: 5,
+        gap: 3,
+        marginBottom: -3,
     },
     itemTitleContainer: {
         flexDirection: "row",
@@ -333,7 +412,7 @@ const styles = StyleSheet.create({
         position: "absolute", // Ensure it stays within the container
         top: "0%", // Align the image to start from the top
         left: "-10%", // Center the zoomed image horizontally
-        opacity: 0.7, // Optional: make the image slightly transparent
+        opacity: 0.9, // Optional: make the image slightly transparent
     },
     colorCircle: {
         width: 20,
@@ -345,6 +424,8 @@ const styles = StyleSheet.create({
         borderBottomLeftRadius: 4,
         padding: 8,
         paddingBottom: 2,
+        flexDirection: "row",
+        gap: 5,
     },
     ownerContainer: {
         // borderRadius: 4,
@@ -368,8 +449,8 @@ const styles = StyleSheet.create({
         zIndex: 1, // Ensure it appears above other elements
     },
     averageBall: {
-        width: 37,
-        height: 37,
+        width: 35,
+        height: 35,
         borderRadius: 50,
         borderWidth: 2,
         alignItems: "center",
@@ -412,12 +493,18 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         borderBottomWidth: 2,
     },
-    selectedDropdownItem: {
-
-    },
-    dropdownItemText: {
-    },
+    selectedDropdownItem: {},
+    dropdownItemText: {},
     selectedDropdownItemText: {
+        fontWeight: "bold",
+    },
+    regionButton: {
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+        borderRadius: 8,
+        alignItems: "center",
+    },
+    regionText: {
         fontWeight: "bold",
     },
 });

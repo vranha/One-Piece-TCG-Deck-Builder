@@ -28,6 +28,7 @@ export const Colors = {
         success: "#4CAF50", // Verde para éxito
         error: "#F44336", // Rojo para error
         info: "#2196F3", // Azul para información
+        modalHandle: "#CCCCCC", // Light gray for modal handle
     },
     dark: {
         text: "#EAEAEA",
@@ -50,5 +51,6 @@ export const Colors = {
         success: "#81C784", // Verde más suave para éxito
         error: "#E57373", // Rojo más suave para error
         info: "#64B5F6", // Azul más suave para información
+        modalHandle: "#555555", // Dark gray for modal handle
     },
 };
