@@ -8,6 +8,7 @@ import { useTheme } from "@/hooks/ThemeContext";
 import { Ionicons } from "@expo/vector-icons"; // Add this import for icons
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
+import Toast from "react-native-toast-message"; // Import Toast
 
 export default function DeckSearcher() {
     const router = useRouter();
@@ -52,12 +53,27 @@ export default function DeckSearcher() {
             const resolvedUserId = await userId; // Resolve the userId from useMemo
             if (!resolvedUserId) {
                 console.error("User ID is null. Cannot send friend request.");
+                Toast.show({
+                    type: "error",
+                    text1: t("error"),
+                    text2: t("user_id_null"),
+                });
                 return;
             }
             const response = await api.post("/friends/request", { userId: resolvedUserId, friendId });
             console.log("Friend request sent:", response.data);
+            Toast.show({
+                type: "success",
+                text1: t("success"),
+                text2: t("friend_request_sent"),
+            });
         } catch (err) {
             console.error("Error sending friend request:", err);
+            Toast.show({
+                type: "error",
+                text1: t("error"),
+                text2: t("friend_request_failed"),
+            });
         }
     };
 
@@ -367,6 +383,7 @@ export default function DeckSearcher() {
                 />
             </View>
             {renderDropdown()}
+            <Toast />
         </View>
     );
 }

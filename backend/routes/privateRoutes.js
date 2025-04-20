@@ -657,6 +657,7 @@ router.delete("/decks/:deckId/tags/:tagId", deckController.removeTagFromDeck);
 
 router.post("/friends/request", friendController.sendFriendRequest);
 router.get("/friends", friendController.getFriends);
+router.get("/friends/:userId/accepted", friendController.getAcceptedFriends);
 router.put("/friends/:friendId/accept", friendController.acceptFriendRequest);
 router.delete("/friends/:friendId", friendController.removeFriend);
 router.get("/friends/:friendId/decks", friendController.getFriendDecks);
@@ -864,5 +865,26 @@ router.put("/users/update-details", userController.updateUserDetails);
  *         description: Lista de mazos con datos relacionados
  */
 router.get("/decks", deckController.getAllDecks);
+
+/**
+ * @swagger
+ * /friends:
+ *   get:
+ *     summary: Obtener todos los amigos del usuario actual
+ *     tags: [Friends]
+ *     responses:
+ *       200:
+ *         description: Lista de amigos
+ */
+router.get("/friends", async (req, res) => {
+    try {
+        const userId = req.user.id; // Assuming user ID is available in the request
+        const friends = await friendService.getAllFriends(userId);
+        res.status(200).json(friends);
+    } catch (error) {
+        console.error("Error fetching friends:", error);
+        res.status(500).json({ error: "Failed to fetch friends" });
+    }
+});
 
 module.exports = router;

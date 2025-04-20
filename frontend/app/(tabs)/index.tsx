@@ -12,6 +12,7 @@ import DeckCarousel from "@/components/DeckCarousel";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import useStore from "@/store/useStore";
+import FriendCarousel from "@/components/FriendCarousel";
 
 interface Deck {
     id: string;
@@ -29,6 +30,7 @@ export default function HomeScreen() {
     const [loading, setLoading] = useState(true);
     const [decks, setDecks] = useState<Deck[]>([]);
     const [newDeckModalVisible, setNewDeckModalVisible] = useState(false);
+    const [friends, setFriends] = useState([]);
     const router = useRouter();
 
     const refreshDecks = useStore((state) => state.refreshDecks);
@@ -53,6 +55,19 @@ export default function HomeScreen() {
         }
     };
 
+    const fetchFriends = async (userId: string, token: string) => {
+        try {
+            const { data } = await api.get(`/friends/${userId}/accepted`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            setFriends(data);
+        } catch (error) {
+            console.error("Error fetching friends:", error);
+        }
+    };
+
     useEffect(() => {
         async function fetchUser() {
             try {
@@ -68,6 +83,7 @@ export default function HomeScreen() {
                         }); // Fetch user info
                         setUserName(user.username || session.user.email); // Use name from API
                         fetchDecks(session.user.id, session.access_token);
+                        fetchFriends(session.user.id, session.access_token); // Fetch friends
                     } catch (apiError) {
                         console.error("Error fetching user info from /me:", apiError);
                     }
@@ -100,6 +116,10 @@ export default function HomeScreen() {
         }
     }, [refreshDecks]); // Observe changes in refreshDecks
 
+    const handleFriendPress = (friendId: string) => {
+        // router.push({ pathname: `/(tabs)/friend/[friendId]`, params: { friendId } });
+    };
+
     if (loading) {
         return (
             <ThemedView style={[styles.container, { backgroundColor: Colors[theme].background }]}>
@@ -116,11 +136,22 @@ export default function HomeScreen() {
                     {t("welcome", { name: userName })}
                 </ThemedText>
             </View>
-            <DeckCarousel
-                decks={decks}
-                onNewDeckPress={() => setNewDeckModalVisible(true)}
-                onDeckPress={(deckId) => router.push({ pathname: `/(tabs)/deck/[deckId]`, params: { deckId: deckId } })}
-            />
+            <View style={{ gap: 20, width: "100%" }}>
+                <DeckCarousel
+                    decks={decks}
+                    onNewDeckPress={() => setNewDeckModalVisible(true)}
+                    onDeckPress={(deckId) =>
+                        router.push({ pathname: `/(tabs)/deck/[deckId]`, params: { deckId: deckId } })
+                    }
+                />
+                <FriendCarousel
+                    friends={friends}
+                    onFriendPress={(friendId) =>
+                        router.push({ pathname: `/(tabs)/user/[userId]`, params: { friendId } })
+                    }
+                />
+            </View>
+
             <Portal>
                 <NewDeckModal
                     visible={newDeckModalVisible}

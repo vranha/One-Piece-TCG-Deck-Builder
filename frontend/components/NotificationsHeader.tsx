@@ -4,6 +4,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
 import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons"; // Importamos nuevos iconos
 
 interface NotificationsHeaderProps {
     activeTab: "notifications" | "friendRequests";
@@ -19,21 +20,45 @@ const NotificationsHeader: React.FC<NotificationsHeaderProps> = ({ activeTab, se
                 <MaterialIcons name="arrow-back" size={24} color={Colors[theme].text} />
             </TouchableOpacity>
             <View style={styles.tabContainer}>
-                <TouchableOpacity
-                    style={[styles.tabButton, activeTab === "notifications" && styles.activeTab]}
-                    onPress={() => setActiveTab("notifications")}
-                >
-                    <Text style={[styles.tabText, activeTab === "notifications" && { color: Colors[theme].info }]}>
+                <TouchableOpacity style={styles.tab} onPress={() => setActiveTab("notifications")}>
+                    <Ionicons
+                        name="notifications-outline"
+                        size={20}
+                        color={activeTab === "notifications" ? Colors[theme].info : Colors[theme].tabIconDefault}
+                    />
+                    <Text
+                        style={[
+                            styles.tabText,
+                            activeTab === "notifications"
+                                ? { color: Colors[theme].info }
+                                : { color: Colors[theme].tabIconDefault },
+                        ]}
+                    >
                         Notifications
                     </Text>
+                    {activeTab === "notifications" && (
+                        <View style={[styles.activeIndicator, { backgroundColor: Colors[theme].info }]} />
+                    )}
                 </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.tabButton, activeTab === "friendRequests" && styles.activeTab]}
-                    onPress={() => setActiveTab("friendRequests")}
-                >
-                    <Text style={[styles.tabText, activeTab === "friendRequests" && { color: Colors[theme].info }]}>
+                <TouchableOpacity style={styles.tab} onPress={() => setActiveTab("friendRequests")}>
+                    <Ionicons
+                        name="person-add-outline"
+                        size={20}
+                        color={activeTab === "friendRequests" ? Colors[theme].info : Colors[theme].tabIconDefault}
+                    />
+                    <Text
+                        style={[
+                            styles.tabText,
+                            activeTab === "friendRequests"
+                                ? { color: Colors[theme].info }
+                                : { color: Colors[theme].tabIconDefault },
+                        ]}
+                    >
                         Friend Requests
                     </Text>
+                    {activeTab === "friendRequests" && (
+                        <View style={[styles.activeIndicator, { backgroundColor: Colors[theme].info }]} />
+                    )}
                 </TouchableOpacity>
             </View>
         </View>
@@ -57,19 +82,23 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
     },
-    tabButton: {
+    tab: {
+        alignItems: "center",
+        justifyContent: "center",
         paddingHorizontal: 16,
         paddingVertical: 8,
-        borderRadius: 8,
-        backgroundColor: "#f0f0f0",
-        marginHorizontal: 4,
-    },
-    activeTab: {
-        backgroundColor: "#d0d0d0",
+        marginHorizontal: 8,
     },
     tabText: {
-        fontSize: 16,
-        color: "#000",
+        fontSize: 12, // Reducimos el tamaño del texto para que encaje mejor con los iconos
+        fontWeight: "bold",
+        marginTop: 4, // Espacio entre el icono y el texto
+    },
+    activeIndicator: {
+        marginTop: 4,
+        height: 3,
+        width: "100%",
+        borderRadius: 2,
     },
 });
 

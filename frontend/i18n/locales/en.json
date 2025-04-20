@@ -53,6 +53,7 @@
     "deck": "Deck",
     "wish": "Wish",
     "collection": "Collection",
+    "success": "Yeah!",
     "error": "Ups!",
     "errorAddingCard": "Something went wrong adding the card to the deck.",
     "playset_complete": "Playset complete",
@@ -159,5 +160,16 @@
     "user_session_not_found": "User session not found. Please log in again.",
     "importDeckDescription": "Please paste your deck using the 'Paste' button below. The deck should follow the format:",
     "paste": "Paste",
-    "import": "Import"
+    "import": "Import",
+    "all_notifications": "All notifications will be listed here.",
+    "no_friend_requests": "No Nakama Requests! 🏴‍☠️",
+    "crew_complete": "Your crew is complete... for now! ⚓",
+    "accept": "Accept",
+    "friend_id_undefined": "Friend ID is undefined.",
+    "friend_request_accepted": "Friend request accepted!",
+    "error_fetching_friends": "Error fetching pending friends.",
+    "error_accepting_friend_request": "Failed to accept friend request.",
+    "friend_request_sent": "Friend request sent successfully.",
+    "friend_request_failed": "Failed to send friend request.",
+    "user_id_null": "User ID is null. Please log in to continue."
 }

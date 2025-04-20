@@ -53,6 +53,7 @@
     "deck": "Mazo",
     "wish": "Deseo",
     "collection": "Colección",
+    "success": "Yeah!",
     "error": "Ups!",
     "errorAddingCard": "Algo ha salido mal añadiendo la carta al mazo.",
     "playset_complete": "Playset completo",
@@ -157,5 +158,16 @@
     "user_session_not_found": "Sesión de usuario no encontrada. Por favor, inicia sesión nuevamente.",
     "importDeckDescription": "Por favor, pega tu mazo usando el botón 'Pegar' a continuación. El mazo debe seguir el formato:",
     "paste": "Pegar",
-    "import": "Importar"
+    "import": "Importar",
+    "all_notifications": "Todas las notificaciones se mostrarán aquí.",
+    "no_friend_requests": "¡No hay solicitudes de Nakama! 🏴‍☠️",
+    "crew_complete": "Tu tripulación está completa... por ahora ⚓",
+    "accept": "Aceptar",
+    "friend_id_undefined": "El ID del amigo no está definido.",
+    "friend_request_accepted": "¡Solicitud de amistad aceptada!",
+    "error_fetching_friends": "Error al obtener amigos pendientes.",
+    "error_accepting_friend_request": "Error al aceptar la solicitud de amistad.",
+    "friend_request_sent": "Solicitud de amistad enviada con éxito.",
+    "friend_request_failed": "Error al enviar la solicitud de amistad.",
+    "user_id_null": "El ID de usuario es nulo. Por favor, inicia sesión para continuar."
 }
