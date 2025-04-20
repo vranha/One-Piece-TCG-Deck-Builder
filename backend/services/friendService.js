@@ -1,7 +1,13 @@
-const supabase = require("../services/supabaseClient");
+const { supabase } = require("../services/supabaseClient"); // Ensure correct import
 
-const getFriends = async (userId) => {
-    const { data: friends, error } = await supabase.from("friends").select("friend_id").eq("user_id", userId);
+const getFriends = async (userId, status) => {
+    let query = supabase.from("friends").select("friend_id").eq("user_id", userId);
+
+    if (status) {
+        query = query.eq("status", status);
+    }
+
+    const { data: friends, error } = await query;
 
     if (error) throw error;
     return friends;

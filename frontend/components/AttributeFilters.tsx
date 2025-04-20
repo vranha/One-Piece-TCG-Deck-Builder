@@ -47,7 +47,8 @@ const AttributeFilters: React.FC<AttributeFiltersProps> = ({
                     <MaterialIcons
                         name={isAccordionOpen ? "expand-less" : "expand-more"}
                         size={24}
-                        color={Colors[theme].text}
+                        color={Colors[theme].info}
+                        style={{ position: "relative", top: 2 }}
                     />
                 </View>
                 {selectedAttributes.length > 0 && (

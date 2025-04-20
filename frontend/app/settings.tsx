@@ -283,7 +283,8 @@ export default function SettingsScreen() {
                                 {t("light/dark_mode")}
                             </ThemedText>
                         </View>
-                        <Switch value={isDarkMode} onValueChange={toggleTheme} />
+                        <Switch value={isDarkMode} onValueChange={toggleTheme} thumbColor={isDarkMode ? Colors[theme].info : Colors[theme].highlight}/>
+                        
                     </View>
 
                     {/* Preferencia de Email */}
@@ -297,7 +298,7 @@ export default function SettingsScreen() {
                         <Switch
                             value={isEmailEnabled}
                             onValueChange={toggleEmailPreference}
-                            thumbColor={isEmailEnabled ? Colors[theme].success : Colors[theme].disabled}
+                            thumbColor={isEmailEnabled ? Colors[theme].info : Colors[theme].disabled}
                         />
                     </View>
                     {/* Gestión de Notificaciones */}
@@ -311,7 +312,7 @@ export default function SettingsScreen() {
                         <Switch
                             value={isNotificationsEnabled}
                             onValueChange={toggleNotifications}
-                            thumbColor={isNotificationsEnabled ? Colors[theme].success : Colors[theme].disabled}
+                            thumbColor={isNotificationsEnabled ? Colors[theme].info : Colors[theme].disabled}
                         />
                     </View>
 
@@ -320,7 +321,7 @@ export default function SettingsScreen() {
                         style={[styles.feedbackButton, { backgroundColor: Colors[theme].TabBarBackground }]}
                         onPress={handleFeedback}
                     >
-                        <Ionicons name="chatbox-ellipses-outline" size={30} color={Colors[theme].tint} />
+                        <Ionicons name="chatbox-ellipses-outline" size={30} color={Colors[theme].info} />
                         <ThemedText style={[styles.feedbackText, { color: Colors[theme].text }]}>
                             {t("send_feedback")}
                         </ThemedText>

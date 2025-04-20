@@ -47,6 +47,20 @@ export default function DeckSearcher() {
         fetchData();
     }, [isDeckSearch, searchQuery, page, userId]);
 
+    const handleSendFriendRequest = async (friendId: string) => {
+        try {
+            const resolvedUserId = await userId; // Resolve the userId from useMemo
+            if (!resolvedUserId) {
+                console.error("User ID is null. Cannot send friend request.");
+                return;
+            }
+            const response = await api.post("/friends/request", { userId: resolvedUserId, friendId });
+            console.log("Friend request sent:", response.data);
+        } catch (err) {
+            console.error("Error sending friend request:", err);
+        }
+    };
+
     const renderDeckItem = ({ item }: any) => {
         if (!item || !item.name || !item.users) {
             return null; // Skip rendering if the item is invalid
@@ -219,7 +233,14 @@ export default function DeckSearcher() {
         >
             <Image source={{ uri: item.avatar_url }} style={{ width: 60, height: 60, borderRadius: 25 }} />
             <View style={{ flex: 1, gap: 5 }}>
-                <Text style={[styles.itemTitle, { color: Colors[theme].text }]}>{item.username}</Text>
+                <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
+                    <Text style={[styles.itemTitle, { color: Colors[theme].text }]}>{item.username}</Text>
+                    {item.location && (
+                        <Text style={{ color: Colors[theme].tabIconDefault, fontWeight: "bold", fontSize: 14 }}>
+                            {item.location}
+                        </Text>
+                    )}
+                </View>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
                     <Text style={{ color: Colors[theme].tabIconDefault, fontWeight: "bold" }}>{t("deck")}s:</Text>
                     <Text style={{ color: Colors[theme].tint, fontWeight: "bold" }}>{item.deck_count || 0}</Text>
@@ -243,12 +264,7 @@ export default function DeckSearcher() {
                     </View>
                 )}
             </View>
-            <View style={{ alignItems: "flex-end", gap: 10, justifyContent: "center" }}>
-                {item.location && (
-                    <Text style={{ color: Colors[theme].tabIconDefault, fontWeight: "bold", fontSize: 14 }}>
-                        {item.location}
-                    </Text>
-                )}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <View
                     style={[
                         styles.regionButton,
@@ -261,6 +277,12 @@ export default function DeckSearcher() {
                         {item.region === "west" ? "West" : "East"}
                     </Text>
                 </View>
+                <Ionicons
+                    name="add-circle-outline"
+                    size={34}
+                    color={Colors[theme].success}
+                    onPress={() => handleSendFriendRequest(item.id)}
+                />
             </View>
         </TouchableOpacity>
     );

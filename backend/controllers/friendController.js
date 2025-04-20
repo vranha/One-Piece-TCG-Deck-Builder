@@ -23,9 +23,11 @@ const getFriendDecks = async (req, res) => {
 };
 
 const getFriends = async (req, res) => {
-    const { userId } = req.user; // Assuming userId is available in the authenticated user object
+    const { userId } = req.query; // Get userId from query params
+    const { status } = req.query; // Get status from query params
+
     try {
-        const friends = await friendService.getFriends(userId);
+        const friends = await friendService.getFriends(userId, status);
         res.status(200).json(friends);
     } catch (err) {
         console.error(err);

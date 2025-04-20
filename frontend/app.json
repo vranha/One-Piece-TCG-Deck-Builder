@@ -1,27 +1,38 @@
 {
     "expo": {
-        "name": "frontend",
-        "slug": "frontend",
+        "name": "OP Lab",
+        "slug": "op_lab",
         "version": "1.0.0",
         "orientation": "portrait",
         "icon": "./assets/images/OPLAB-logo.png",
         "scheme": "oplab",
         "userInterfaceStyle": "automatic",
         "newArchEnabled": true,
+        "splash": {
+            "image": "./assets/images/OPLAB-logo.png",
+            "resizeMode": "contain",
+            "backgroundColor": "#ffffff"
+        },
         "ios": {
             "bundleIdentifier": "com.oplab.frontend",
-            "supportsTablet": true
+            "supportsTablet": true,
+            "infoPlist": {
+                "NSCameraUsageDescription": "We need your camera to scan OP TGC cards.",
+                "NSUserNotificationUsageDescription": "We want to send you notifications to keep you updated( new cards, friendship requests..."
+              }
         },
         "androidStatusBar": {
             "barStyle": "light-content",
-            "backgroundColor": "#000000"
-          },
+            "backgroundColor": "#121212"
+        },
         "android": {
+            "permissions": ["CAMERA","NOTIFICATIONS"],
             "package": "com.oplab.frontend",
             "adaptiveIcon": {
                 "foregroundImage": "./assets/images/OPLAB-logo.png",
-                "backgroundColor": "#7a7a78"
+                "backgroundColor": "#ffffff"
             }
+            
         },
         "web": {
             "bundler": "metro",
@@ -33,8 +44,7 @@
             [
                 "expo-splash-screen",
                 {
-                    "image": "./assets/images/splash-icon.png",
-                    "imageWidth": 200,
+                    "image": "./assets/images/OPLAB-logo.png",
                     "resizeMode": "contain",
                     "backgroundColor": "#ffffff"
                 }

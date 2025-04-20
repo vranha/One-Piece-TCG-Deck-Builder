@@ -134,7 +134,7 @@
     "feedback_sent_message": "Espero que hayas sido benevolente 😇",
     "feedback_error": "Error al enviar feedback",
     "feedback_error_message": "Algo ha salido mal al enviarlo 🥲",
-    "feedback_placeholder": "Escribe tu feedback aquí...",
+    "feedback_placeholder": "Querido administrador 🙄, tengo una idea genial para la app...",
     "passwords_do_not_match": "Las contraseñas no coinciden",
     "password": "Contraseña",
     "confirm_password": "Confirmar contraseña",
@@ -154,5 +154,8 @@
     "user_details_update_success_message": "Tus detalles se han actualizado con éxito.",
     "user_details_update_error_title": "Error de Actualización",
     "user_details_update_error_message": "Algo salió mal al actualizar tus detalles. Por favor, inténtalo de nuevo.",
-    "user_session_not_found": "Sesión de usuario no encontrada. Por favor, inicia sesión nuevamente."
+    "user_session_not_found": "Sesión de usuario no encontrada. Por favor, inicia sesión nuevamente.",
+    "importDeckDescription": "Por favor, pega tu mazo usando el botón 'Pegar' a continuación. El mazo debe seguir el formato:",
+    "paste": "Pegar",
+    "import": "Importar"
 }

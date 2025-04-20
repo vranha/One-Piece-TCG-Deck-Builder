@@ -38,7 +38,8 @@ const AbilityAccordion: React.FC<AbilityAccordionProps> = ({
                     <MaterialIcons
                         name={isAbilityAccordionOpen ? "expand-less" : "expand-more"}
                         size={24}
-                        color={Colors[theme].text}
+                        color={Colors[theme].info}
+                        style={{ position: "relative", top: 2 }}
                     />
                 </View>
                 {abilityFilters.length > 0 && (

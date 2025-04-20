@@ -136,7 +136,7 @@
     "feedback_sent_message": "I hope you have been benevolent 😇",
     "feedback_error": "Ups! We have a problem",
     "feedback_error_message": "Something went wrong sending the feedback 🥲",
-    "feedback_placeholder": "Write your feedback here...",
+    "feedback_placeholder": "Dear Admin 🙄, I would like to suggest...",
     "passwords_do_not_match": "Passwords do not match",
     "password": "Password",
     "confirm_password": "Confirm Password",
@@ -156,5 +156,8 @@
     "user_details_update_success_message": "Your details have been updated successfully.",
     "user_details_update_error_title": "Update Failed",
     "user_details_update_error_message": "Something went wrong while updating your details. Please try again.",
-    "user_session_not_found": "User session not found. Please log in again."
+    "user_session_not_found": "User session not found. Please log in again.",
+    "importDeckDescription": "Please paste your deck using the 'Paste' button below. The deck should follow the format:",
+    "paste": "Paste",
+    "import": "Import"
 }

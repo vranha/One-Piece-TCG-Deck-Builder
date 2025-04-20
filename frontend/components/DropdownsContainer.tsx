@@ -43,7 +43,7 @@ const DropdownsContainer: React.FC<DropdownsContainerProps> = ({ formattedSetNam
                     onChangeValue={(value) => setSelectedSet(value)}
                     style={[
                         styles.picker,
-                        { backgroundColor: Colors[theme].background, borderColor: Colors[theme].highlight },
+                        { backgroundColor: Colors[theme].background, borderColor: Colors[theme].info },
                     ]}
                     labelStyle={{ color: Colors[theme].text }}
                     selectedItemLabelStyle={{ fontWeight: "bold" }}
@@ -85,7 +85,7 @@ const DropdownsContainer: React.FC<DropdownsContainerProps> = ({ formattedSetNam
                     onChangeValue={(value) => setSelectedFamily(value)}
                     style={[
                         styles.picker,
-                        { backgroundColor: Colors[theme].background, borderColor: Colors[theme].highlight },
+                        { backgroundColor: Colors[theme].background, borderColor: Colors[theme].info },
                     ]}
                     labelStyle={{ color: Colors[theme].text }}
                     selectedItemLabelStyle={{ fontWeight: "bold" }}

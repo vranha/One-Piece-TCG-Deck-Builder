@@ -4,7 +4,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 interface HeaderProps {
     title: string;
@@ -17,21 +17,17 @@ export default function Header({ title }: HeaderProps) {
         <View style={{ flexDirection: "row" }}>
             <ThemedText
                 type="title"
-                lightColor={Colors[theme].tint}
-                darkColor={Colors[theme].tint}
-                style={{ fontSize: 30, position: "relative", bottom: 5, left: 5 }}
+                style={{ position: "relative", bottom: 5, left: 3 }}
             >
-                {title.split(" ")[0][0].toLowerCase()}
+                <MaterialIcons name="trip-origin" size={14} style={{ position: "absolute", top: 3, right: 0, color: Colors[theme].info }} />
             </ThemedText>
             <ThemedText
                 type="title"
-                lightColor={Colors[theme].tint}
-                darkColor={Colors[theme].tint}
-                style={{ fontSize: 28 }}
+                style={{ fontSize: 28, color: Colors[theme].tint }}
             >
                 {title.split(" ")[0].slice(1).toUpperCase()}
             </ThemedText>
-            <ThemedText type="title" style={{ fontSize: 28, position: "relative", right: 2 }}>
+            <ThemedText type="title" style={{ fontSize: 28, position: "relative", right: 2, color: Colors[theme].highlight }}>
                 {title.split(" ")[1].toLowerCase()}
             </ThemedText>
         </View>
@@ -40,7 +36,7 @@ export default function Header({ title }: HeaderProps) {
 
 Header.LeftButton = function LeftButton() {
     return (
-        <View style={{ marginLeft: 16 }}>
+        <View style={{ marginLeft: 16, marginRight: 16 }}>
             <Image source={require("@/assets/images/icon-round.png")} style={styles.logo} />
         </View>
     );
@@ -69,6 +65,15 @@ Header.RightButtonDeckSearcher = function RightButtonDeckSearcher({ onPress }: a
     return (
         <TouchableOpacity onPress={onPress} style={{ marginRight: 16 }}>
             <IconSymbol size={28} name="magnifyingglass" color={Colors[theme].text} />
+        </TouchableOpacity>
+    );
+};
+
+Header.LeftButtonNotifications = function RightButtonNotifications({ onPress }: any) {
+    const { theme } = useTheme();
+    return (
+        <TouchableOpacity onPress={onPress}>
+            <MaterialIcons name="notifications" size={28} color={Colors[theme].text} />
         </TouchableOpacity>
     );
 };

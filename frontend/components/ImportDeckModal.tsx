@@ -5,6 +5,7 @@ import { useTheme } from "@/hooks/ThemeContext";
 import useApi from "@/hooks/useApi";
 import { LinearGradient } from "expo-linear-gradient";
 import { ThemedText } from "./ThemedText";
+import { useTranslation } from "react-i18next";
 
 interface ImportDeckModalProps {
     visible: boolean;
@@ -26,6 +27,7 @@ export default function ImportDeckModal({ visible, onClose, onImport }: ImportDe
     const [error, setError] = useState("");
     const { theme } = useTheme();
     const api = useApi();
+    const { t } = useTranslation();
 
     const handlePaste = async () => {
         const clipboardContent = await Clipboard.getString();
@@ -100,12 +102,10 @@ export default function ImportDeckModal({ visible, onClose, onImport }: ImportDe
                     onPress={onClose} // Close the modal when clicking outside
                 />
                 <View style={[styles.modal, { backgroundColor: Colors[theme].background }]}>
-                    <ThemedText style={[styles.title, { color: Colors[theme].text }]}>Import Deck</ThemedText>
                     {parsedCards.length === 0 && (
                         <>
                             <ThemedText style={[styles.description, { color: Colors[theme].disabled }]}>
-                                Please paste your deck using the "Paste" button below. The deck should follow the
-                                format:
+                                {t("importDeckDescription")}
                             </ThemedText>
                             <ThemedText style={[styles.description2, { color: Colors[theme].disabled }]}>
                                 {"\n"}1xOP01-001{"\n"}2xST02-002{"\n"}...
@@ -121,14 +121,14 @@ export default function ImportDeckModal({ visible, onClose, onImport }: ImportDe
                                 setError("");
                             }}
                         >
-                            <ThemedText style={styles.buttonText}>Erase</ThemedText>
+                            <ThemedText style={styles.buttonText}>{t('erase')}</ThemedText>
                         </TouchableOpacity>
                     ) : (
                         <TouchableOpacity
-                            style={[styles.button, { backgroundColor: Colors[theme].tint }]}
+                            style={[styles.button, { backgroundColor: Colors[theme].info }]}
                             onPress={handlePaste}
                         >
-                            <ThemedText style={styles.buttonText}>Paste</ThemedText>
+                            <ThemedText style={styles.buttonText}>{t('paste')}</ThemedText>
                         </TouchableOpacity>
                     )}
 
@@ -228,7 +228,7 @@ export default function ImportDeckModal({ visible, onClose, onImport }: ImportDe
                             style={[styles.button, { backgroundColor: Colors[theme].TabBarBackground }]}
                             onPress={onClose}
                         >
-                            <ThemedText style={[styles.buttonText, { color: Colors[theme].tint }]}>Close</ThemedText>
+                            <ThemedText style={[styles.buttonText, { color: Colors[theme].tint }]}>{t('close')}</ThemedText>
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={[
@@ -247,7 +247,7 @@ export default function ImportDeckModal({ visible, onClose, onImport }: ImportDe
                                         : { color: Colors[theme].background },
                                 ]}
                             >
-                                Import
+                                {t('import')}
                             </ThemedText>
                         </TouchableOpacity>
                     </View>

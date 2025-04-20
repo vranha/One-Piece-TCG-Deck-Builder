@@ -13,7 +13,7 @@ const ApplyFiltersButton: React.FC<ApplyFiltersButtonProps> = ({ onPress, label 
     const { theme } = useTheme();
 
     return (
-        <TouchableOpacity style={[styles.applyButton, { backgroundColor: Colors[theme].success }]} onPress={onPress}>
+        <TouchableOpacity style={[styles.applyButton, { backgroundColor: Colors[theme].info }]} onPress={onPress}>
             <ThemedText style={[styles.applyButtonText, { color:Colors[theme].background }]}>{label}</ThemedText>
         </TouchableOpacity>
     );

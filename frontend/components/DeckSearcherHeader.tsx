@@ -40,20 +40,20 @@ const DeckSearcherHeader: React.FC<DeckSearcherHeaderProps> = ({ onSearchChange,
                 style={[
                     styles.toggleButton,
                     isDeckSearch && styles.activeButton,
-                    { borderBottomColor: Colors[theme].tint },
+                    { borderBottomColor: Colors[theme].info },
                 ]}
             >
-                <Ionicons name="albums" size={24} color={isDeckSearch ? Colors[theme].tint : Colors[theme].text} />
+                <Ionicons name="albums" size={24} color={isDeckSearch ? Colors[theme].info : Colors[theme].text} />
             </TouchableOpacity>
             <TouchableOpacity
                 onPress={() => toggleSearchMode(false)}
                 style={[
                     styles.toggleButton,
                     !isDeckSearch && styles.activeButton,
-                    { borderBottomColor: Colors[theme].tint },
+                    { borderBottomColor: Colors[theme].info },
                 ]}
             >
-                <Ionicons name="person" size={24} color={!isDeckSearch ? Colors[theme].tint : Colors[theme].text} />
+                <Ionicons name="person" size={24} color={!isDeckSearch ? Colors[theme].info : Colors[theme].text} />
             </TouchableOpacity>
         </View>
     );

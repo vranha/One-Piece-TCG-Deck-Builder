@@ -6,8 +6,8 @@ import Toast from "react-native-toast-message";
 export default function App() {
     return (
         <NavigationContainer>
-            {/* ...existing components... */}
-            <Toast /> {/* Asegúrate de incluir este componente */}
+
+            <Toast />
         </NavigationContainer>
     );
 }

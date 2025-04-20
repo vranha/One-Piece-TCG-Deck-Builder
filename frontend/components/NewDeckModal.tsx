@@ -194,7 +194,7 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
                                 onChangeText={setDescription}
                             />
                             <TouchableOpacity
-                                style={[styles.button, { backgroundColor: Colors[theme].success }]}
+                                style={[styles.button, { backgroundColor: Colors[theme].info }]}
                                 onPress={handleCreate}
                             >
                                 <Text style={styles.buttonText}>{t("create_deck")}</Text>
