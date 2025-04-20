@@ -8,7 +8,11 @@ import { supabase } from "@/supabaseClient";
 
 export default function Notifications() {
     const [activeTab, setActiveTab] = useState<"notifications" | "friendRequests">("notifications");
-    const [pendingFriends, setPendingFriends] = useState([]);
+    interface FriendRequest {
+        friend_id: string;
+    }
+
+    const [pendingFriends, setPendingFriends] = useState<FriendRequest[]>([]);
     const [userId, setUserId] = useState<string | null>(null);
     const { theme } = useTheme();
     const api = useApi();
