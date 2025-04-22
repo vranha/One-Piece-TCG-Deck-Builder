@@ -23,17 +23,48 @@ export default function DeckSearcher() {
     const api = useApi();
     const [isDropdownVisible, setDropdownVisible] = useState(false); // State for dropdown visibility
     const { t } = useTranslation();
+    const [friends, setFriends] = useState<{ id: string; status: string; isSender: boolean }[]>([]);
 
-    const userId = useMemo(async () => {
-        const session = await supabase.auth.getSession();
-        return session?.data?.session?.user?.id || null;
+    const [userId, setUserId] = useState<string | null>(null); // Replace useMemo with useState
+
+    useEffect(() => {
+        const fetchUserId = async () => {
+            try {
+                // Refresh the session to ensure the token is valid
+                const { data: refreshedSession, error } = await supabase.auth.refreshSession();
+                if (error) {
+                    console.error("Error refreshing session:", error);
+                    setUserId(null);
+                    return;
+                }
+
+                const session = refreshedSession?.session || (await supabase.auth.getSession()).data?.session;
+                setUserId(session?.user?.id || null);
+            } catch (error) {
+                console.error("Error fetching user session:", error);
+            }
+        };
+
+        fetchUserId();
+
+        const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
+            if (session?.user?.id) {
+                setUserId(session.user.id);
+            } else {
+                setUserId(null);
+            }
+        });
+
+        return () => {
+            subscription.subscription.unsubscribe();
+        };
     }, []);
 
     useEffect(() => {
         setData([]); // Clear data when switching between decks and users
         const fetchData = async () => {
             try {
-                const resolvedUserId = await userId; // Resolve the userId from useMemo
+                const resolvedUserId = userId; // Resolve the userId from useMemo
                 const endpoint = isDeckSearch ? `/decks?page=${page}&limit=10` : `/users?page=${page}&limit=10`;
                 const { data } = await api.get(endpoint, {
                     params: { search: searchQuery, excludeUserId: resolvedUserId, is_public: true },
@@ -48,9 +79,25 @@ export default function DeckSearcher() {
         fetchData();
     }, [isDeckSearch, searchQuery, page, userId]);
 
+    useEffect(() => {
+        const fetchFriends = async () => {
+            try {
+                const resolvedUserId = userId; // Resolve the userId from useMemo
+                if (!resolvedUserId) return;
+
+                const { data } = await api.get("/friends", { params: { userId: resolvedUserId } });
+                setFriends(data);
+            } catch (error) {
+                console.error("Error fetching friends:", error);
+            }
+        };
+
+        fetchFriends();
+    }, [userId]);
+
     const handleSendFriendRequest = async (friendId: string) => {
         try {
-            const resolvedUserId = await userId; // Resolve the userId from useMemo
+            const resolvedUserId = userId; // Resolve the userId from useMemo
             if (!resolvedUserId) {
                 console.error("User ID is null. Cannot send friend request.");
                 Toast.show({
@@ -67,6 +114,17 @@ export default function DeckSearcher() {
                 text1: t("success"),
                 text2: t("friend_request_sent"),
             });
+
+            // Reload the user list to update the button state
+            const fetchFriends = async () => {
+                try {
+                    const { data } = await api.get("/friends", { params: { userId: resolvedUserId } });
+                    setFriends(data);
+                } catch (error) {
+                    console.error("Error fetching friends:", error);
+                }
+            };
+            fetchFriends();
         } catch (err) {
             console.error("Error sending friend request:", err);
             Toast.show({
@@ -154,8 +212,13 @@ export default function DeckSearcher() {
                     </View>
                 </View>
                 <View style={styles.cornerRight}>
-                    <View style={[styles.ownerContainerBack, { backgroundColor: Colors[theme].background }]}>
-                        {/* añadimos una imagen con el item.users.avatar_url */}
+                    <TouchableOpacity
+                        onPress={() =>
+                            router.push({ pathname: `/(tabs)/user/[userId]`, params: { userId: item.users.id } })
+                        }
+                        style={[styles.ownerContainerBack, { backgroundColor: Colors[theme].background }]}
+                        onPressIn={(e) => e.stopPropagation()} // Prevent parent Touchable from being triggered
+                    >
                         <Image
                             source={{ uri: item.users.avatar_url }}
                             style={[styles.ownerContainer, { borderRadius: 50, width: 30, height: 30 }]}
@@ -172,7 +235,7 @@ export default function DeckSearcher() {
                                 {item.users.username}
                             </Text>
                         </View>
-                    </View>
+                    </TouchableOpacity>
                 </View>
                 {leaderImage && (
                     <View style={styles.leaderImageContainer}>
@@ -234,74 +297,85 @@ export default function DeckSearcher() {
         );
     };
 
-    const renderUserItem = ({ item }: any) => (
-        <TouchableOpacity
-            // onPress={}
-            style={[
-                styles.item,
-                {
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 10,
-                    backgroundColor: Colors[theme].TabBarBackground,
-                },
-            ]}
-        >
-            <Image source={{ uri: item.avatar_url }} style={{ width: 60, height: 60, borderRadius: 25 }} />
-            <View style={{ flex: 1, gap: 5 }}>
-                <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
-                    <Text style={[styles.itemTitle, { color: Colors[theme].text }]}>{item.username}</Text>
-                    {item.location && (
-                        <Text style={{ color: Colors[theme].tabIconDefault, fontWeight: "bold", fontSize: 14 }}>
-                            {item.location}
-                        </Text>
+    const renderUserItem = ({ item }: any) => {
+        const friend = friends.find((f) => f.id === item.id);
+
+        return (
+            <TouchableOpacity
+                // onPress={}
+                style={[
+                    styles.item,
+                    {
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 10,
+                        backgroundColor: Colors[theme].TabBarBackground,
+                    },
+                ]}
+                onPress={() => router.push({ pathname: `/(tabs)/user/[userId]`, params: { userId: item.id } })}
+            >
+                <Image source={{ uri: item.avatar_url }} style={{ width: 60, height: 60, borderRadius: 25 }} />
+                <View style={{ flex: 1, gap: 5 }}>
+                    <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
+                        <Text style={[styles.itemTitle, { color: Colors[theme].text }]}>{item.username}</Text>
+                        {item.location && (
+                            <Text style={{ color: Colors[theme].tabIconDefault, fontWeight: "bold", fontSize: 14 }}>
+                                {item.location}
+                            </Text>
+                        )}
+                    </View>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                        <Text style={{ color: Colors[theme].tabIconDefault, fontWeight: "bold" }}>{t("deck")}s:</Text>
+                        <Text style={{ color: Colors[theme].tint, fontWeight: "bold" }}>{item.deck_count || 0}</Text>
+                    </View>
+                    {item.top_colors?.length > 0 && (
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                            <Text style={{ color: Colors[theme].tabIconDefault, fontWeight: "bold" }}>
+                                Top {t("colors")}:
+                            </Text>
+                            <View style={{ flexDirection: "row", gap: 2, alignItems: "center" }}>
+                                {item.top_colors?.map((color: string, index: number) => (
+                                    <View
+                                        key={index}
+                                        style={[
+                                            styles.colorCircle,
+                                            { backgroundColor: color, borderColor: Colors[theme].background },
+                                        ]}
+                                    />
+                                ))}
+                            </View>
+                        </View>
                     )}
                 </View>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-                    <Text style={{ color: Colors[theme].tabIconDefault, fontWeight: "bold" }}>{t("deck")}s:</Text>
-                    <Text style={{ color: Colors[theme].tint, fontWeight: "bold" }}>{item.deck_count || 0}</Text>
-                </View>
-                {item.top_colors?.length > 0 && (
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-                        <Text style={{ color: Colors[theme].tabIconDefault, fontWeight: "bold" }}>
-                            Top {t("colors")}:
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 20, marginRight: 10 }}>
+                    <View
+                        style={[
+                            styles.regionButton,
+                            {
+                                backgroundColor: item.region === "west" ? Colors[theme].info : Colors[theme].highlight,
+                            },
+                        ]}
+                    >
+                        <Text style={[styles.regionText, { color: Colors[theme].background }]}>
+                            {item.region === "west" ? "West" : "East"}
                         </Text>
-                        <View style={{ flexDirection: "row", gap: 2, alignItems: "center" }}>
-                            {item.top_colors?.map((color: string, index: number) => (
-                                <View
-                                    key={index}
-                                    style={[
-                                        styles.colorCircle,
-                                        { backgroundColor: color, borderColor: Colors[theme].background },
-                                    ]}
-                                />
-                            ))}
-                        </View>
                     </View>
-                )}
-            </View>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                <View
-                    style={[
-                        styles.regionButton,
-                        {
-                            backgroundColor: item.region === "west" ? Colors[theme].info : Colors[theme].highlight,
-                        },
-                    ]}
-                >
-                    <Text style={[styles.regionText, { color: Colors[theme].background }]}>
-                        {item.region === "west" ? "West" : "East"}
-                    </Text>
+                    {friend ? (
+                        friend.status !== "accepted" && (
+                            <Ionicons name="hourglass-outline" size={20} color={Colors[theme].disabled} />
+                        )
+                    ) : (
+                        <Ionicons
+                            name="person-add-sharp"
+                            size={24}
+                            color={Colors[theme].success}
+                            onPress={() => handleSendFriendRequest(item.id)}
+                        />
+                    )}
                 </View>
-                <Ionicons
-                    name="add-circle-outline"
-                    size={34}
-                    color={Colors[theme].success}
-                    onPress={() => handleSendFriendRequest(item.id)}
-                />
-            </View>
-        </TouchableOpacity>
-    );
+            </TouchableOpacity>
+        );
+    };
 
     const renderDropdown = () => (
         <Modal

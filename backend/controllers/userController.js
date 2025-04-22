@@ -7,6 +7,7 @@ const {
     handleEmailConfirmation,
     getCurrentUser,
     updateUserDetails,
+    getUserById,
 } = require("../services/supabaseClient");
 
 // Obtener todos los usuarios
@@ -137,6 +138,24 @@ const updateUserDetailsController = async (req, res) => {
     }
 };
 
+const getUserByIdController = async (req, res) => {
+    const { id } = req.params; // Extract user ID from route parameters
+    if (!id) {
+        return res.status(400).json({ error: "User ID is required" });
+    }
+
+    try {
+        const user = await getUserById(id);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        res.status(200).json(user);
+    } catch (error) {
+        console.error("Error fetching user by ID:", error.message);
+        res.status(500).json({ error: "Failed to fetch user" });
+    }
+};
+
 module.exports = {
     getAllUsers,
     registerUserController,
@@ -145,4 +164,5 @@ module.exports = {
     getCallback,
     getCurrentUserController,
     updateUserDetails: updateUserDetailsController,
+    getUserByIdController,
 };

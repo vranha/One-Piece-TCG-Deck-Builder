@@ -192,6 +192,15 @@ const updateUserDetails = async (userId, updates) => {
     console.log("Supabase update successful.");
 };
 
+const getUserById = async (userId) => {
+    const { data, error } = await supabase.from("users").select("*").eq("id", userId).single();
+    if (error) {
+        console.error("Error fetching user by ID:", error.message);
+        throw new Error(error.message);
+    }
+    return data;
+};
+
 // Otras funciones necesarias (como mazos, cartas, etc.)
 
 module.exports = {
@@ -203,5 +212,6 @@ module.exports = {
     handleEmailConfirmation,
     getCurrentUser,
     updateUserDetails,
+    getUserById,
     supabase,
 };

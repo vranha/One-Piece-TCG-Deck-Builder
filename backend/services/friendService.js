@@ -1,22 +1,40 @@
 const { supabase } = require("../services/supabaseClient"); // Ensure correct import
 
-const getFriends = async (userId, status, isRecipient = false) => {
-    let query = supabase.from("friends").select("friend_id, user_id, users!friends_user_id_fkey(username, avatar_url)");
+const getFriends = async (userId) => {
+    console.log("Fetching friends for userId:", userId); // Log userId for debugging
 
-    if (isRecipient) {
-        query = query.eq("friend_id", userId); // Buscar donde el usuario es el destinatario
-    } else {
-        query = query.eq("user_id", userId); // Buscar donde el usuario es el remitente
+    const { data: friends, error } = await supabase
+        .from("friends")
+        .select(
+            `
+            id,
+            user_id,
+            friend_id,
+            status,
+            users:user_id(id, username, avatar_url),
+            friend:friend_id(id, username, avatar_url)
+        `
+        )
+        .or(`user_id.eq.${userId},friend_id.eq.${userId}`);
+
+    if (error) {
+        console.error("Error fetching friends:", error.message);
+        throw error;
     }
 
-    if (status) {
-        query = query.eq("status", status);
-    }
+    // Transform the data to include the required fields
+    const transformedFriends = friends.map((friend) => {
+        const isSender = friend.user_id === userId;
+        return {
+            id: isSender ? friend.friend_id : friend.user_id, // The ID of the other user
+            username: isSender ? friend.friend.username : friend.users.username, // Correct username
+            avatar_url: isSender ? friend.friend.avatar_url : friend.users.avatar_url, // Correct avatar_url
+            status: friend.status, // The status of the friendship
+            isSender, // Whether the current user sent the request
+        };
+    });
 
-    const { data: friends, error } = await query;
-
-    if (error) throw error;
-    return friends;
+    return transformedFriends;
 };
 
 const getAcceptedFriends = async (userId) => {
@@ -78,13 +96,44 @@ const acceptFriendRequest = async (userId, friendId) => {
 };
 
 const removeFriend = async (userId, friendId) => {
-    const { error } = await supabase
+    if (!userId || !friendId) {
+        console.error("Missing userId or friendId:", { userId, friendId });
+        throw new Error("Both userId and friendId are required.");
+    }
+
+    console.log("Attempting to remove friend with userId:", userId, "and friendId:", friendId); // Debugging log
+
+    // Verificar si existe un registro con cualquiera de las combinaciones posibles
+    const { data: existingFriends, error: fetchError } = await supabase
+        .from("friends")
+        .select("*")
+        .or(`and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`); // Buscar en ambas combinaciones posibles
+
+    if (fetchError) {
+        console.error("Error fetching friend:", fetchError); // Log the error from Supabase
+        throw fetchError;
+    }
+
+    if (!existingFriends || existingFriends.length === 0) {
+        console.warn("No friend found with the given userId and friendId.");
+        throw new Error("Friend not found.");
+    }
+
+    // Eliminar todos los registros encontrados
+    const { error: deleteError } = await supabase
         .from("friends")
         .delete()
-        .or(`user_id.eq.${userId},friend_id.eq.${friendId}`)
-        .or(`user_id.eq.${friendId},friend_id.eq.${userId}`);
+        .in(
+            "id",
+            existingFriends.map((friend) => friend.id)
+        ); // Usar los IDs de los registros encontrados
 
-    if (error) throw error;
+    if (deleteError) {
+        console.error("Error removing friend:", deleteError); // Log the error from Supabase
+        throw deleteError;
+    }
+
+    console.log("Friend successfully removed from database:", existingFriends); // Debugging log
 };
 
 const sendFriendRequest = async (userId, friendId) => {

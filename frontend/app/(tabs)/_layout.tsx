@@ -209,6 +209,12 @@ export default function TabLayout() {
                             href: null,
                         }}
                     />
+                    <Tabs.Screen
+                        name="user"
+                        options={{
+                            href: null,
+                        }}
+                    />
                 </Tabs>
 
                 {showBubbles && (

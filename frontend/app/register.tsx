@@ -60,9 +60,18 @@ export default function RegisterScreen() {
 
         try {
             // Agregar el usuario a la tabla 'users' en Supabase
-            const { error: dbError } = await supabase
-                .from("users")
-                .insert([{ id: authData.user.id, email, username: email.split("@")[0], region }]);
+            const userData = {
+                id: authData.user.id,
+                email,
+                username: email.split("@")[0],
+                region,
+                avatar_url:
+                    "https://siapwdlehejtwlrhrkvp.supabase.co/storage/v1/object/public/avatars/presets/COLOR_LUFFY.png",
+            };
+
+            console.log("User data to insert:", userData); // Verificar los datos enviados
+
+            const { error: dbError } = await supabase.from("users").insert([userData]);
 
             if (dbError) {
                 throw new Error(dbError.message || t("backend_registration_failed"));
@@ -312,6 +321,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         marginVertical: 15,
+        zIndex: 1,
     },
     regionButton: {
         flex: 1,

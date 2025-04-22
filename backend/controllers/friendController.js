@@ -23,16 +23,19 @@ const getFriendDecks = async (req, res) => {
 };
 
 const getFriends = async (req, res) => {
-    const { userId } = req.query; // ID del usuario autenticado
-    const { status } = req.query; // Estado de la solicitud
-    const isRecipient = req.query.isRecipient === "true"; // Verificar si es destinatario
+    const userId = req.query.userId;
+
+    if (!userId) {
+        console.error("User ID is missing in the request.");
+        return res.status(400).json({ error: "User ID is required" });
+    }
 
     try {
-        const friends = await friendService.getFriends(userId, status, isRecipient);
+        const friends = await friendService.getFriends(userId);
         res.status(200).json(friends);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: err.message });
+    } catch (error) {
+        console.error("Error fetching friends:", error.message);
+        res.status(500).json({ error: "Failed to fetch friends" });
     }
 };
 
@@ -63,13 +66,21 @@ const acceptFriendRequest = async (req, res) => {
 
 const removeFriend = async (req, res) => {
     const { friendId } = req.params;
-    const { userId } = req.user; // Assuming userId is available in the authenticated user object
+    const userId = req.user?.id || req.body.userId; // Obtener userId del usuario autenticado o del cuerpo de la solicitud
+
+    console.log("Received request to remove friend:", { userId, friendId }); // Debugging log
+
+    if (!userId || !friendId) {
+        console.error("Missing userId or friendId:", { userId, friendId });
+        return res.status(400).json({ error: "Both userId and friendId are required." });
+    }
+
     try {
         await friendService.removeFriend(userId, friendId);
         res.status(200).json({ message: "Friend removed successfully." });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: err.message });
+        console.error("Error removing friend:", err);
+        res.status(500).json({ error: "Failed to remove friend." });
     }
 };
 

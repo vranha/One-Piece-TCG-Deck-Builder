@@ -169,5 +169,18 @@
     "error_accepting_friend_request": "Error al aceptar la solicitud de amistad.",
     "friend_request_sent": "Solicitud de amistad enviada con éxito.",
     "friend_request_failed": "Error al enviar la solicitud de amistad.",
-    "user_id_null": "El ID de usuario es nulo. Por favor, inicia sesión para continuar."
+    "user_id_null": "El ID de usuario es nulo. Por favor, inicia sesión para continuar.",
+    "deck_copied": "Mazo copiado",
+    "friendRequests": "Solicitudes de Amistad",
+    "sent_friend_requests": "Solicitudes Enviadas",
+    "no_sent_requests": "No hay solicitudes enviadas",
+    "received_friend_requests": "Solicitudes Recibidas",
+    "no_received_requests": "No hay solicitudes recibidas",
+    "your_decks": "Tus Mazos",
+    "your_friends": "Tus Amigos",
+    "decks": "Mazos",
+    "friends": "Amigos",
+    "no_friends_message": "¡Zarpa y encuentra a tus nakamas!",
+    "pending": "Pendiente",
+    "no_decks": "Este usuario no tiene mazos todavía. ¡Su tesoro aún está escondido en la Grand Line!"
 }

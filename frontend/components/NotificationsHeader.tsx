@@ -5,6 +5,7 @@ import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons"; // Importamos nuevos iconos
+import { useTranslation } from "react-i18next";
 
 interface NotificationsHeaderProps {
     activeTab: "notifications" | "friendRequests";
@@ -13,10 +14,20 @@ interface NotificationsHeaderProps {
 
 const NotificationsHeader: React.FC<NotificationsHeaderProps> = ({ activeTab, setActiveTab }) => {
     const { theme } = useTheme();
+    const { t } = useTranslation();
 
     return (
         <View style={[styles.headerContainer, { backgroundColor: Colors[theme].background }]}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <TouchableOpacity
+                onPress={() => {
+                    if (router.canGoBack()) {
+                        router.back();
+                    } else {
+                        router.push("/"); // Navigate to a default screen, e.g., "Home"
+                    }
+                }}
+                style={styles.backButton}
+            >
                 <MaterialIcons name="arrow-back" size={24} color={Colors[theme].text} />
             </TouchableOpacity>
             <View style={styles.tabContainer}>
@@ -34,7 +45,7 @@ const NotificationsHeader: React.FC<NotificationsHeaderProps> = ({ activeTab, se
                                 : { color: Colors[theme].tabIconDefault },
                         ]}
                     >
-                        Notifications
+                        {t("notifications")}
                     </Text>
                     {activeTab === "notifications" && (
                         <View style={[styles.activeIndicator, { backgroundColor: Colors[theme].info }]} />
@@ -54,7 +65,7 @@ const NotificationsHeader: React.FC<NotificationsHeaderProps> = ({ activeTab, se
                                 : { color: Colors[theme].tabIconDefault },
                         ]}
                     >
-                        Friend Requests
+                        {t("friendRequests")}
                     </Text>
                     {activeTab === "friendRequests" && (
                         <View style={[styles.activeIndicator, { backgroundColor: Colors[theme].info }]} />

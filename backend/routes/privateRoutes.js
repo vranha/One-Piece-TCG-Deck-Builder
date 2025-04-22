@@ -10,6 +10,7 @@ const authenticate = require("../middlewares/authMiddleware");
 const { importarCartas } = require("../scripts/importCards");
 const { supabase } = require("../services/supabaseClient");
 const nodemailer = require("nodemailer");
+const notificationController = require("../controllers/notificationController");
 
 const router = express.Router();
 
@@ -88,6 +89,29 @@ router.use(authenticate);
  *                   type: integer
  */
 router.get("/users", userController.getAllUsers);
+
+/**
+ * @swagger
+ * /users/{id}:
+ *   get:
+ *     summary: Obtener un usuario por su ID
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID del usuario
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Información del usuario
+ *       404:
+ *         description: Usuario no encontrado
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get("/users/:id", userController.getUserByIdController);
 
 /**
  * @swagger
@@ -886,5 +910,7 @@ router.get("/friends", async (req, res) => {
         res.status(500).json({ error: "Failed to fetch friends" });
     }
 });
+
+router.get("/notifications", notificationController.checkNotifications);
 
 module.exports = router;

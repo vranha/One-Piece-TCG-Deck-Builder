@@ -7,6 +7,8 @@ import useApi from "@/hooks/useApi";
 import { supabase } from "@/supabaseClient";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next"; // Import translation hook
+import { useRouter } from "expo-router"; // Import useRouter
+import useStore from "@/store/useStore"; // Import useStore
 
 export default function Notifications() {
     const [activeTab, setActiveTab] = useState<"notifications" | "friendRequests">("notifications");
@@ -17,39 +19,67 @@ export default function Notifications() {
     }
 
     const [pendingFriends, setPendingFriends] = useState<FriendRequest[]>([]);
+    const [sentRequests, setSentRequests] = useState<FriendRequest[]>([]);
     const [userId, setUserId] = useState<string | null>(null);
     const { theme } = useTheme();
     const api = useApi();
     const { t } = useTranslation(); // Initialize translation hook
+    const router = useRouter(); // Initialize router
+    const setRefreshFriends = useStore((state) => state.setRefreshFriends); // Access setRefreshFriends
 
     useEffect(() => {
         const fetchUserId = async () => {
-            const session = await supabase.auth.getSession();
-            setUserId(session?.data?.session?.user?.id || null);
+            try {
+                const session = await supabase.auth.getSession();
+                const userId = session?.data?.session?.user?.id;
+
+                if (!userId) {
+                    console.error("User ID is undefined in the session.");
+                    return;
+                }
+
+                setUserId(userId);
+            } catch (error) {
+                console.error("Error fetching user ID from session:", error);
+            }
         };
 
         fetchUserId();
     }, []);
 
     useEffect(() => {
-        const fetchPendingFriends = async () => {
-            if (userId) {
-                try {
-                    const { data } = await api.get(`/friends?status=pending&userId=${userId}&isRecipient=true`);
-                    const transformedData = data.map((item: any) => ({
-                        id: item.user_id, // Cambia a user_id porque ahora el usuario autenticado es el destinatario
-                        username: item.users.username,
-                        avatar_url: item.users.avatar_url,
+        const fetchFriends = async () => {
+            if (!userId) {
+                console.error("Cannot fetch friends: userId is undefined.");
+                return;
+            }
+
+            try {
+                const { data } = await api.get(`/friends`, { params: { userId } });
+                const pending = data
+                    .filter((item: any) => item.status === "pending" && !item.isSender) // Pending requests where the user is the recipient
+                    .map((item: any) => ({
+                        id: item.id,
+                        username: item.username,
+                        avatar_url: item.avatar_url,
                     }));
-                    setPendingFriends(transformedData);
-                } catch (error) {
-                    console.error(t("error_fetching_friends"), error);
-                }
+                const sent = data
+                    .filter((item: any) => item.status === "pending" && item.isSender) // Pending requests sent by the user
+                    .map((item: any) => ({
+                        id: item.id,
+                        username: item.username,
+                        avatar_url: item.avatar_url,
+                    }));
+                setPendingFriends(pending);
+                setSentRequests(sent);
+                console.log(pending, sent); // Debug log to verify data structure
+            } catch (error) {
+                console.error(t("error_fetching_friends"), error);
             }
         };
 
         if (activeTab === "friendRequests") {
-            fetchPendingFriends();
+            fetchFriends();
         }
     }, [activeTab, userId]);
 
@@ -67,6 +97,7 @@ export default function Notifications() {
         try {
             await api.put(`/friends/${friendId}/accept`, { userId }); // Enviar userId en el cuerpo de la solicitud
             setPendingFriends((prev) => prev.filter((friend) => friend.id !== friendId));
+            setRefreshFriends(true); // Notify FriendCarousel to refresh
             Toast.show({
                 type: "success",
                 text1: t("success"),
@@ -87,13 +118,18 @@ export default function Notifications() {
             {/* Header */}
             <NotificationsHeader activeTab={activeTab} setActiveTab={setActiveTab} />
             {/* Content */}
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, marginTop: 20, paddingHorizontal: 10 }}>
                 {activeTab === "notifications" ? (
                     <Text style={{ color: Colors[theme].text }}>{t("all_notifications")}</Text>
                 ) : (
                     <FlatList
-                        data={pendingFriends}
-                        keyExtractor={(item) => item.id}
+                        data={[
+                            { type: "header", title: t("received_friend_requests"), count: pendingFriends.length },
+                            ...pendingFriends.map((item) => ({ ...item, type: "received" })),
+                            { type: "header", title: t("sent_friend_requests"), count: sentRequests.length },
+                            ...sentRequests.map((item) => ({ ...item, type: "sent" })),
+                        ]}
+                        keyExtractor={(item, index) => ("id" in item && item.id ? item.id : `header-${index}`)}
                         ListEmptyComponent={
                             <View style={{ alignItems: "center", marginTop: 50, gap: 5 }}>
                                 <Text style={{ fontSize: 18, fontWeight: "bold", color: Colors[theme].text }}>
@@ -103,20 +139,74 @@ export default function Notifications() {
                             </View>
                         }
                         renderItem={({ item }) => {
-                            console.log("Rendering item:", item); // Debug log to verify item structure
+                            if (item.type === "header") {
+                                return (
+                                    <>
+                                        <Text
+                                            style={[
+                                                styles.sectionTitle,
+                                                { color: Colors[theme].text, textAlign: "center" },
+                                            ]}
+                                        >
+                                            {"title" in item ? item.title : ""}{" "}
+                                            {"count" in item && (
+                                                <Text style={{ color: Colors[theme].tint }}>({item.count})</Text>
+                                            )}
+                                        </Text>
+                                        {"count" in item && item.count === 0 && (
+                                            <Text
+                                                style={{
+                                                    color: Colors[theme].disabled,
+                                                    textAlign: "center",
+                                                    marginBottom: 10,
+                                                }}
+                                            >
+                                                {item.title === t("received_friend_requests")
+                                                    ? t("no_received_requests")
+                                                    : t("no_sent_requests")}
+                                            </Text>
+                                        )}
+                                    </>
+                                );
+                            }
                             return (
-                                <View style={[styles.card, { backgroundColor: Colors[theme].TabBarBackground }]}>
-                                    <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
-                                    <Text style={[styles.username, { color: Colors[theme].text }]}>
-                                        {item.username}
-                                    </Text>
-                                    <TouchableOpacity
-                                        style={styles.acceptButton}
-                                        onPress={() => acceptFriendRequest(item.id)} // Ensure item.id is passed
-                                    >
-                                        <Text style={styles.acceptButtonText}>{t("accept")}</Text>
-                                    </TouchableOpacity>
-                                </View>
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        if ("id" in item) {
+                                            router.push({
+                                                pathname: `/(tabs)/user/[userId]`,
+                                                params: { userId: item.id },
+                                            });
+                                        }
+                                    }}
+                                >
+                                    <View style={[styles.card, { backgroundColor: Colors[theme].TabBarBackground }]}>
+                                        {"avatar_url" in item && (
+                                            <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
+                                        )}
+                                        {"username" in item && (
+                                            <Text style={[styles.username, { color: Colors[theme].text }]}>
+                                                {item.username}
+                                            </Text>
+                                        )}
+                                        {item.type === "received" ? (
+                                            <TouchableOpacity
+                                                style={styles.acceptButton}
+                                                onPress={() => {
+                                                    if ("id" in item) {
+                                                        acceptFriendRequest(item.id);
+                                                    }
+                                                }}
+                                            >
+                                                <Text style={styles.acceptButtonText}>{t("accept")}</Text>
+                                            </TouchableOpacity>
+                                        ) : (
+                                            <Text style={[styles.pendingText, { color: Colors[theme].disabled }]}>
+                                                {t("pending")}
+                                            </Text>
+                                        )}
+                                    </View>
+                                </TouchableOpacity>
                             );
                         }}
                     />
@@ -168,6 +258,16 @@ const styles = StyleSheet.create({
     },
     acceptButtonText: {
         color: "#fff",
+        fontWeight: "bold",
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: "bold",
+        marginTop: 30,
+        marginBottom: 10,
+    },
+    pendingText: {
+        fontSize: 14,
         fontWeight: "bold",
     },
 });

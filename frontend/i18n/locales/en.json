@@ -171,5 +171,19 @@
     "error_accepting_friend_request": "Failed to accept friend request.",
     "friend_request_sent": "Friend request sent successfully.",
     "friend_request_failed": "Failed to send friend request.",
-    "user_id_null": "User ID is null. Please log in to continue."
+    "user_id_null": "User ID is null. Please log in to continue.",
+    "deck_copied": "Deck copied",
+    "friendRequests": "Friend Requests",
+    "sent_friend_requests": "Sent Requests",
+    "no_sent_requests": "No sent requests",
+    "received_friend_requests": "Received Requests",
+    "no_received_requests": "No received requests",
+    "your_decks": "Your Decks",
+    "decks": "Decks",
+    "your_friends": "Your Friends",
+    "friends": "Friends",
+    "no_friends_message": "Set sail and find your nakama!",
+    "pending": "Pending",
+    "no_decks": "This user has no decks yet. Their treasure is still hidden on the Grand Line!"
+    
 }

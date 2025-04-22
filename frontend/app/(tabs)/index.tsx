@@ -13,6 +13,8 @@ import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import useStore from "@/store/useStore";
 import FriendCarousel from "@/components/FriendCarousel";
+import { Ionicons } from "@expo/vector-icons"; // Importar iconos
+import { useFocusEffect } from "@react-navigation/native"; // Import useFocusEffect
 
 interface Deck {
     id: string;
@@ -35,6 +37,8 @@ export default function HomeScreen() {
 
     const refreshDecks = useStore((state) => state.refreshDecks);
     const setRefreshDecks = useStore((state) => state.setRefreshDecks);
+    const refreshFriends = useStore((state) => state.refreshFriends);
+    const setRefreshFriends = useStore((state) => state.setRefreshFriends);
 
     const handleCreateDeck = (leader: string, name: string, description: string) => {
         // Logic to create a new deck
@@ -116,6 +120,38 @@ export default function HomeScreen() {
         }
     }, [refreshDecks]); // Observe changes in refreshDecks
 
+    useEffect(() => {
+        if (refreshFriends) {
+            async function refresh() {
+                const {
+                    data: { session },
+                } = await supabase.auth.getSession();
+                if (session && session.user) {
+                    fetchFriends(session.user.id, session.access_token); // Reuse fetchFriends
+                }
+            }
+
+            refresh();
+            setRefreshFriends(false); // Reset the state
+        }
+    }, [refreshFriends]); // Observe changes in refreshFriends
+
+    useFocusEffect(
+        React.useCallback(() => {
+            async function refreshData() {
+                const {
+                    data: { session },
+                } = await supabase.auth.getSession();
+                if (session && session.user) {
+                    fetchDecks(session.user.id, session.access_token); // Refresh decks
+                    fetchFriends(session.user.id, session.access_token); // Refresh friends
+                }
+            }
+            console.log("Refreshing data...");
+            refreshData();
+        }, [])
+    );
+
     const handleFriendPress = (friendId: string) => {
         // router.push({ pathname: `/(tabs)/friend/[friendId]`, params: { friendId } });
     };
@@ -136,20 +172,46 @@ export default function HomeScreen() {
                     {t("welcome", { name: userName })}
                 </ThemedText>
             </View>
-            <View style={{ gap: 20, width: "100%" }}>
-                <DeckCarousel
-                    decks={decks}
-                    onNewDeckPress={() => setNewDeckModalVisible(true)}
-                    onDeckPress={(deckId) =>
-                        router.push({ pathname: `/(tabs)/deck/[deckId]`, params: { deckId: deckId } })
-                    }
-                />
-                <FriendCarousel
-                    friends={friends}
-                    onFriendPress={(friendId) =>
-                        router.push({ pathname: `/(tabs)/user/[userId]`, params: { friendId } })
-                    }
-                />
+            <View style={{ gap: 30, width: "100%" }}>
+                <View>
+                    <View
+                        style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            marginVertical: 12,
+                        }}
+                    >
+                        <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
+                        <Ionicons style={{ marginHorizontal: 20 }} name="albums" size={34} color={Colors[theme].info} />
+                        <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
+                    </View>
+                    <DeckCarousel
+                        decks={decks}
+                        onNewDeckPress={() => setNewDeckModalVisible(true)}
+                        onDeckPress={(deckId) =>
+                            router.push({ pathname: `/(tabs)/deck/[deckId]`, params: { deckId: deckId } })
+                        }
+                    />
+                </View>
+                <View>
+                    <View
+                        style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            marginVertical: 12,
+                        }}
+                    >
+                        <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
+                        <Ionicons style={{ marginHorizontal: 20 }} name="people" size={34} color={Colors[theme].info} />
+                        <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
+                    </View>
+                    <FriendCarousel
+                        friends={friends}
+                        onFriendPress={(userId) =>
+                            router.push({ pathname: `/(tabs)/user/[userId]`, params: { userId } })
+                        }
+                    />
+                </View>
             </View>
 
             <Portal>
@@ -184,5 +246,18 @@ const styles = StyleSheet.create({
         fontSize: 24,
         textAlign: "center",
         marginBottom: 10,
+    },
+    carouselHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginTop: 10,
+        // paddingHorizontal: 16,
+        marginBottom: 5,
+    },
+    carouselTitle: {
+        fontSize: 20, // Increased font size
+        fontWeight: "600", // Adjusted font weight for better readability
+        marginLeft: 4, // Increased spacing between the icon and text
+        letterSpacing: 1, // Added letter spacing for a cleaner look
     },
 });
