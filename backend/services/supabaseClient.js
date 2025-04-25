@@ -10,9 +10,10 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 // Funciones para interactuar con la base de datos
 
 // Obtener todos los usuarios
-const getUsers = async (page = 1, limit = 10, search = "", excludeUserId) => {
+const getUsers = async (page = 1, limit = 10, search = "", excludeUserId, region, deckCount) => {
     const offset = (page - 1) * limit;
 
+    console.log("Executing getUsers with:", { deckCount });
     let query = supabase
         .from("users")
         .select("*", { count: "exact" }) // Fetch users without joining decks
@@ -21,6 +22,10 @@ const getUsers = async (page = 1, limit = 10, search = "", excludeUserId) => {
 
     if (excludeUserId) {
         query = query.neq("id", excludeUserId);
+    }
+
+    if (region) {
+        query = query.eq("region", region); // Filter by region
     }
 
     const { data: users, error, count } = await query;
@@ -33,13 +38,22 @@ const getUsers = async (page = 1, limit = 10, search = "", excludeUserId) => {
     const usersWithDetails = await Promise.all(
         users.map(async (user) => {
             // Get deck count
-            const { count: deckCount, error: deckError } = await supabase
+            const { count: userDeckCount, error: deckError } = await supabase
                 .from("decks")
                 .select("*", { count: "exact" })
                 .eq("user_id", user.id);
 
             if (deckError) {
                 console.error(`Error fetching decks for user ${user.id}:`, deckError.message);
+            }
+            console.log(`User ${user.username} has ${userDeckCount} decks`);
+
+            // Skip users based on deckCount filter
+            if (deckCount === "hasDecks" && (!userDeckCount || userDeckCount <= 0)) {
+                return null; // Exclude users with no decks
+            }
+            if (deckCount === "noDecks" && userDeckCount > 0) {
+                return null; // Exclude users with decks
             }
 
             // Get all deck IDs for the user
@@ -90,14 +104,14 @@ const getUsers = async (page = 1, limit = 10, search = "", excludeUserId) => {
 
             return {
                 ...user,
-                deck_count: deckCount || 0,
+                deck_count: userDeckCount || 0,
                 top_colors: colorNames,
             };
         })
     );
 
     return {
-        data: usersWithDetails,
+        data: usersWithDetails.filter(Boolean), // Remove null entries
         total: count,
         page,
         limit,

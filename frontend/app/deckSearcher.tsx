@@ -1,5 +1,15 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { View, FlatList, Text, StyleSheet, Image, Modal, TouchableOpacity, ScrollView } from "react-native";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import {
+    View,
+    FlatList,
+    Text,
+    StyleSheet,
+    Image,
+    Modal,
+    TouchableOpacity,
+    ScrollView,
+    ActivityIndicator,
+} from "react-native";
 import useApi from "@/hooks/useApi";
 import { supabase } from "@/supabaseClient";
 import DeckSearcherHeader from "@/components/DeckSearcherHeader";
@@ -9,6 +19,7 @@ import { Ionicons } from "@expo/vector-icons"; // Add this import for icons
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import Toast from "react-native-toast-message"; // Import Toast
+import { Modalize } from "react-native-modalize";
 
 export default function DeckSearcher() {
     const router = useRouter();
@@ -24,8 +35,42 @@ export default function DeckSearcher() {
     const [isDropdownVisible, setDropdownVisible] = useState(false); // State for dropdown visibility
     const { t } = useTranslation();
     const [friends, setFriends] = useState<{ id: string; status: string; isSender: boolean }[]>([]);
+    const [isCompleted, setIsCompleted] = useState(false);
+    const [selectedTags, setSelectedTags] = useState<number[]>([]);
+    const [tags, setTags] = useState<{ id: number; name: string; color: string }[]>([]);
+    const [regionFilter, setRegionFilter] = useState<string | null>(null);
+    const [deckCountFilter, setDeckCountFilter] = useState<"hasDecks" | "noDecks" | null>(null);
 
     const [userId, setUserId] = useState<string | null>(null); // Replace useMemo with useState
+    const [isLoading, setIsLoading] = useState(false); // Add loading state
+    const [selectedColors, setSelectedColors] = useState<string[]>([]); // State for selected colors
+
+    const handleColorSelect = (color: string) => {
+        setSelectedColors(
+            selectedColors.includes(color)
+                ? selectedColors.filter((c) => c !== color) // Remove color if already selected
+                : [...selectedColors, color] // Add color if not selected
+        );
+    };
+
+    const renderColorFilters = () => (
+        <View style={styles.colorFilters}>
+            {["blue", "red", "green", "yellow", "purple", "black"].map((color) => (
+                <TouchableOpacity
+                    key={color}
+                    style={[
+                        styles.colorCircleFilter,
+                        selectedColors.includes(color)
+                            ? { borderColor: Colors[theme].text }
+                            : { borderColor: Colors[theme].backgroundSoft },
+                    ]}
+                    onPress={() => handleColorSelect(color)}
+                >
+                    <View style={[styles.colorCircleInner, { backgroundColor: color }]} />
+                </TouchableOpacity>
+            ))}
+        </View>
+    );
 
     useEffect(() => {
         const fetchUserId = async () => {
@@ -64,20 +109,47 @@ export default function DeckSearcher() {
         setData([]); // Clear data when switching between decks and users
         const fetchData = async () => {
             try {
-                const resolvedUserId = userId; // Resolve the userId from useMemo
-                const endpoint = isDeckSearch ? `/decks?page=${page}&limit=10` : `/users?page=${page}&limit=10`;
+                setIsLoading(true); // Set loading to true before fetching
+                if (userId === null) return;
+                const resolvedUserId = userId;
+
+                const colorQuery = selectedColors.length > 0 ? `&colors=${selectedColors.join(",")}` : "";
+                const isCompletedQuery = isCompleted ? `&isCompleted=${isCompleted}` : "";
+                const tagsQuery = selectedTags.length > 0 ? `&tags=${selectedTags.join(",")}` : "";
+                const regionQuery = regionFilter ? `&region=${regionFilter}` : "";
+                const deckCountQuery = deckCountFilter ? `&deckCount=${deckCountFilter}` : "";
+
+                const endpoint = isDeckSearch
+                    ? `/decks?page=${page}&limit=10&search=${searchQuery}${colorQuery}${isCompletedQuery}${tagsQuery}`
+                    : `/users?page=${page}&limit=10&search=${searchQuery}${regionQuery}${deckCountQuery}`;
+
                 const { data } = await api.get(endpoint, {
-                    params: { search: searchQuery, excludeUserId: resolvedUserId, is_public: true },
+                    params: {
+                        excludeUserId: resolvedUserId,
+                        is_public: true,
+                    },
                 });
                 setData(data.data);
                 console.log("Fetched data:", data.data);
                 setTotalPages(data.totalPages);
             } catch (error) {
                 console.error("Error fetching data:", error);
+            } finally {
+                setIsLoading(false); // Set loading to false after fetching
             }
         };
         fetchData();
-    }, [isDeckSearch, searchQuery, page, userId]);
+    }, [
+        isDeckSearch,
+        searchQuery,
+        page,
+        userId,
+        selectedColors,
+        isCompleted,
+        selectedTags,
+        regionFilter,
+        deckCountFilter,
+    ]); // Add new filters to dependencies
 
     useEffect(() => {
         const fetchFriends = async () => {
@@ -361,16 +433,15 @@ export default function DeckSearcher() {
                         </Text>
                     </View>
                     {friend ? (
-                        friend.status !== "accepted" && (
-                            <Ionicons name="hourglass-outline" size={20} color={Colors[theme].disabled} />
+                        friend.status === "accepted" ? (
+                            <Ionicons name="person-add-sharp" size={24} color={Colors[theme].success} />
+                        ) : friend.status === "pending" ? (
+                            <Ionicons name="hourglass-outline" size={24} color={Colors[theme].disabled} />
+                        ) : (
+                            <View style={{ width: 24, height: 24 }} />
                         )
                     ) : (
-                        <Ionicons
-                            name="person-add-sharp"
-                            size={24}
-                            color={Colors[theme].success}
-                            onPress={() => handleSendFriendRequest(item.id)}
-                        />
+                        <View style={{ width: 24, height: 24 }} />
                     )}
                 </View>
             </TouchableOpacity>
@@ -418,6 +489,128 @@ export default function DeckSearcher() {
         </Modal>
     );
 
+    const modalizeRef = useRef<Modalize>(null);
+
+    useEffect(() => {
+        const fetchTags = async () => {
+            if (!userId) return; // Wait until userId is available
+            try {
+                const response = await api.get("/tags");
+                setTags(response.data);
+            } catch (error) {
+                console.error("Error fetching tags:", error);
+            }
+        };
+        fetchTags();
+    }, [userId]); // Add userId as a dependency
+
+    const openFilterModal = () => {
+        modalizeRef.current?.open();
+    };
+
+    const applyFilters = () => {
+        modalizeRef.current?.close();
+        setPage(1); // Reset to the first page
+        setData([]); // Clear current data
+
+        // Update filter states to trigger the useEffect
+        setIsCompleted(isCompleted); // Update isCompleted filter
+        setSelectedTags([...selectedTags]); // Update selectedTags filter
+        setRegionFilter(regionFilter); // Update region filter
+        setDeckCountFilter(deckCountFilter); // Update deckCount filter
+    };
+
+    const renderFilters = () => (
+        <Modalize ref={modalizeRef} adjustToContentHeight>
+            <View style={[styles.modalContent, { backgroundColor: Colors[theme].TabBarBackground }]}>
+                {isDeckSearch ? (
+                    <>
+                        <TouchableOpacity
+                            style={[
+                                styles.filterOption,
+                                isCompleted && styles.activeFilter,
+                                isCompleted
+                                    ? { backgroundColor: Colors[theme].tint }
+                                    : { backgroundColor: Colors[theme].backgroundSoft },
+                            ]}
+                            onPress={() => setIsCompleted((prev) => !prev)}
+                        >
+                            <Text style={[styles.filterText, { color: Colors[theme].text }]}>{t("is_completed")}</Text>
+                        </TouchableOpacity>
+                        <View style={[styles.separator, { backgroundColor: Colors[theme].tabIconDefault }]} />
+                        <Text style={[styles.filterLabel, { color: Colors[theme].text }]}>{t("tags")}</Text>
+                        <View style={styles.tagsContainer}>
+                            {tags.map((tag) => (
+                                <TouchableOpacity
+                                    key={tag.id}
+                                    style={[
+                                        styles.tagButton,
+                                        { backgroundColor: tag.color },
+                                        selectedTags.includes(tag.id)
+                                            ? { borderColor: Colors[theme].text, borderWidth: 2 }
+                                            : { borderColor: tag.color, borderWidth: 2 },
+                                    ]}
+                                    onPress={() =>
+                                        setSelectedTags((prev) =>
+                                            prev.includes(tag.id)
+                                                ? prev.filter((id) => id !== tag.id)
+                                                : [...prev, tag.id]
+                                        )
+                                    }
+                                >
+                                    <Text style={styles.tagButtonText}>{tag.name}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </>
+                ) : (
+                    <>
+                        <Text style={[styles.filterLabel, { color: Colors[theme].text }]}>{t("region")}</Text>
+                        <View style={styles.regionContainer}>
+                            <TouchableOpacity
+                                style={[
+                                    styles.regionButtonTable,
+                                    { backgroundColor: Colors[theme].info },
+                                    regionFilter !== "west" && { opacity: 0.6 },
+                                ]}
+                                onPress={() => setRegionFilter(regionFilter === "west" ? null : "west")}
+                            >
+                                <Text style={[styles.regionText, { color: Colors[theme].background }]}>
+                                    {t("west")}
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[
+                                    styles.regionButtonTable,
+                                    { backgroundColor: Colors[theme].highlight },
+                                    regionFilter !== "east" && { opacity: 0.6 },
+                                ]}
+                                onPress={() => setRegionFilter(regionFilter === "east" ? null : "east")}
+                            >
+                                <Text style={[styles.regionText, { color: Colors[theme].background }]}>
+                                    {t("east")}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                        <View style={[styles.separator, { backgroundColor: Colors[theme].tabIconDefault }]} />
+                        <TouchableOpacity
+                            style={[
+                                styles.filterOption,
+                                deckCountFilter === "hasDecks"
+                                    ? { backgroundColor: Colors[theme].tint, marginTop: 10 }
+                                    : { backgroundColor: Colors[theme].backgroundSoft, marginTop: 10 },
+                                deckCountFilter === "hasDecks" && styles.activeFilter,
+                            ]}
+                            onPress={() => setDeckCountFilter(deckCountFilter === "hasDecks" ? null : "hasDecks")}
+                        >
+                            <Text style={[styles.filterText, { color: Colors[theme].text }]}>{t("has_decks")}</Text>
+                        </TouchableOpacity>
+                    </>
+                )}
+            </View>
+        </Modalize>
+    );
+
     return (
         <View style={[styles.container, { backgroundColor: Colors[theme].background }]}>
             <DeckSearcherHeader
@@ -425,15 +618,50 @@ export default function DeckSearcher() {
                 isDeckSearch={isDeckSearch}
                 toggleSearchMode={setIsDeckSearch}
                 t={t}
+                onOpenFilterModal={openFilterModal}
+                filtersActive={
+                    isCompleted ||
+                    selectedTags.length > 0 ||
+                    regionFilter ||
+                    deckCountFilter ||
+                    selectedColors.length > 0
+                } // Determine if any filter is active
+                onResetFilters={() => {
+                    setIsCompleted(false);
+                    setSelectedTags([]);
+                    setRegionFilter(null);
+                    setDeckCountFilter(null);
+                    setSelectedColors([]);
+                    setPage(1); // Reset to the first page
+                    setData([]); // Clear current data
+                }}
             />
-            <FlatList
-                data={data}
-                keyExtractor={(item: { id: number }) => item.id.toString()}
-                renderItem={isDeckSearch ? renderDeckItem : renderUserItem}
-                style={{ paddingTop: 20 }}
-                contentContainerStyle={{ gap: 20, paddingBottom: 40 }}
-                showsVerticalScrollIndicator={false}
-            />
+            {renderFilters()}
+            {isDeckSearch && renderColorFilters()}
+            {isLoading || userId === null ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={Colors[theme].tint} />
+                </View>
+            ) : data.length === 0 ? (
+                <View style={styles.noDecksContainer}>
+                    <Ionicons name={"skull-outline"} size={50} color={Colors[theme].tabIconDefault} />
+                    <Text style={[styles.noDecksText, { color: Colors[theme].text }]}>
+                        {isDeckSearch ? t("no_decks_found") : t("no_users_found")}
+                    </Text>
+                    <Text style={[styles.noDecksSubText, { color: Colors[theme].tabIconDefault }]}>
+                        {t("try_different_search")}
+                    </Text>
+                </View>
+            ) : (
+                <FlatList
+                    data={data}
+                    keyExtractor={(item: { id: number }) => item.id.toString()}
+                    renderItem={isDeckSearch ? renderDeckItem : renderUserItem}
+                    style={{ paddingTop: 20 }}
+                    contentContainerStyle={{ gap: 20, paddingBottom: 40 }}
+                    showsVerticalScrollIndicator={false}
+                />
+            )}
             <View style={styles.pagination}>
                 <Ionicons
                     name="chevron-back"
@@ -464,6 +692,74 @@ export default function DeckSearcher() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, padding: 16, gap: 10 },
+    modalContent: {
+        padding: 20,
+        alignItems: "center", // Center elements horizontally
+    },
+    regionContainer: {
+        flexDirection: "row",
+        justifyContent: "center", // Center buttons horizontally
+        marginVertical: 10,
+        gap: 10, // Add spacing between buttons
+    },
+    regionButtonTable: {
+        padding: 10,
+        borderRadius: 8,
+        alignItems: "center",
+        width: 120, // Set a fixed width for buttons
+    },
+    regionButton: {
+        padding: 10,
+        borderRadius: 8,
+        alignItems: "center",
+        width: 60, // Set a fixed width for buttons
+    },
+    filterOption: {
+        padding: 10,
+        borderRadius: 8,
+        marginBottom: 10,
+        width: 200, // Set a fixed width for filter buttons
+        alignItems: "center", // Center text inside the button
+    },
+    applyButton: {
+        marginTop: 20,
+        paddingHorizontal: 22,
+        paddingVertical: 10,
+        borderRadius: 8,
+        alignItems: "center",
+        width: 200, // Set a fixed width for the apply button
+    },
+    applyButtonText: {
+        color: "#fff",
+        fontWeight: "bold",
+        fontSize: 16,
+    },
+    tagsContainer: {
+        flexDirection: "row",
+        flexWrap: "wrap", // Allow tags to wrap to the next row
+        justifyContent: "center", // Center tags horizontally
+        gap: 10, // Add spacing between tags
+        marginTop: 15,
+        marginBottom: 10,
+    },
+    tagButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 20,
+        alignItems: "center",
+        justifyContent: "center",
+        elevation: 2,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+        borderWidth: 2,
+    },
+    tagButtonText: {
+        fontSize: 14,
+        fontWeight: "bold",
+        color: "#fff", // Default text color
+    },
     item: {
         borderRadius: 4,
         padding: 10,
@@ -611,13 +907,66 @@ const styles = StyleSheet.create({
     selectedDropdownItemText: {
         fontWeight: "bold",
     },
-    regionButton: {
-        paddingVertical: 5,
-        paddingHorizontal: 10,
-        borderRadius: 8,
+    loadingContainer: {
+        flex: 1,
+        justifyContent: "center",
         alignItems: "center",
     },
-    regionText: {
+    colorFilters: {
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        marginBottom: 15,
+    },
+    colorCircleFilter: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        borderWidth: 2,
+        marginHorizontal: 5,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+
+    colorCircleInner: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+    },
+    noDecksContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        gap: 10,
+    },
+    noDecksText: {
+        fontSize: 18,
         fontWeight: "bold",
+        textAlign: "center",
+    },
+    noDecksSubText: {
+        fontSize: 14,
+        textAlign: "center",
+    },
+    filterText: {
+        fontSize: 16,
+        fontWeight: "bold",
+    },
+    activeFilter: {
+        borderRadius: 8,
+        padding: 10,
+    },
+    filterLabel: {
+        fontSize: 18,
+        fontWeight: "bold",
+    },
+    regionText: {
+        fontSize: 16,
+        fontWeight: "bold",
+    },
+    separator: {
+        height: 1,
+        width: "100%",
+        marginVertical: 10,
     },
 });

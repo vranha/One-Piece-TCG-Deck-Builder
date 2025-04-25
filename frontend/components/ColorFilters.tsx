@@ -9,12 +9,11 @@ const ColorFilters: React.FC = () => {
     const { selectedColors, setSelectedColors } = useStore();
 
     const handleColorSelect = (color: string) => {
-        // Si el color ya está seleccionado, lo eliminamos, si no lo está, lo agregamos
-        setSelectedColors(
-            selectedColors.includes(color)
-                ? selectedColors.filter((c) => c !== color) // Si ya está seleccionado, lo quita
-                : [...selectedColors, color] // Lo agrega sin límite de colores seleccionados
-        );
+        const updatedColors = selectedColors.includes(color)
+            ? selectedColors.filter((c) => c !== color) // Remove color if already selected
+            : [...selectedColors, color]; // Add color if not selected
+
+        setSelectedColors(updatedColors);
     };
 
     return (

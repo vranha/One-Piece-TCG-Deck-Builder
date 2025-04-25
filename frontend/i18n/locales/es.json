@@ -182,5 +182,13 @@
     "friends": "Amigos",
     "no_friends_message": "¡Zarpa y encuentra a tus nakamas!",
     "pending": "Pendiente",
-    "no_decks": "Este usuario no tiene mazos todavía. ¡Su tesoro aún está escondido en la Grand Line!"
+    "no_decks": "Este usuario no tiene mazos todavía. ¡Su tesoro aún está escondido en la Grand Line!",
+    "no_users_found": "No se encontraron usuarios",
+    "try_different_search": "Intenta con una búsqueda diferente",
+    "no_decks_found": "No se encontraron mazos",
+    "no_users": "Este usuario no tiene amigos todavía. ¡Su tripulación aún está incompleta!",
+    "has_decks": "Con Mazos",
+    "is_completed": "Mazo completo",
+    "region": "Región",
+    "tags": "Etiquetas"
 }

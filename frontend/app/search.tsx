@@ -179,17 +179,17 @@ export default function SearchScreen() {
         const handler = setTimeout(() => {
             setDebouncedSearchQuery(searchQuery); // Actualiza el valor después del retraso
         }, 300); // 300ms de retraso (puedes ajustarlo)
-    
+
         return () => {
             clearTimeout(handler); // Limpia el timeout si el usuario sigue escribiendo
         };
     }, [searchQuery]);
-    
+
     // Usa debouncedSearchQuery para las búsquedas
     useEffect(() => {
         fetchCards(debouncedSearchQuery, 1); // Llama a fetchCards solo cuando debouncedSearchQuery cambia
     }, [debouncedSearchQuery]);
-    
+
     // Modifica handleSearchChange para que solo actualice searchQuery
     const handleSearchChange = (text: string) => {
         setSearchQuery(text); // Actualiza el estado de búsqueda
@@ -223,36 +223,7 @@ export default function SearchScreen() {
             let colorQuery = selectedColors.length > 0 ? `&color=${selectedColors.join(",")}` : "";
             let attributeQuery = selectedAttributes.length > 0 ? `&attribute_name=${selectedAttributes.join(",")}` : "";
 
-            const transformCounterValue = (value: number | null | undefined) => {
-                if (value === 0 || value == null) {
-                    return "";
-                }
-                return value.toString();
-            };
-
-            const transformCostValue = (value: number | null | undefined) => {
-                if (value === 0 || value == null) {
-                    return "null"; // Reemplaza 0 por "null" para la consulta
-                }
-                return value.toString();
-            };
-
-            const setNameQuery = selectedSet ? `&set_name=${encodeURIComponent(selectedSet)}` : "";
-            const setFamilyQuery = selectedFamily ? `&family=${encodeURIComponent(selectedFamily)}` : "";
-            const typeQuery = selectedTypes.length > 0 ? `&type=${selectedTypes.join(",")}` : "";
-            const rarityQuery = selectedRarities.length > 0 ? `&rarity=${selectedRarities.join(",")}` : "";
-            const triggerQuery = triggerFilter ? `&trigger=true` : "";
-            const abilityQuery = abilityFilters.length > 0 ? `&ability=${abilityFilters.join(",")}` : "";
-
-            const response = await api.get(
-                `/cards?search=${query}&page=${page}${colorQuery}${attributeQuery}${setNameQuery}${setFamilyQuery}${typeQuery}${rarityQuery}${triggerQuery}${abilityQuery}&cost_gte=${transformCostValue(
-                    costRange[0]
-                )}&cost_lte=${transformCostValue(costRange[1])}&power_gte=${powerRange[0]}&power_lte=${
-                    powerRange[1]
-                }&counter_gte=${transformCounterValue(counterRange[0])}&counter_lte=${transformCounterValue(
-                    counterRange[1]
-                )}`
-            );
+            const response = await api.get(`/cards?search=${query}&page=${page}${colorQuery}${attributeQuery}`);
 
             if (page === 1) {
                 setCards(response.data.data.map((card: Card) => ({ ...card, color: card.color || "unknown" })));
@@ -263,24 +234,6 @@ export default function SearchScreen() {
 
             setPage(page + 1);
             setHasMore(response.data.data.length > 0);
-
-            const isBase =
-                !query &&
-                !colorQuery &&
-                !attributeQuery &&
-                !setNameQuery &&
-                !setFamilyQuery &&
-                !typeQuery &&
-                !rarityQuery &&
-                !triggerQuery &&
-                !abilityQuery &&
-                costRange[0] === 0 &&
-                costRange[1] === 10 &&
-                powerRange[0] === 0 &&
-                powerRange[1] === 13000 &&
-                counterRange[0] === 0 &&
-                counterRange[1] === 2000;
-            setIsBaseRoute(isBase);
         } catch (error: any) {
             console.error("Error fetching cards:", error.response?.data || error.message);
         } finally {

@@ -189,7 +189,7 @@ export default function HomeScreen() {
                         decks={decks}
                         onNewDeckPress={() => setNewDeckModalVisible(true)}
                         onDeckPress={(deckId) =>
-                            router.push({ pathname: `/(tabs)/deck/[deckId]`, params: { deckId: deckId } })
+                            router.push({ pathname: `/(tabs)/deck/[deckId]`, params: { deckId: deckId }  })
                         }
                     />
                 </View>

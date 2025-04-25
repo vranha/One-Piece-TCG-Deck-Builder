@@ -184,6 +184,13 @@
     "friends": "Friends",
     "no_friends_message": "Set sail and find your nakama!",
     "pending": "Pending",
-    "no_decks": "This user has no decks yet. Their treasure is still hidden on the Grand Line!"
-    
+    "no_decks": "This user has no decks yet. Their treasure is still hidden on the Grand Line!",
+    "no_users_found": "No users found",
+    "try_different_search": "Try a different search",
+    "no_decks_found": "No decks found",
+    "no_users": "This user has no friends yet. Their crew is still incomplete!",
+    "has_decks": "With decks",
+    "is_completed": "Completed deck",
+    "region": "Region",
+    "tags": "Tags"
 }

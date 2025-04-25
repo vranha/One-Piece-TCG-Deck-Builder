@@ -156,12 +156,12 @@ const removeTagFromDeck = async (req, res) => {
 };
 
 const getAllDecks = async (req, res) => {
-    const { page = 1, limit = 10, excludeUserId } = req.query;
+    const { page = 1, limit = 10, excludeUserId, search = "", colors = "", isCompleted, tags } = req.query;
     try {
-        const decks = await deckService.getAllDecks(page, limit, excludeUserId);
+        const decks = await deckService.getAllDecks(page, limit, excludeUserId, search, colors, isCompleted, tags);
         res.status(200).json(decks);
     } catch (err) {
-        console.error("Error en getAllDecks:", err);
+        console.error("Error in getAllDecks controller:", err.message);
         res.status(500).json({ error: err.message });
     }
 };

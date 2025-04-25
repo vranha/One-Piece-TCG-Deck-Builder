@@ -444,9 +444,10 @@ const removeTagFromDeck = async (deckId, tagId) => {
     }
 };
 
-const getAllDecks = async (page = 1, limit = 10, excludeUserId) => {
+const getAllDecks = async (page = 1, limit = 10, excludeUserId, search = "", colors = "", isCompleted, tags) => {
     const offset = (page - 1) * limit;
 
+    // Step 1: Fetch all decks from the `decks` table with search and user exclusion filters
     let query = supabase
         .from("decks")
         .select(
@@ -466,19 +467,55 @@ const getAllDecks = async (page = 1, limit = 10, excludeUserId) => {
         query = query.neq("user_id", excludeUserId);
     }
 
-    const { data: decks, error, count } = await query;
-
-    if (error) {
-        console.error("Error al obtener mazos:", error);
-        throw new Error("Error al obtener mazos.");
+    if (search) {
+        query = query.ilike("name", `%${search}%`); // Apply search filter
     }
 
+    const { data: allDecks, error: decksError, count } = await query;
+
+    if (decksError) {
+        throw new Error("Error fetching decks.");
+    }
+
+    // Step 2: If colors are provided, filter decks by matching `deck_id` in `deck_colors`
+    let filteredDecks = allDecks;
+    if (colors) {
+        const colorIds = colors.split(",").map((color) => colorNameToId[color.toLowerCase()]);
+        const { data: deckColors, error: colorError } = await supabase
+            .from("deck_colors")
+            .select("deck_id, color_id")
+            .in("color_id", colorIds);
+
+        if (colorError) {
+            throw new Error("Error filtering by colors.");
+        }
+
+        const filteredDeckIds = new Set(deckColors.map((deckColor) => deckColor.deck_id));
+        filteredDecks = filteredDecks.filter((deck) => filteredDeckIds.has(deck.id));
+    }
+
+    // Step 3: Apply isCompleted filter
+    if (isCompleted !== undefined) {
+        filteredDecks = filteredDecks.filter((deck) => {
+            const totalQuantity = deck.deck_cards.reduce((sum, card) => sum + card.quantity, 0);
+            return isCompleted ? totalQuantity === 51 : totalQuantity !== 51;
+        });
+    }
+    // Step 4: Apply tags filter
+    if (tags) {
+        const tagIds = tags.split(",");
+        filteredDecks = filteredDecks.filter(
+            (deck) => console.log(tagIds) || deck.deck_tags.some((deckTag) => tagIds.includes(deckTag.tag_id))
+        );
+    }
+
+    // Step 5: Return filtered decks
     return {
-        data: decks,
-        total: count,
+        data: filteredDecks,
+        total: filteredDecks.length,
         page,
         limit,
-        totalPages: Math.ceil(count / limit),
+        totalPages: Math.ceil(filteredDecks.length / limit),
     };
 };
 

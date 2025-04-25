@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { View, StyleSheet, TouchableOpacity, Text, ScrollView, Platform, TextInput, Alert, Modal } from "react-native";
 import { Image as ExpoImage } from "expo-image";
-import { useNavigation, useLocalSearchParams, useRouter } from "expo-router";
+import { useNavigation, useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
 import useApi from "@/hooks/useApi";
@@ -40,6 +40,7 @@ interface DeckDetail {
     description: string;
     leaderCardImage: string;
     cards: Card[];
+    user_id: string;
     // Removed tags property
 }
 
@@ -128,6 +129,11 @@ export default function DeckDetailScreen() {
         );
     };
 
+    // Determinar si el deck pertenece al usuario actual
+    const isOwner = useMemo(() => {
+        return session?.user?.id === deckDetail?.user_id; // Suponiendo que `ownerId` está en los datos del deck
+    }, [session, deckDetail]);
+
     useEffect(() => {
         // const fetchSetNames = async () => {
         //     try {
@@ -190,13 +196,15 @@ export default function DeckDetailScreen() {
         let updatedCards;
         if (existingCardIndex !== -1) {
             // If the new card already exists, sum the quantities
-            updatedCards = deckDetail.cards.map((card, index) =>
-                index === existingCardIndex
-                    ? { ...card, quantity: (card.quantity ?? 0) + (selectedCard?.quantity ?? 0) }
-                    : card.id === selectedCard.id
-                    ? null // Remove the replaced card
-                    : card
-            ).filter(Boolean); // Remove null entries
+            updatedCards = deckDetail.cards
+                .map((card, index) =>
+                    index === existingCardIndex
+                        ? { ...card, quantity: (card.quantity ?? 0) + (selectedCard?.quantity ?? 0) }
+                        : card.id === selectedCard.id
+                        ? null // Remove the replaced card
+                        : card
+                )
+                .filter(Boolean); // Remove null entries
         } else {
             // If the new card does not exist, replace the selected card
             updatedCards = deckDetail.cards.map((card) =>
@@ -269,10 +277,10 @@ export default function DeckDetailScreen() {
         setSelectedCards((prevSelectedCards) => {
             const currentQuantity = prevSelectedCards[cardId] || 0;
             const updatedQuantity = currentQuantity + change;
-    
+
             // Asegúrate de que la cantidad esté dentro del rango válido (0 a 4)
             if (updatedQuantity < 0 || updatedQuantity > 4) return prevSelectedCards;
-    
+
             return { ...prevSelectedCards, [cardId]: updatedQuantity };
         });
     };
@@ -334,26 +342,36 @@ export default function DeckDetailScreen() {
         }
     };
 
-    useEffect(() => {
-        setDeckDetail(null); // Reset deckDetail when deckId changes
-        setLoading(true); // Reset loading state
-    }, [deckId]);
+    const [isReadyToRender, setIsReadyToRender] = useState(false);
 
-    useEffect(() => {
-        const fetchDeckDetail = async () => {
-            try {
-                const response = await api.get(`/deckById/${deckId}`);
-                setDeckDetail(response.data);
-                console.log("DECKDATA", response.data);
-            } catch (error: any) {
-                console.error("Error fetching deck detail:", error.response?.data || error.message);
-            } finally {
-                setLoading(false);
-            }
-        };
+    useFocusEffect(
+        useCallback(() => {
+            const fetchDeckDetail = async () => {
+                // Limpia el estado antes de cargar el nuevo deck
+                setDeckDetail(null);
+                setIsReadyToRender(false); // Bloquea el renderizado
+                setLoading(true); // Activa el estado de carga
 
-        fetchDeckDetail();
-    }, [deckId]);
+                try {
+                    const response = await api.get(`/deckById/${deckId}`);
+                    setDeckDetail(response.data); // Establece el nuevo deck
+                } catch (error: any) {
+                    console.error("Error fetching deck detail:", error.response?.data || error.message);
+                } finally {
+                    setLoading(false); // Desactiva el estado de carga
+                    setIsReadyToRender(true); // Permite el renderizado
+                }
+            };
+
+            fetchDeckDetail();
+
+            // Limpia el estado al desmontar el componente
+            return () => {
+                setDeckDetail(null);
+                setIsReadyToRender(false);
+            };
+        }, [deckId]) // Dependencia: se ejecutará cuando cambie el deckId
+    );
 
     useEffect(() => {
         const fetchTags = async () => {
@@ -870,20 +888,21 @@ export default function DeckDetailScreen() {
     const isAddDisabled = useCallback(
         (card: Card): boolean => {
             const cardCode = card.code;
-    
+
             // Depuración: Imprime información detallada
             console.log(`Evaluando isAddDisabled para la carta: ${card.name} (code: ${cardCode})`);
-    
+
             const totalCardsWithSameCode = Object.entries(selectedCards).reduce((sum, [id, quantity]) => {
-                const selectedCard = filteredCards.find((c) => c.id === id) || deckDetail?.cards.find((c) => c.id === id);
+                const selectedCard =
+                    filteredCards.find((c) => c.id === id) || deckDetail?.cards.find((c) => c.id === id);
                 if (selectedCard?.code === cardCode) {
                     console.log(`Incluyendo carta: ${selectedCard.name} (id: ${id}, cantidad: ${quantity})`);
                 }
                 return selectedCard?.code === cardCode ? sum + quantity : sum;
             }, 0);
-    
+
             console.log(`Total de cartas con el mismo code (${cardCode}): ${totalCardsWithSameCode}`);
-    
+
             return totalCardsWithSameCode >= 4;
         },
         [selectedCards, filteredCards, deckDetail]
@@ -897,7 +916,7 @@ export default function DeckDetailScreen() {
         const handler = setTimeout(() => {
             setDebouncedSearchQuery(searchQuery); // Actualiza el valor después del retraso
         }, 300); // 300ms de retraso (puedes ajustarlo)
-    
+
         return () => {
             clearTimeout(handler); // Limpia el timeout si el usuario sigue escribiendo
         };
@@ -983,16 +1002,25 @@ export default function DeckDetailScreen() {
     const hasDeckChanged = () => {
         if (!deckDetail) return false;
 
-        const currentDeck = Object.entries(selectedCards).reduce((acc, [cardId, quantity]) => {
-            acc[cardId] = quantity;
-            return acc;
-        }, {} as { [key: string]: number });
+        // Normaliza y ordena las cartas del deck actual
+        const currentDeck = Object.entries(selectedCards)
+            .map(([cardId, quantity]) => ({
+                cardId,
+                quantity,
+                is_leader: deckDetail?.cards.find((card) => card.id === cardId)?.is_leader || false,
+            }))
+            .sort((a, b) => a.cardId.localeCompare(b.cardId)); // Ordena por ID de carta
 
-        const originalDeck = deckDetail.cards.reduce((acc, card) => {
-            acc[card.id] = card.quantity ?? 0;
-            return acc;
-        }, {} as { [key: string]: number });
+        // Normaliza y ordena las cartas del deck original
+        const originalDeck = deckDetail.cards
+            .map((card) => ({
+                cardId: card.id,
+                quantity: card.quantity ?? 0,
+                is_leader: card.is_leader || false,
+            }))
+            .sort((a, b) => a.cardId.localeCompare(b.cardId)); // Ordena por ID de carta
 
+        // Compara los decks normalizados
         return JSON.stringify(currentDeck) !== JSON.stringify(originalDeck);
     };
 
@@ -1072,91 +1100,152 @@ export default function DeckDetailScreen() {
         }
     };
 
-    // Define el header fuera del useEffect para evitar closures
-    const headerOptions = useMemo(
-        () => ({
-            headerShown: true,
-            headerLeft: () => (
-                <TouchableOpacity
-                    onPress={() => {
-                        router.back();
-                        modalizeRef.current?.close();
-                    }}
-                    style={styles.backButton}
-                >
-                    <MaterialIcons name="arrow-back" size={24} color={Colors[theme].text} />
-                </TouchableOpacity>
-            ),
-            headerTitle: () => null, // No title in the center
-            headerRight: () => (
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <TouchableOpacity
-                        onPress={openModal}
-                        style={{
-                            backgroundColor: isModalOpen ? Colors[theme].disabled : Colors[theme].success,
-                            paddingVertical: 5,
-                            paddingHorizontal: 10,
-                            borderRadius: 5,
-                            marginRight: 10,
-                        }}
-                        disabled={isModalOpen}
-                    >
-                        <ThemedText style={{ color: Colors[theme].background, fontWeight: "bold" }}>
-                            {isModalOpen ? t("close_to_make_changes") : t("cards")}
-                        </ThemedText>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={copyDeckToClipboard}
-                        style={{
-                            backgroundColor: Colors[theme].info,
-                            paddingVertical: 5,
-                            paddingHorizontal: 10,
-                            borderRadius: 5,
-                            marginRight: 10,
-                        }}
-                    >
-                        <ThemedText style={{ color: Colors[theme].background, fontWeight: "bold" }}>
-                            {t("copy_deck")}
-                        </ThemedText>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={{
-                            backgroundColor: Colors[theme].highlight,
-                            paddingVertical: 5,
-                            paddingHorizontal: 5,
-                            borderRadius: 5,
-                            marginRight: 10,
-                        }}
-                        onPress={() => {
-                            setIsEditing(!isEditing);
-                            setEditedName(deckDetail?.name || ""); // Reset name
-                            setEditedDescription(deckDetail?.description || ""); // Reset description
-                        }}
-                    >
-                        <MaterialIcons name="edit" size={24} color={Colors[theme].background} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={() => {
-                            setIsDeleteModalVisible(true); // Asegúrate de que este estado se actualice correctamente
-                        }}
-                        style={{
-                            backgroundColor: Colors[theme].error,
-                            paddingVertical: 5,
-                            paddingHorizontal: 5,
-                            borderRadius: 5,
-                        }}
-                    >
-                        <MaterialIcons name="delete" size={24} color={Colors[theme].background} />
-                    </TouchableOpacity>
-                </View>
-            ),
-        }),
-        [isEditing, isModalOpen, editedName, editedDescription, theme]
-    );
+    // const [headerOptions, setHeaderOptions] = useState<any>({}); // Estado inicial vacío para las opciones del encabezado
+
+    const [isHeaderReady, setIsHeaderReady] = useState(false);
 
     useEffect(() => {
-        navigation.setOptions(headerOptions);
-    }, [navigation, headerOptions]);
+        if (isReadyToRender && deckDetail) {
+            // Configura las opciones del header solo cuando el componente esté listo
+            navigation.setOptions(
+                isOwner
+                    ? {
+                          headerShown: true,
+                          headerLeft: () => (
+                              <TouchableOpacity
+                                  onPress={() => {
+                                      router.back();
+                                      modalizeRef.current?.close();
+                                  }}
+                                  style={styles.backButton}
+                              >
+                                  <MaterialIcons name="arrow-back" size={24} color={Colors[theme].text} />
+                              </TouchableOpacity>
+                          ),
+                          headerTitle: () => null,
+                          headerRight: () => (
+                              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                  <TouchableOpacity
+                                      onPress={openModal}
+                                      style={{
+                                          backgroundColor: isModalOpen ? Colors[theme].disabled : Colors[theme].success,
+                                          paddingVertical: 5,
+                                          paddingHorizontal: 10,
+                                          borderRadius: 5,
+                                          marginRight: 10,
+                                      }}
+                                      disabled={isModalOpen}
+                                  >
+                                      <ThemedText style={{ color: Colors[theme].background, fontWeight: "bold" }}>
+                                          {isModalOpen ? t("close_to_make_changes") : t("cards")}
+                                      </ThemedText>
+                                  </TouchableOpacity>
+                                  <TouchableOpacity
+                                      onPress={copyDeckToClipboard}
+                                      style={{
+                                          backgroundColor: Colors[theme].info,
+                                          paddingVertical: 5,
+                                          paddingHorizontal: 10,
+                                          borderRadius: 5,
+                                          marginRight: 10,
+                                      }}
+                                  >
+                                      <ThemedText style={{ color: Colors[theme].background, fontWeight: "bold" }}>
+                                          {t("copy_deck")}
+                                      </ThemedText>
+                                  </TouchableOpacity>
+                                  <TouchableOpacity
+                                      style={{
+                                          backgroundColor: Colors[theme].highlight,
+                                          paddingVertical: 5,
+                                          paddingHorizontal: 5,
+                                          borderRadius: 5,
+                                          marginRight: 10,
+                                      }}
+                                      onPress={() => {
+                                          setIsEditing(!isEditing);
+                                          setEditedName(deckDetail?.name || ""); // Reset name
+                                          setEditedDescription(deckDetail?.description || ""); // Reset description
+                                      }}
+                                  >
+                                      <MaterialIcons name="edit" size={24} color={Colors[theme].background} />
+                                  </TouchableOpacity>
+                                  <TouchableOpacity
+                                      onPress={() => {
+                                          setIsDeleteModalVisible(true);
+                                      }}
+                                      style={{
+                                          backgroundColor: Colors[theme].error,
+                                          paddingVertical: 5,
+                                          paddingHorizontal: 5,
+                                          borderRadius: 5,
+                                      }}
+                                  >
+                                      <MaterialIcons name="delete" size={24} color={Colors[theme].background} />
+                                  </TouchableOpacity>
+                              </View>
+                          ),
+                      }
+                    : {
+                          headerShown: true,
+                          headerLeft: () => (
+                              <TouchableOpacity
+                                  onPress={() => {
+                                      router.back();
+                                  }}
+                                  style={styles.backButton}
+                              >
+                                  <MaterialIcons name="arrow-back" size={24} color={Colors[theme].text} />
+                              </TouchableOpacity>
+                          ),
+                          headerTitle: () => null,
+                          headerRight: () => (
+                              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                  {" "}
+                                  <TouchableOpacity
+                                      onPress={() => router.push(`/user/${deckDetail?.user_id}`)} // Navegar al perfil del usuario
+                                      style={{
+                                          backgroundColor: Colors[theme].success,
+                                          paddingVertical: 5,
+                                          paddingHorizontal: 10,
+                                          borderRadius: 5,
+                                          marginRight: 10,
+                                          flexDirection: "row",
+                                          gap:3,
+                                      }}
+                                  >
+                                      <MaterialIcons name="person" size={24} color={Colors[theme].background} />
+                                      <ThemedText style={{ color: Colors[theme].background, fontWeight: "bold" }}>
+                                          {t("User Profile")}
+                                      </ThemedText>
+                                  </TouchableOpacity>{" "}
+                                  <TouchableOpacity
+                                      onPress={copyDeckToClipboard}
+                                      style={{
+                                          backgroundColor: Colors[theme].info,
+                                          paddingVertical: 5,
+                                          paddingHorizontal: 10,
+                                          borderRadius: 5,
+                                          marginRight: 10,
+                                      }}
+                                  >
+                                      <ThemedText style={{ color: Colors[theme].background, fontWeight: "bold" }}>
+                                          {t("copy_deck")}
+                                      </ThemedText>
+                                  </TouchableOpacity>
+                              </View>
+                          ),
+                      }
+            );
+
+            // Marca el header como listo
+            setIsHeaderReady(true);
+        } else {
+            // Oculta el header si el componente no está listo
+            navigation.setOptions({ headerShown: false });
+            setIsHeaderReady(false);
+        }
+    }, [isReadyToRender, deckDetail, isOwner, theme, isModalOpen, navigation]);
 
     useEffect(() => {
         // Close all modals, including the delete modal, when navigating away
@@ -1167,7 +1256,8 @@ export default function DeckDetailScreen() {
         };
     }, []);
 
-    if (loading) {
+    if (!isReadyToRender || !isHeaderReady) {
+        // Bloquea el renderizado hasta que el header y el componente estén listos
         return <LoadingIndicator />;
     }
 
@@ -1191,7 +1281,7 @@ export default function DeckDetailScreen() {
                 style={[styles.container, { backgroundColor: Colors[theme].background }]}
                 contentContainerStyle={{ paddingBottom: 150 }}
             >
-                {isEditing ? (
+                {isOwner && isEditing ? (
                     <View style={styles.editContainer}>
                         <TextInput
                             style={[
@@ -1228,7 +1318,7 @@ export default function DeckDetailScreen() {
                         ) : null}
                     </>
                 )}
-                <Tags tags={tags} allTags={allTags} onTagToggle={handleTagToggle} />
+                <Tags isOwner={isOwner} tags={tags} allTags={allTags} onTagToggle={handleTagToggle} />
                 <View style={styles.cardsContainer}>
                     {deckDetail.cards
                         .sort((a, b) => {
@@ -1277,25 +1367,27 @@ export default function DeckDetailScreen() {
                                         ) : null}
                                     </View>
                                 </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[
-                                        styles.changeArtIcon,
-                                        item.is_leader
-                                            ? {
-                                                  transform: [{ scale: 1.1 }],
-                                                  bottom: -4,
-                                                  left: -4,
-                                                  backgroundColor: Colors[theme].tint,
-                                              }
-                                            : { backgroundColor: Colors[theme].backgroundSoft },
-                                    ]}
-                                    onPress={() => {
-                                        setSelectedCard(item);
-                                        fetchRelatedCards(item.code);
-                                    }}
-                                >
-                                    <MaterialIcons name="palette" size={16} color={Colors[theme].text} />
-                                </TouchableOpacity>
+                                {isOwner && (
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.changeArtIcon,
+                                            item.is_leader
+                                                ? {
+                                                      transform: [{ scale: 1.1 }],
+                                                      bottom: -4,
+                                                      left: -4,
+                                                      backgroundColor: Colors[theme].tint,
+                                                  }
+                                                : { backgroundColor: Colors[theme].backgroundSoft },
+                                        ]}
+                                        onPress={() => {
+                                            setSelectedCard(item);
+                                            fetchRelatedCards(item.code);
+                                        }}
+                                    >
+                                        <MaterialIcons name="palette" size={16} color={Colors[theme].text} />
+                                    </TouchableOpacity>
+                                )}
                             </View>
                         ))}
                 </View>
@@ -1387,9 +1479,11 @@ export default function DeckDetailScreen() {
                 threshold={200} // gesto muy largo también necesario si no supera velocity
                 dragToss={0.01} // poca inercia, más control
                 onClose={() => {
+                    console.log("Modalize onClose triggered");
                     setSearchQuery("");
-                    setIsModalOpen(false); // Ensure the state is updated when the modal closes
+                    setIsModalOpen(false);
                     if (hasDeckChanged()) {
+                        console.log("Deck has changed, syncing...");
                         syncDeckCards();
                     }
                 }}
@@ -1764,7 +1858,7 @@ const CardItem = React.memo(
         limitDeckNum,
         deckCardCount,
         loading,
-        isAddDisabled
+        isAddDisabled,
     }: {
         card: Card;
         height: number;

@@ -16,9 +16,10 @@ interface TagsProps {
     tags: Tag[];
     allTags: Tag[]; // All available tags for selection
     onTagToggle: (tag: Tag) => void; // Callback for adding/removing tags
+    isOwner: boolean;
 }
 
-const Tags: React.FC<TagsProps> = ({ tags, allTags, onTagToggle }) => {
+const Tags: React.FC<TagsProps> = ({ tags, allTags, onTagToggle, isOwner }) => {
     const [selectorVisible, setSelectorVisible] = useState(false);
     const { theme } = useTheme() as { theme: keyof typeof Colors };
     const { t } = useTranslation();
@@ -32,7 +33,8 @@ const Tags: React.FC<TagsProps> = ({ tags, allTags, onTagToggle }) => {
     return (
         <View>
             <View style={styles.container}>
-                <TouchableOpacity
+                { isOwner &&
+                    <TouchableOpacity
                     style={[
                         styles.addTagButton,
                         selectorVisible
@@ -51,7 +53,9 @@ const Tags: React.FC<TagsProps> = ({ tags, allTags, onTagToggle }) => {
                             {t('add_tag')}
                         </ThemedText>
                     )}
-                </TouchableOpacity>
+                </TouchableOpacity> 
+                }
+               
                 {tags.map((tag) => (
                     <View key={tag.id} style={[styles.tag, { backgroundColor: tag.color }]}>
                         <ThemedText style={styles.tagText}>{t(tag.name)}</ThemedText>
