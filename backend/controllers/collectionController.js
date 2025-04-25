@@ -1,0 +1,53 @@
+const collectionService = require("../services/collectionService");
+
+const getUserCollections = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const collections = await collectionService.getCollectionsByUser(userId);
+        res.status(200).json(collections);
+    } catch (error) {
+        console.error("Error fetching collections:", error);
+        res.status(500).json({ error: "Failed to fetch collections" });
+    }
+};
+
+const createCollection = async (req, res) => {
+    try {
+        const collectionData = { ...req.body, user_id: req.user.id };
+        const newCollection = await collectionService.createCollection(collectionData);
+        res.status(201).json(newCollection);
+    } catch (error) {
+        console.error("Error creating collection:", error);
+        res.status(500).json({ error: "Failed to create collection" });
+    }
+};
+
+const updateCollection = async (req, res) => {
+    try {
+        const { collectionId } = req.params;
+        const updates = req.body;
+        const updatedCollection = await collectionService.updateCollection(collectionId, updates);
+        res.status(200).json(updatedCollection);
+    } catch (error) {
+        console.error("Error updating collection:", error);
+        res.status(500).json({ error: "Failed to update collection" });
+    }
+};
+
+const deleteCollection = async (req, res) => {
+    try {
+        const { collectionId } = req.params;
+        await collectionService.deleteCollection(collectionId);
+        res.status(200).json({ message: "Collection deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting collection:", error);
+        res.status(500).json({ error: "Failed to delete collection" });
+    }
+};
+
+module.exports = {
+    getUserCollections,
+    createCollection,
+    updateCollection,
+    deleteCollection,
+};

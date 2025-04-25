@@ -11,6 +11,7 @@ const { importarCartas } = require("../scripts/importCards");
 const { supabase } = require("../services/supabaseClient");
 const nodemailer = require("nodemailer");
 const notificationController = require("../controllers/notificationController");
+const collectionController = require("../controllers/collectionController");
 
 const router = express.Router();
 
@@ -912,5 +913,10 @@ router.get("/friends", async (req, res) => {
 });
 
 router.get("/notifications", notificationController.checkNotifications);
+
+router.get("/collections", collectionController.getUserCollections);
+router.post("/collections", collectionController.createCollection);
+router.put("/collections/:collectionId", collectionController.updateCollection);
+router.delete("/collections/:collectionId", collectionController.deleteCollection);
 
 module.exports = router;

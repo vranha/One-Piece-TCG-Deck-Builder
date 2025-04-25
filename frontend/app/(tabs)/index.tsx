@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, View, Image, ActivityIndicator, TouchableOpacity } from "react-native";
+import { StyleSheet, View, Image, ActivityIndicator, TouchableOpacity, ScrollView } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useTheme } from "@/hooks/ThemeContext";
@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import useStore from "@/store/useStore";
 import FriendCarousel from "@/components/FriendCarousel";
+import CollectionCarousel from "@/components/CollectionCarousel";
 import { Ionicons } from "@expo/vector-icons"; // Importar iconos
 import { useFocusEffect } from "@react-navigation/native"; // Import useFocusEffect
 
@@ -156,64 +157,75 @@ export default function HomeScreen() {
         // router.push({ pathname: `/(tabs)/friend/[friendId]`, params: { friendId } });
     };
 
-    if (loading) {
-        return (
-            <ThemedView style={[styles.container, { backgroundColor: Colors[theme].background }]}>
-                <ActivityIndicator size="large" color={Colors[theme].tint} />
-            </ThemedView>
-        );
-    }
-
     return (
         <ThemedView style={[styles.container, { backgroundColor: Colors[theme].background }]}>
-            <View style={styles.welcomeContainer}>
-                {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatar} /> : null}
-                <ThemedText type="title" style={[styles.title, { color: Colors[theme].text }]}>
-                    {t("welcome", { name: userName })}
-                </ThemedText>
-            </View>
-            <View style={{ gap: 30, width: "100%" }}>
-                <View>
-                    <View
-                        style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            marginVertical: 12,
-                        }}
-                    >
-                        <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
-                        <Ionicons style={{ marginHorizontal: 20 }} name="albums" size={34} color={Colors[theme].info} />
-                        <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
+            {loading ? (
+                <ActivityIndicator size="large" color={Colors[theme].tint} />
+            ) : (
+                <ScrollView contentContainerStyle={styles.scrollContainer}>
+                    <View style={styles.welcomeContainer}>
+                        {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatar} /> : null}
+                        <ThemedText type="title" style={[styles.title, { color: Colors[theme].text }]}>
+                            {t("welcome", { name: userName })}
+                        </ThemedText>
                     </View>
-                    <DeckCarousel
-                        decks={decks}
-                        onNewDeckPress={() => setNewDeckModalVisible(true)}
-                        onDeckPress={(deckId) =>
-                            router.push({ pathname: `/(tabs)/deck/[deckId]`, params: { deckId: deckId }  })
-                        }
-                    />
-                </View>
-                <View>
-                    <View
-                        style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            marginVertical: 12,
-                        }}
-                    >
-                        <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
-                        <Ionicons style={{ marginHorizontal: 20 }} name="people" size={34} color={Colors[theme].info} />
-                        <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
+                    <View style={{ gap: 30, width: "100%" }}>
+                        <View>
+                            <View
+                                style={{
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                    marginVertical: 12,
+                                }}
+                            >
+                                <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
+                                <Ionicons style={{ marginHorizontal: 20 }} name="albums" size={34} color={Colors[theme].info} />
+                                <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
+                            </View>
+                            <DeckCarousel
+                                decks={decks}
+                                onNewDeckPress={() => setNewDeckModalVisible(true)}
+                                onDeckPress={(deckId) =>
+                                    router.push({ pathname: `/(tabs)/deck/[deckId]`, params: { deckId: deckId } })
+                                }
+                            />
+                        </View>
+                        <View>
+                            <View
+                                style={{
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                    marginVertical: 12,
+                                }}
+                            >
+                                <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
+                                <Ionicons style={{ marginHorizontal: 20 }} name="people" size={34} color={Colors[theme].info} />
+                                <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
+                            </View>
+                            <FriendCarousel
+                                friends={friends}
+                                onFriendPress={(userId) =>
+                                    router.push({ pathname: `/(tabs)/user/[userId]`, params: { userId } })
+                                }
+                            />
+                        </View>
+                        <View style={{ marginBottom: 80 }}>
+                            <View
+                                style={{
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                    marginVertical: 12,
+                                }}
+                            >
+                                <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
+                                <Ionicons style={{ marginHorizontal: 20 }} name="folder" size={34} color={Colors[theme].info} />
+                                <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
+                            </View>
+                            <CollectionCarousel />
+                        </View>
                     </View>
-                    <FriendCarousel
-                        friends={friends}
-                        onFriendPress={(userId) =>
-                            router.push({ pathname: `/(tabs)/user/[userId]`, params: { userId } })
-                        }
-                    />
-                </View>
-            </View>
-
+                </ScrollView>
+            )}
             <Portal>
                 <NewDeckModal
                     visible={newDeckModalVisible}
@@ -231,6 +243,10 @@ const styles = StyleSheet.create({
         justifyContent: "flex-start",
         alignItems: "center",
         padding: 16,
+    },
+    scrollContainer: {
+        alignItems: "center",
+        paddingBottom: 20, 
     },
     welcomeContainer: {
         alignItems: "center",
