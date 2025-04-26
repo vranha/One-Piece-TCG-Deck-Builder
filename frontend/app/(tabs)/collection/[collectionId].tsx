@@ -32,7 +32,7 @@ const CollectionDetails = () => {
         name: string;
         description: string;
         collection_cards: { card_id: string }[];
-        cards: { id: string; code: string; name: string; color: string[]; rarity: string }[];
+        cards: { id: string; code: string; name: string; color: string[]; rarity: string, images_small:string }[];
     }
 
     const [collection, setCollection] = useState<Collection | null>(null);
