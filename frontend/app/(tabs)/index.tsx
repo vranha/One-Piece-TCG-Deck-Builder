@@ -34,6 +34,7 @@ export default function HomeScreen() {
     const [decks, setDecks] = useState<Deck[]>([]);
     const [newDeckModalVisible, setNewDeckModalVisible] = useState(false);
     const [friends, setFriends] = useState([]);
+    const [collections, setCollections] = useState([]); // Add state for collections
     const router = useRouter();
 
     const refreshDecks = useStore((state) => state.refreshDecks);
@@ -73,6 +74,20 @@ export default function HomeScreen() {
         }
     };
 
+    const fetchCollections = async (userId: string, token: string) => {
+        try {
+            const { data } = await api.get(`/collections/${userId}`, {
+                // Pass userId in the URL
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            setCollections(data.data);
+        } catch (error) {
+            console.error("Error fetching collections:", error);
+        }
+    };
+
     useEffect(() => {
         async function fetchUser() {
             try {
@@ -89,6 +104,7 @@ export default function HomeScreen() {
                         setUserName(user.username || session.user.email); // Use name from API
                         fetchDecks(session.user.id, session.access_token);
                         fetchFriends(session.user.id, session.access_token); // Fetch friends
+                        fetchCollections(session.user.id, session.access_token); // Fetch collections
                     } catch (apiError) {
                         console.error("Error fetching user info from /me:", apiError);
                     }
@@ -153,16 +169,12 @@ export default function HomeScreen() {
         }, [])
     );
 
-    const handleFriendPress = (friendId: string) => {
-        // router.push({ pathname: `/(tabs)/friend/[friendId]`, params: { friendId } });
-    };
-
     return (
         <ThemedView style={[styles.container, { backgroundColor: Colors[theme].background }]}>
             {loading ? (
                 <ActivityIndicator size="large" color={Colors[theme].tint} />
             ) : (
-                <ScrollView contentContainerStyle={styles.scrollContainer}>
+                <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
                     <View style={styles.welcomeContainer}>
                         {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatar} /> : null}
                         <ThemedText type="title" style={[styles.title, { color: Colors[theme].text }]}>
@@ -176,10 +188,16 @@ export default function HomeScreen() {
                                     flexDirection: "row",
                                     alignItems: "center",
                                     marginVertical: 12,
+                                    marginHorizontal: 20,
                                 }}
                             >
                                 <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
-                                <Ionicons style={{ marginHorizontal: 20 }} name="albums" size={34} color={Colors[theme].info} />
+                                <Ionicons
+                                    style={{ marginHorizontal: 20 }}
+                                    name="albums"
+                                    size={34}
+                                    color={Colors[theme].info}
+                                />
                                 <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
                             </View>
                             <DeckCarousel
@@ -196,10 +214,16 @@ export default function HomeScreen() {
                                     flexDirection: "row",
                                     alignItems: "center",
                                     marginVertical: 12,
+                                    marginHorizontal: 20,
                                 }}
                             >
                                 <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
-                                <Ionicons style={{ marginHorizontal: 20 }} name="people" size={34} color={Colors[theme].info} />
+                                <Ionicons
+                                    style={{ marginHorizontal: 20 }}
+                                    name="people"
+                                    size={34}
+                                    color={Colors[theme].info}
+                                />
                                 <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
                             </View>
                             <FriendCarousel
@@ -215,13 +239,23 @@ export default function HomeScreen() {
                                     flexDirection: "row",
                                     alignItems: "center",
                                     marginVertical: 12,
+                                    marginHorizontal: 20,
                                 }}
                             >
                                 <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
-                                <Ionicons style={{ marginHorizontal: 20 }} name="folder" size={34} color={Colors[theme].info} />
+                                <Ionicons
+                                    style={{ marginHorizontal: 20 }}
+                                    name="folder"
+                                    size={34}
+                                    color={Colors[theme].info}
+                                />
                                 <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
                             </View>
-                            <CollectionCarousel />
+                            <CollectionCarousel 
+                            collections={collections} 
+                            onCollectionPress={(collectionId) =>
+                                    router.push({ pathname: `/(tabs)/collection/[collectionId]`, params: { collectionId } })
+                                } />
                         </View>
                     </View>
                 </ScrollView>
@@ -242,11 +276,10 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "flex-start",
         alignItems: "center",
-        padding: 16,
     },
     scrollContainer: {
         alignItems: "center",
-        paddingBottom: 20, 
+        paddingBottom: 20,
     },
     welcomeContainer: {
         alignItems: "center",
@@ -262,18 +295,5 @@ const styles = StyleSheet.create({
         fontSize: 24,
         textAlign: "center",
         marginBottom: 10,
-    },
-    carouselHeader: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginTop: 10,
-        // paddingHorizontal: 16,
-        marginBottom: 5,
-    },
-    carouselTitle: {
-        fontSize: 20, // Increased font size
-        fontWeight: "600", // Adjusted font weight for better readability
-        marginLeft: 4, // Increased spacing between the icon and text
-        letterSpacing: 1, // Added letter spacing for a cleaner look
     },
 });

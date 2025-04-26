@@ -164,11 +164,12 @@ export default function TabLayout() {
                             headerShown: true,
                             headerTitleAlign: "center",
                             headerTitle: () => <Header title="OP Lab" />,
-                            headerLeft: () =>
-                             <>
-                                <Header.LeftButton />
-                                <Header.LeftButtonNotifications onPress={() => router.push("/notifications")} />
-                            </>,
+                            headerLeft: () => (
+                                <>
+                                    <Header.LeftButton />
+                                    <Header.LeftButtonNotifications onPress={() => router.push("/notifications")} />
+                                </>
+                            ),
                             headerRight: () => (
                                 <>
                                     <Header.RightButtonDeckSearcher onPress={() => router.push("/deckSearcher")} />
@@ -211,6 +212,12 @@ export default function TabLayout() {
                     />
                     <Tabs.Screen
                         name="user"
+                        options={{
+                            href: null,
+                        }}
+                    />
+                    <Tabs.Screen
+                        name="collection"
                         options={{
                             href: null,
                         }}

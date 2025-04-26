@@ -190,5 +190,9 @@
     "has_decks": "Con Mazos",
     "is_completed": "Mazo completo",
     "region": "Región",
-    "tags": "Etiquetas"
+    "tags": "Etiquetas",
+    "collections": "Colecciones",
+    "wishlist": "Lista de Deseos",
+    "wishlists": "Listas de Deseos",
+    "no_collections": "No hay colecciones todavía"
 }

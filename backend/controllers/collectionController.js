@@ -2,9 +2,9 @@ const collectionService = require("../services/collectionService");
 
 const getUserCollections = async (req, res) => {
     try {
-        const userId = req.user.id;
+        const { userId } = req.params; // Extract userId from request parameters
         const collections = await collectionService.getCollectionsByUser(userId);
-        res.status(200).json(collections);
+        res.status(200).json({ data: collections }); // Wrap response in a "data" object
     } catch (error) {
         console.error("Error fetching collections:", error);
         res.status(500).json({ error: "Failed to fetch collections" });
@@ -45,9 +45,21 @@ const deleteCollection = async (req, res) => {
     }
 };
 
+const getCollectionById = async (req, res) => {
+    try {
+        const { collectionId } = req.params;
+        const collection = await collectionService.getCollectionById(collectionId);
+        res.status(200).json({ data: collection }); // Wrap the response in a "data" object
+    } catch (error) {
+        console.error("Error fetching collection by ID:", error);
+        res.status(500).json({ error: "Failed to fetch collection" });
+    }
+};
+
 module.exports = {
     getUserCollections,
     createCollection,
     updateCollection,
     deleteCollection,
+    getCollectionById,
 };

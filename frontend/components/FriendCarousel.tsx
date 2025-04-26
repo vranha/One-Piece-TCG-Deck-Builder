@@ -114,7 +114,7 @@ const FriendCarousel: React.FC<FriendCarouselProps> = ({ friends, onFriendPress 
 const styles = StyleSheet.create({
     carouselContainer: {
         paddingVertical: 10, // Más compacto
-        borderRadius: 15, // Bordes más redondeados
+        borderRadius: 10, // Bordes más redondeados
         alignSelf: "center",
         overflow: "hidden",
     },

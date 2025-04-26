@@ -192,5 +192,9 @@
     "has_decks": "With decks",
     "is_completed": "Completed deck",
     "region": "Region",
-    "tags": "Tags"
+    "tags": "Tags",
+    "collections": "Collections",
+    "wishlist": "Wishlist",
+    "wishlists": "Wishlists",
+    "no_collections": "No collections yet"
 }
