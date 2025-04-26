@@ -916,7 +916,7 @@ router.get("/notifications", notificationController.checkNotifications);
 
 router.get("/collections/:userId", collectionController.getUserCollections);
 router.post("/collections", collectionController.createCollection);
-router.put("/collections/:collectionId", collectionController.updateCollection);
+router.put("/collection/:collectionId", collectionController.updateCollection);
 router.delete("/collections/:collectionId", collectionController.deleteCollection);
 router.get("/collection/:collectionId", collectionController.getCollectionById);
 
