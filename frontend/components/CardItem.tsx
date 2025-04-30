@@ -106,6 +106,30 @@ export default function CardItem({
                         onLoadStart={() => setLoading(true)}
                         onLoadEnd={() => setLoading(false)}
                     />
+                    {loading && (
+                        <View
+                            style={{
+                                position: "absolute",
+                                bottom: 5,
+                                left: 0,
+                                right: 0,
+                                justifyContent: "flex-end",
+                                alignItems: "center",
+                                paddingHorizontal: 8,
+                            }}
+                        >
+                            <ThemedText
+                                style={{
+                                    color: Colors[theme].tabIconDefault,
+                                    fontWeight: "bold",
+                                    fontSize: 14,
+                                    textAlign: "center",
+                                }}
+                            >
+                                {item.code}
+                            </ThemedText>
+                        </View>
+                    )}
                     {cardSizeOption === 2 && !loading && (
                         <View style={styles.cardDetails}>
                             <View style={[styles.cardRarityContainer, { backgroundColor: Colors[theme].background }]}>

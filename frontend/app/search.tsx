@@ -83,7 +83,7 @@ export default function SearchScreen() {
     const [userDecks, setUserDecks] = useState<Deck[]>([]);
     const [userId, setUserId] = useState<string | null>(null);
     const [setNames, setSetNames] = useState<string[]>([]); // Add this line to define setNames
-    const [families, setFamilies] = useState<string[]>([]); // Add this line to define setNames
+    const [families, setFamilies] = useState<string[]>([]); // Add this line to define families
     const [attributes, setAttributes] = useState<{ attribute_name: string; attribute_image: string }[]>([]);
 
     DropDownPicker.setListMode("MODAL");

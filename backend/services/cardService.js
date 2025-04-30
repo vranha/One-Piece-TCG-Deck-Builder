@@ -2,12 +2,11 @@ const { supabase } = require("../services/supabaseClient");
 
 // Buscar cartas con paginación y filtros
 const searchCards = async (page = 1, limit = 10, search = "", filters = {}) => {
-    const offset = (page - 1) * limit;
+    const offset = (Number(page) - 1) * Number(limit); // Asegúrate de que page y limit sean número
 
     let query = supabase
         .from("cards")
         .select("*", { count: "exact" })
-        // Búsqueda parcial por nombre o código
         .or(`name.ilike.%${search}%,code.ilike.%${search}%`);
 
     // Filtros exactos
@@ -99,10 +98,8 @@ const searchCards = async (page = 1, limit = 10, search = "", filters = {}) => {
     if (filters.counter_lte !== undefined) {
         query = query.lte("counter", String(filters.counter_lte));
     }
-    console.log("UNIQUECODES", filters.uniqueCodes);
+    
     if (filters.uniqueCodes === true || filters.uniqueCodes === "true") {
-        // Ensure uniqueCodes is interpreted correctly
-        console.log("Fetching unique cards with pagination:");
         query = query.order("code", { ascending: true }).order("id", { ascending: true });
         const { data: allCards, error } = await query;
 
@@ -110,7 +107,6 @@ const searchCards = async (page = 1, limit = 10, search = "", filters = {}) => {
             throw new Error("Error al buscar las cartas: " + error.message);
         }
 
-        // Filter to keep only the card with the smallest id for each unique code
         const uniqueCards = Object.values(
             allCards.reduce((acc, card) => {
                 if (!acc[card.code] || card.id < acc[card.code].id) {
@@ -120,28 +116,43 @@ const searchCards = async (page = 1, limit = 10, search = "", filters = {}) => {
             }, {})
         );
 
+        const paginatedCards = uniqueCards.slice(offset, offset + limit); // Apply pagination after filtering
         return {
-            data: uniqueCards.slice(offset, offset + limit), // Apply pagination after filtering
+            data: paginatedCards,
             count: uniqueCards.length,
         };
-    }
+    } else {
+        console.log("UNIQUECODES", filters.uniqueCodes);
+    
+        // Calcula el rango basado en la página y el límite
+        const start = offset; // Inicio del rango
+        const end = offset + Number(limit) - 1; // Fin del rango
 
-    query = query.range(offset, offset + limit - 1); // Apply pagination for non-unique queries
+        console.log(`Page: ${page}, Limit: ${limit}`); // Log para depuración
+        console.log(`Offset: ${offset}`); // Log para depuración
 
-    const { data: cards, error, count } = await query;
-
-    if (error) {
-        // Si se produce el error "Requested range not satisfiable", retornamos un array vacío
-        if (error.message && error.message.includes("Requested range not satisfiable")) {
-            return { data: [], count: 0 };
+        console.log(`Applying range: start=${start}, end=${end}`); // Log para depuración
+    
+        query = query.range(start, end); // Limita los resultados a la página actual
+    
+        const { data: cards, error, count } = await query;
+    
+        if (error) {
+            if (error.message && error.message.includes("Requested range not satisfiable")) {
+                // Si el rango solicitado no tiene resultados, devuelve una respuesta vacía
+                return { data: [], count: 0 };
+            }
+            throw new Error("Error al buscar las cartas: " + error.message);
         }
-        throw new Error("Error al buscar las cartas: " + error.message);
+    
+        console.log(`Fetched ${cards.length} cards for range: start=${start}, end=${end}`); // Log para depuración
+    
+        // Devuelve los resultados paginados
+        return {
+            data: cards,
+            count: count, // Total de resultados
+        };
     }
-
-    return {
-        data: cards,
-        count: count,
-    };
 };
 
 const getCardById = async (id) => {

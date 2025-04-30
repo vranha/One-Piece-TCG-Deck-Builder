@@ -56,10 +56,46 @@ const getCollectionById = async (req, res) => {
     }
 };
 
+const addCardsToCollection = async (req, res) => {
+    try {
+        const { collectionId } = req.params;
+        const { cardIds } = req.body;
+
+        if (!Array.isArray(cardIds) || cardIds.length === 0) {
+            return res.status(400).json({ error: "Invalid card IDs array" });
+        }
+
+        await collectionService.addCardsToCollection(collectionId, cardIds);
+        res.status(200).json({ message: "Cards added to collection successfully" });
+    } catch (error) {
+        console.error("Error adding cards to collection:", error);
+        res.status(500).json({ error: "Failed to add cards to collection" });
+    }
+};
+
+const updateCardsInCollection = async (req, res) => {
+    try {
+        const { collectionId } = req.params;
+        const { cardsToAdd, cardsToRemove } = req.body;
+
+        if (!Array.isArray(cardsToAdd) || !Array.isArray(cardsToRemove)) {
+            return res.status(400).json({ error: "Invalid card IDs array" });
+        }
+
+        await collectionService.updateCardsInCollection(collectionId, cardsToAdd, cardsToRemove);
+        res.status(200).json({ message: "Collection updated successfully" });
+    } catch (error) {
+        console.error("Error updating cards in collection:", error);
+        res.status(500).json({ error: "Failed to update collection" });
+    }
+};
+
 module.exports = {
     getUserCollections,
     createCollection,
     updateCollection,
     deleteCollection,
     getCollectionById,
+    addCardsToCollection,
+    updateCardsInCollection,
 };

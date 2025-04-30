@@ -919,5 +919,6 @@ router.post("/collections", collectionController.createCollection);
 router.put("/collection/:collectionId", collectionController.updateCollection);
 router.delete("/collections/:collectionId", collectionController.deleteCollection);
 router.get("/collection/:collectionId", collectionController.getCollectionById);
+router.put("/collection/:collectionId/update-cards", collectionController.updateCardsInCollection);
 
 module.exports = router;

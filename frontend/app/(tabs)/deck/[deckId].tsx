@@ -6,7 +6,7 @@ import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
 import useApi from "@/hooks/useApi";
 import { ThemedText } from "@/components/ThemedText";
-import { MaterialIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { Animated, Easing } from "react-native";
 import { LoadingIndicator } from "@/components/LoadingIndicator"; // Import the new component
 import { NoDeckFound } from "@/components/NoDeckFound"; // Import the new component
@@ -76,7 +76,6 @@ export default function DeckDetailScreen() {
     const router = useRouter();
     const [cardSizeOption, setCardSizeOption] = useState(0); // 0: small, 1: large, 2: detailed
     const modalizeRef = useRef<Modalize>(null);
-    const [imageLoading, setImageLoading] = useState<{ [key: string]: boolean }>({});
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [selectedCards, setSelectedCards] = useState<{ [key: string]: number }>({}); // State to store selected cards and their quantities
@@ -104,6 +103,10 @@ export default function DeckDetailScreen() {
     const [editedName, setEditedName] = useState(""); // State for edited name
     const [editedDescription, setEditedDescription] = useState(""); // State for edited description
     const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false); // State for delete modal visibility
+    const [imageLoaded, setImageLoaded] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1); // Total number of pages
+    const [hasMoreCards, setHasMoreCards] = useState(true);
 
     const fetchRelatedCards = async (code: string) => {
         try {
@@ -426,16 +429,6 @@ export default function DeckDetailScreen() {
         } catch (error) {
             console.error("Error toggling tag:", error);
         }
-    };
-
-    // Función para manejar el inicio de carga de una imagen
-    const handleImageLoadStart = (cardId: string) => {
-        setImageLoading((prev) => ({ ...prev, [cardId]: true }));
-    };
-
-    // Función para manejar el fin de carga de una imagen
-    const handleImageLoadEnd = (cardId: string) => {
-        setImageLoading((prev) => ({ ...prev, [cardId]: false }));
     };
 
     const copyDeckToClipboard = async () => {
@@ -822,7 +815,9 @@ export default function DeckDetailScreen() {
         return value.toString();
     };
 
-    const fetchFilteredCards = async () => {
+    const itemsPerPage = 18; // Número de elementos por página
+
+    const fetchFilteredCards = async (page: number) => {
         try {
             if (showSelectedCardsOnly) {
                 // Fetch all selected cards ignoring filters
@@ -858,11 +853,14 @@ export default function DeckDetailScreen() {
                     }&counter_gte=${transformSliderValue(counterRange[0], "")}&counter_lte=${transformSliderValue(
                         counterRange[1],
                         ""
-                    )}&uniqueCodes=true&limit=10000` // Ensure uniqueCodes=true is passed
+                    )}&uniqueCodes=true&limit=${itemsPerPage}&page=${page}` // Ensure uniqueCodes=true is passed
                 );
 
-                const { data: cards } = response.data;
+                const { data: cards, pagination } = response.data;
                 setFilteredCards(cards); // Store all cards
+                setCurrentPage(pagination.page); // Actualiza la página actual desde la API
+                setTotalPages(pagination.totalPages); // Actualiza el total de páginas desde la API
+                setHasMoreCards(pagination.page < pagination.totalPages); // Verifica si hay más páginas
             }
         } catch (error) {
             console.error("Error fetching filtered cards:", error);
@@ -871,7 +869,7 @@ export default function DeckDetailScreen() {
 
     const toggleShowSelectedCardsOnly = () => {
         setShowSelectedCardsOnly((prev) => !prev);
-        fetchFilteredCards(); // Trigger fetch with updated state
+        fetchFilteredCards(1); // Trigger fetch with updated state
     };
 
     const [visibleCardsCount, setVisibleCardsCount] = useState(21); // Number of cards to display initially
@@ -923,7 +921,7 @@ export default function DeckDetailScreen() {
     }, [searchQuery]);
 
     useEffect(() => {
-        fetchFilteredCards(); // Reset search whenever filters change
+        fetchFilteredCards(1); // Reset search whenever filters change
     }, [
         debouncedSearchQuery,
         leaderColors,
@@ -1100,6 +1098,13 @@ export default function DeckDetailScreen() {
         }
     };
 
+        const [isAtTop, setIsAtTop] = useState(true); // Estado para saber si estás en la parte superior
+    
+        const handleScroll = (event: any) => {
+            const offsetY = event.nativeEvent.contentOffset.y;
+            setIsAtTop(offsetY <= 0); // Si el desplazamiento es 0 o menor, estás en la parte superior
+        };
+
     // const [headerOptions, setHeaderOptions] = useState<any>({}); // Estado inicial vacío para las opciones del encabezado
 
     const [isHeaderReady, setIsHeaderReady] = useState(false);
@@ -1273,6 +1278,128 @@ export default function DeckDetailScreen() {
 
     const calculateDeckCardCount = () => {
         return deckDetail?.cards.reduce((total, card) => total + (card.quantity ?? 1), 0) || 0;
+    };
+
+    const PaginationControls = () => {
+        const renderPageButtons = () => {
+            const buttons = [];
+            const maxPreviousPages = 2; // Número de páginas anteriores visibles
+            const maxNextPages = 2; // Número de páginas posteriores visibles
+
+            // Botón para ir a la primera página (solo si no aparece ya en las páginas anteriores)
+            if (currentPage > maxPreviousPages + 1) {
+                buttons.push(
+                    <TouchableOpacity
+                        key="first"
+                        style={[styles.pageButton, { backgroundColor: Colors[theme].TabBarBackground }]}
+                        onPress={() => fetchFilteredCards(1)}
+                    >
+                        <Text style={[styles.pageButtonText, { color: Colors[theme].tabIconDefault }]}>1</Text>
+                    </TouchableOpacity>
+                );
+            }
+
+            // Espacio entre el botón de la primera página y las páginas anteriores
+            if (currentPage > maxPreviousPages + 1) {
+                buttons.push(
+                    <Text key="first-gap" style={[styles.pageButtonText, { color: Colors[theme].tabIconDefault }]}>
+                        ...
+                    </Text>
+                );
+            }
+
+            // Botones para las dos páginas anteriores
+            for (let i = Math.max(1, currentPage - maxPreviousPages); i < currentPage; i++) {
+                buttons.push(
+                    <TouchableOpacity
+                        key={i}
+                        style={[styles.pageButton, { backgroundColor: Colors[theme].TabBarBackground }]}
+                        onPress={() => fetchFilteredCards(i)}
+                    >
+                        <Text style={[styles.pageButtonText, { color: Colors[theme].tabIconDefault }]}>{i}</Text>
+                    </TouchableOpacity>
+                );
+            }
+
+            // Botón para la página actual
+            buttons.push(
+                <TouchableOpacity
+                    key={currentPage}
+                    style={[styles.pageButton, { backgroundColor: Colors[theme].tint }]}
+                    onPress={() => fetchFilteredCards(currentPage)}
+                >
+                    <Text style={[styles.pageButtonText, { color: Colors[theme].background }]}>{currentPage}</Text>
+                </TouchableOpacity>
+            );
+
+            // Botones para las dos páginas posteriores
+            for (let i = currentPage + 1; i <= Math.min(totalPages, currentPage + maxNextPages); i++) {
+                buttons.push(
+                    <TouchableOpacity
+                        key={i}
+                        style={[styles.pageButton, { backgroundColor: Colors[theme].TabBarBackground }]}
+                        onPress={() => fetchFilteredCards(i)}
+                    >
+                        <Text style={[styles.pageButtonText, { color: Colors[theme].tabIconDefault }]}>{i}</Text>
+                    </TouchableOpacity>
+                );
+            }
+
+            // Espacio entre el botón de la última página y las páginas posteriores
+            if (currentPage < totalPages - maxNextPages) {
+                buttons.push(
+                    <Text key="last-gap" style={[styles.pageButtonText, { color: Colors[theme].tabIconDefault }]}>
+                        ...
+                    </Text>
+                );
+            }
+
+            // Botón para ir a la última página (solo si no aparece ya en las páginas posteriores)
+            if (currentPage < totalPages - maxNextPages) {
+                buttons.push(
+                    <TouchableOpacity
+                        key="last"
+                        style={[styles.pageButton, { backgroundColor: Colors[theme].TabBarBackground }]}
+                        onPress={() => fetchFilteredCards(totalPages)}
+                    >
+                        <Text style={[styles.pageButtonText, { color: Colors[theme].tabIconDefault }]}>
+                            {totalPages}
+                        </Text>
+                    </TouchableOpacity>
+                );
+            }
+
+            return buttons;
+        };
+
+        return (
+            <View
+                style={[
+                    styles.pagination,
+                    { marginBottom: Platform.OS === "web" ? 150 : 100 }, // Adjust margin based on platform
+                ]}
+            >
+                <Ionicons
+                    name="chevron-back"
+                    size={24}
+                    color={currentPage === 1 ? Colors[theme].disabled : Colors[theme].tint}
+                    onPress={() => {
+                        if (currentPage > 1) fetchFilteredCards(currentPage - 1);
+                    }}
+                    style={[styles.paginationIcon, currentPage === 1 && styles.disabledIcon]}
+                />
+                <View style={styles.pageNumbersContainerCentered}>{renderPageButtons()}</View>
+                <Ionicons
+                    name="chevron-forward"
+                    size={24}
+                    color={currentPage === totalPages ? Colors[theme].disabled : Colors[theme].tint}
+                    onPress={() => {
+                        if (currentPage < totalPages) fetchFilteredCards(currentPage + 1);
+                    }}
+                    style={[styles.paginationIcon, currentPage === totalPages && styles.disabledIcon]}
+                />
+            </View>
+        );
     };
 
     return (
@@ -1478,6 +1605,9 @@ export default function DeckDetailScreen() {
                 velocity={8000} // gesto extremadamente rápido necesario
                 threshold={200} // gesto muy largo también necesario si no supera velocity
                 dragToss={0.01} // poca inercia, más control
+                disableScrollIfPossible={true} // Desactiva el scroll si es necesario
+                onBackButtonPress={() => isAtTop} // Solo permite cerrar si estás en la parte superior
+                onOverlayPress={() => isAtTop} // Solo permite cerrar si estás en la parte superior
                 onClose={() => {
                     console.log("Modalize onClose triggered");
                     setSearchQuery("");
@@ -1487,6 +1617,7 @@ export default function DeckDetailScreen() {
                         syncDeckCards();
                     }
                 }}
+                FooterComponent={<PaginationControls />}
                 HeaderComponent={
                     <View style={[styles.containerModalize]}>
                         <View style={styles.searchContainer}>
@@ -1736,7 +1867,7 @@ export default function DeckDetailScreen() {
                     // cualquier otro estilo específico para la FlatList
                 }}
                 flatListProps={{
-                    data: filteredCards.slice(0, visibleCardsCount), // Display only the sliced portion of cards
+                    data: filteredCards, // Remove slicing as pagination is now handled by buttons
                     keyExtractor: (card) => card.id,
                     renderItem: ({ item: card }) => (
                         <CardItem
@@ -1745,49 +1876,23 @@ export default function DeckDetailScreen() {
                             imageStyle={imageStyle}
                             cardSizeOption={cardSizeOption}
                             theme={theme}
-                            onLoadStart={handleImageLoadStart}
-                            onLoadEnd={handleImageLoadEnd}
                             getQuantityControlsStyle={getQuantityControlsStyle}
                             updateCardQuantity={updateCardQuantity}
                             selectedQuantity={selectedQuantity}
                             limitDeckNum={limitDeckNum}
                             deckCardCount={deckCardCount}
                             loading={loading}
-                            isAddDisabled={isAddDisabled} // Pasa la función directamente
+                            isAddDisabled={isAddDisabled}
                         />
                     ),
-                    contentContainerStyle: [styles.cardList, { paddingBottom: 80 }],
+                    contentContainerStyle: [styles.cardList],
                     keyboardShouldPersistTaps: "handled", // Allow taps to propagate while the keyboard is open
                     showsVerticalScrollIndicator: true, // Ensure the vertical scroll indicator is visible
                     nestedScrollEnabled: true, // Allow nested scrolling
-                    initialNumToRender: 21, // Number of items to render initially
-                    maxToRenderPerBatch: 21, // Number of items to render per batch
-                    ListFooterComponent:
-                        visibleCardsCount < filteredCards.length ? (
-                            <View
-                                style={{
-                                    backgroundColor: Colors[theme].TabBarBackground,
-                                    paddingVertical: 10,
-                                    paddingHorizontal: 20,
-                                    borderRadius: 5,
-                                    marginTop: 20,
-                                    marginBottom: 80,
-                                }}
-                            >
-                                <TouchableOpacity onPress={loadMoreCards}>
-                                    <Text
-                                        style={{
-                                            color: Colors[theme].tabIconDefault,
-                                            fontWeight: "bold",
-                                            paddingVertical: 10,
-                                            paddingHorizontal: 10,
-                                        }}
-                                    >
-                                        {t("load_more")}
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
-                        ) : null,
+                    onEndReached: null,
+                    onEndReachedThreshold: null,
+                    onScroll: handleScroll, // Detecta el desplazamiento
+                    scrollEventThrottle: 16, // Optimiza el rendimiento del scroll
                 }}
             />
             <Modal
@@ -1850,8 +1955,6 @@ const CardItem = React.memo(
         imageStyle,
         cardSizeOption,
         theme,
-        onLoadStart,
-        onLoadEnd,
         getQuantityControlsStyle,
         updateCardQuantity,
         selectedQuantity,
@@ -1865,8 +1968,6 @@ const CardItem = React.memo(
         imageStyle: any;
         cardSizeOption: number;
         theme: string;
-        onLoadStart: (cardId: string) => void;
-        onLoadEnd: (cardId: string) => void;
         getQuantityControlsStyle: () => any;
         updateCardQuantity: (cardId: string, change: number) => void;
         selectedQuantity: (cardId: string) => number;
@@ -1874,7 +1975,10 @@ const CardItem = React.memo(
         deckCardCount: number; // Added deckCardCount to the props
         loading: boolean;
         isAddDisabled: (card: Card) => boolean; // Added isAddDisabled to the props
-    }) => (
+        
+    }) => {
+        const [imageLoaded, setImageLoaded] = useState(false);
+     return(
         <View key={card.id}>
             <View
                 style={[
@@ -1894,10 +1998,32 @@ const CardItem = React.memo(
                     style={[styles.cardImage, imageStyle, loading && { opacity: 0.3 }]}
                     contentFit="contain"
                     // transition={300}
+                    onLoadEnd={() => setImageLoaded(true)}
                     cachePolicy="memory-disk"
-                    onLoadStart={() => onLoadStart(card.id)}
-                    onLoadEnd={() => onLoadEnd(card.id)}
                 />
+                                    {!imageLoaded && (
+                                        <View
+                                            style={{
+                                                position: "absolute",
+                                                top: 3,
+                                                justifyContent: "flex-end",
+                                                alignItems: "center",
+                                                // backgroundColor: "rgba(0,0,0,0.2)",
+                                                paddingHorizontal: 8,
+                                            }}
+                                        >
+                                            <Text
+                                                style={{
+                                                    color: Colors[theme as keyof typeof Colors].tabIconDefault,
+                                                    fontWeight: "bold",
+                                                    fontSize: 14,
+                                                    textAlign: "center",
+                                                }}
+                                            >
+                                                {card.code}
+                                            </Text>
+                                        </View>
+                                    )}
                 <View style={[styles.quantityControls, getQuantityControlsStyle()]}>
                     <TouchableOpacity
                         onPress={() => updateCardQuantity(card.id, -1)}
@@ -1991,6 +2117,7 @@ const CardItem = React.memo(
             </View>
         </View>
     )
+}
 );
 
 const styles = StyleSheet.create({
@@ -2285,5 +2412,33 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         justifyContent: "center",
         alignItems: "center",
+    },
+    pagination: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        width: "100%",
+        paddingHorizontal: 10,
+    },
+    paginationIcon: {
+        padding: 10,
+        borderRadius: 5,
+    },
+    disabledIcon: {
+        opacity: 0.5,
+    },
+    pageNumbersContainerCentered: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        flex: 1,
+    },
+    pageButton: {
+        padding: 10,
+        borderRadius: 5,
+        marginHorizontal: 5,
+    },
+    pageButtonText: {
+        fontWeight: "bold",
     },
 });
