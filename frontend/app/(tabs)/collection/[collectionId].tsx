@@ -196,15 +196,18 @@ const CollectionDetails = () => {
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <TouchableOpacity
                         onPress={handleOpenModal}
+                        disabled={isModalOpen} // Disable button when Modalize is open
                         style={{
-                            backgroundColor: Colors[theme].success,
+                            backgroundColor: isModalOpen ? Colors[theme].disabled : Colors[theme].success,
                             paddingVertical: 5,
                             paddingHorizontal: 10,
                             borderRadius: 5,
                             marginRight: 10,
                         }}
                     >
-                        <Text style={{ color: Colors[theme].background, fontWeight: "bold" }}>{t("cards")}</Text>
+                        <Text style={{ color: Colors[theme].background, fontWeight: "bold" }}>
+                            {isModalOpen ? t("close_to_make_changes") : t("cards")}
+                        </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={{
@@ -232,7 +235,7 @@ const CollectionDetails = () => {
                 </View>
             ),
         });
-    }, [isEditing]);
+    }, [isEditing, isModalOpen]);
 
     const toggleTypeSelection = (type: string) => {
         if (selectedTypes.includes(type)) {
@@ -480,6 +483,14 @@ const CollectionDetails = () => {
         }
     }, [collection]);
 
+    const [isImageModalVisible, setIsImageModalVisible] = useState(false);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+    const handleCardPress = (image: string) => {
+        setSelectedImage(image);
+        setIsImageModalVisible(true);
+    };
+
     if (loading) {
         return (
             <View style={styles.container}>
@@ -496,21 +507,27 @@ const CollectionDetails = () => {
         );
     }
 
-    const renderCardItem = ({ item }: { item: { code: string; name: string; color: string[]; rarity: string } }) => (
-        <View style={[styles.cardContainer, { backgroundColor: Colors[theme].backgroundSoft }]}>
-            <View style={styles.cardDetails}>
-                <Text style={[styles.cardCode, { color: Colors[theme].text }]}>{item.code}</Text>
-                <Text style={[styles.cardName, { color: Colors[theme].textSoft }]}>
-                    {item.name.length > 25 ? `${item.name.slice(0, 25)}...` : item.name}
-                </Text>
+    const renderCardItem = ({
+        item,
+    }: {
+        item: { code: string; name: string; color: string[]; rarity: string; images_small: string };
+    }) => (
+        <TouchableOpacity onPress={() => handleCardPress(item.images_small)}>
+            <View style={[styles.cardContainer, { backgroundColor: Colors[theme].backgroundSoft }]}>
+                <View style={styles.cardDetails}>
+                    <Text style={[styles.cardCode, { color: Colors[theme].text }]}>{item.code}</Text>
+                    <Text style={[styles.cardName, { color: Colors[theme].textSoft }]}>
+                        {item.name.length > 25 ? `${item.name.slice(0, 25)}...` : item.name}
+                    </Text>
+                </View>
+                <Text style={[styles.cardRarity, { color: Colors[theme].tint }]}>{item.rarity}</Text>
+                <View style={styles.cardColors}>
+                    {item.color.map((color, index) => (
+                        <View key={index} style={[styles.colorCircle, { backgroundColor: color.toLowerCase() }]} />
+                    ))}
+                </View>
             </View>
-            <Text style={[styles.cardRarity, { color: Colors[theme].tint }]}>{item.rarity}</Text>
-            <View style={styles.cardColors}>
-                {item.color.map((color, index) => (
-                    <View key={index} style={[styles.colorCircle, { backgroundColor: color.toLowerCase() }]} />
-                ))}
-            </View>
-        </View>
+        </TouchableOpacity>
     );
 
     const PaginationControls = () => {
@@ -683,9 +700,11 @@ const CollectionDetails = () => {
                                     name: item.name,
                                     color: item.color,
                                     rarity: item.rarity,
+                                    images_small: item.images_small,
                                 },
                             })
                         }
+                        contentContainerStyle={{ gap: 15, padding: 20 }}
                     />
                 )}
             </View>
@@ -1074,6 +1093,52 @@ const CollectionDetails = () => {
                     </View>
                 </TouchableOpacity>
             </Modal>
+            <Modal
+                visible={isImageModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setIsImageModalVisible(false)}
+            >
+                <TouchableOpacity
+                    style={{
+                        flex: 1,
+                        justifyContent: "center",
+                        alignItems: "center",
+                        backgroundColor: "rgba(0, 0, 0, 0.5)",
+                    }}
+                    activeOpacity={1}
+                    onPressOut={() => setIsImageModalVisible(false)}
+                >
+                    <View
+                        style={{
+                            width: "80%",
+                            borderRadius: 10,
+                            padding: 20,
+                            backgroundColor: Colors[theme].backgroundSoft,
+                            alignItems: "center",
+                        }}
+                    >
+                        {selectedImage && (
+                            <ExpoImage
+                                source={{ uri: selectedImage }}
+                                style={{ width: 200, height: 300, marginBottom: 20 }}
+                                contentFit="contain"
+                            />
+                        )}
+                        <TouchableOpacity
+                            style={{
+                                paddingVertical: 10,
+                                paddingHorizontal: 20,
+                                borderRadius: 5,
+                                backgroundColor: Colors[theme].info,
+                            }}
+                            onPress={() => setIsImageModalVisible(false)}
+                        >
+                            <Text style={{ color: Colors[theme].background, fontWeight: "bold" }}>Close</Text>
+                        </TouchableOpacity>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </>
     );
 };
@@ -1238,8 +1303,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: 10,
-        marginVertical: 5,
+        padding: 15,
         borderRadius: 8,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 }, // Slightly deeper shadow

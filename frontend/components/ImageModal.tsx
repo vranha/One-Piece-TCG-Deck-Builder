@@ -20,7 +20,7 @@ const ImageModal: React.FC<ImageModalProps> = ({ isVisible, onClose, imageUri, t
                     )}
                     <TouchableOpacity
                         onPress={onClose}
-                        style={[styles.closeButton, { backgroundColor: Colors[theme].tabIconDefault }]}
+                        style={[styles.closeButton, { backgroundColor: Colors[theme].info }]}
                     >
                         <Text style={[styles.closeButtonText, { color: Colors[theme].background }]}>Close</Text>
                     </TouchableOpacity>
@@ -46,12 +46,12 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     largeImage: {
-        width: "100%",
-        height: "80%",
+        width: 200,
+        height: 300,
+        marginBottom: 20, 
         borderRadius: 10,
     },
     closeButton: {
-        marginTop: 20,
         paddingVertical: 10,
         paddingHorizontal: 20,
         borderRadius: 5,
