@@ -269,12 +269,10 @@ export default function HomeScreen() {
                                 collections={collections}
                                 userId={userId}
                                 onCollectionPress={(collectionId) => {
-                                    if (collectionId) {
-                                        router.push({
-                                            pathname: `/(tabs)/collection/[collectionId]`,
-                                            params: { collectionId }, // Pass collectionId correctly
-                                        });
-                                    }
+                                    router.push({
+                                        pathname: `/(tabs)/collection/[collectionId]`,
+                                        params: { collectionId },
+                                    });
                                     refreshCollections(); // Refresh collections after navigating
                                 }}
                             />

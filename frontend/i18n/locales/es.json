@@ -17,7 +17,7 @@
     "import_deck": "Importar Mazo",
     "new_note": "Nueva Nota",
     "new_collection": "Nueva Colección",
-    "new_wishlist": "Nueva WishList",
+    "new_wishlist": "Nueva Lista de Deseos",
     "new_deck_bubble": "Nuevo Mazo",
     "unknown": "Desconocido",
     "edit_deck": "Editar Mazo",
@@ -194,5 +194,16 @@
     "collections": "Colecciones",
     "wishlist": "Lista de Deseos",
     "wishlists": "Listas de Deseos",
-    "no_collections": "No hay colecciones todavía"
+    "no_collections": "No hay colecciones todavía",
+    "create": "Crear",
+    "create_your_first_collection": "Crea tu primera colección",
+    "create_your_first_wishlist": "Crea tu primera lista de deseos",
+    "collection_created_successfully": "Colección creada con éxito",
+    "error_creating_collection": "Error al crear la colección",
+    "collection_updated_successfully": "Colección actualizada con éxito",
+    "error_updating_collection": "Error al actualizar la colección",
+    "collection_deleted_successfully": "Colección eliminada con éxito",
+    "error_deleting_collection": "Error al eliminar la colección",
+    "failed_to_update_collection": "Error al actualizar la colección",
+    "collection_updated": "Colección actualizada"
 }

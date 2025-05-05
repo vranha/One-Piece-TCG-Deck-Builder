@@ -13,9 +13,18 @@ const getUserCollections = async (req, res) => {
 
 const createCollection = async (req, res) => {
     try {
-        const collectionData = { ...req.body, user_id: req.user.id };
-        const newCollection = await collectionService.createCollection(collectionData);
-        res.status(201).json(newCollection);
+        const { userId } = req.params; // Extract userId from route parameters
+        const collectionData = {
+            ...req.body,
+            user_id: userId, // Set user_id from the route
+            is_public: true, // Set is_public to TRUE
+        };
+
+        console.log("Creating collection with data:", collectionData); // Log the data being sent to the service
+
+        await collectionService.createCollection(collectionData); // No need to handle returned data
+
+        res.status(201).json({ message: "Collection created successfully" }); // Return success message
     } catch (error) {
         console.error("Error creating collection:", error);
         res.status(500).json({ error: "Failed to create collection" });

@@ -196,5 +196,16 @@
     "collections": "Collections",
     "wishlist": "Wishlist",
     "wishlists": "Wishlists",
-    "no_collections": "No collections yet"
+    "no_collections": "No collections yet",
+    "create": "Create",
+    "create_your_first_collection": "Create your first collection",
+    "create_your_first_wishlist": "Create your first wishlist",
+    "collection_created_successfully": "Collection created successfully",
+    "error_creating_collection": "Error creating collection",
+    "collection_updated_successfully": "Collection updated successfully",
+    "error_updating_collection": "Error updating collection",
+    "collection_deleted_successfully": "Collection deleted successfully",
+    "error_deleting_collection": "Error deleting collection",
+    "failed_to_update_collection": "Failed to update collection",
+    "collection_updated": "Collection updated"
 }

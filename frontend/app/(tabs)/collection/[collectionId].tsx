@@ -286,8 +286,8 @@ const CollectionDetails = () => {
 
             Toast.show({
                 type: "success",
-                text1: "Collection updated",
-                text2: "The collection has been successfully updated.",
+                text1: t("collection_updated"),
+                text2: t("collection_updated_successfully"),
                 position: "bottom",
             });
         } catch (error) {
@@ -295,7 +295,7 @@ const CollectionDetails = () => {
             Toast.show({
                 type: "error",
                 text1: "Error",
-                text2: "Failed to update the collection.",
+                text2: t("failed_to_update_collection"),
                 position: "bottom",
             });
         }

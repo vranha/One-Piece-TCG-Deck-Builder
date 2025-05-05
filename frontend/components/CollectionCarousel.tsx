@@ -1,10 +1,24 @@
 import React, { useState } from "react";
-import { StyleSheet, View, Text, FlatList, TouchableOpacity, Dimensions, useWindowDimensions } from "react-native";
+import {
+    StyleSheet,
+    View,
+    Text,
+    FlatList,
+    TouchableOpacity,
+    Dimensions,
+    useWindowDimensions,
+    ScrollView,
+    Modal, // Import Modal
+    TextInput, // Import TextInput
+    Button, // Import Button
+} from "react-native";
+import Toast from "react-native-toast-message"; // Import Toast
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { useTranslation } from "react-i18next";
 import { useNavigation } from "@react-navigation/native";
+import useApi from "@/hooks/useApi"; // Import useApi
 
 interface Collection {
     id: string;
@@ -12,46 +26,58 @@ interface Collection {
     description: string;
     type: string;
     is_public: boolean; // Added is_public property
-    collection_cards?: { card_id: string }[]; // Added optional collection_cards property
+    // collection_cards?: { card_id: string }[]; // Added optional collection_cards property
 }
 
 interface CollectionCarouselProps {
     collections: Collection[];
-    onCollectionPress: (collectionId: string) => void; // Added onCollectionPress prop
+    userId: string | null; // Add userId as a prop
+    onCollectionPress: (collectionId: string) => void;
 }
 
 const screenWidth = Dimensions.get("window").width; // Get the screen width
 
-const CollectionCarousel: React.FC<CollectionCarouselProps> = ({ collections, onCollectionPress }) => {
+const CollectionCarousel: React.FC<CollectionCarouselProps> = ({ collections, userId, onCollectionPress }) => {
     const { theme } = useTheme();
+    const api = useApi(); // Initialize useApi hook
     const [selectedTab, setSelectedTab] = useState<"collection" | "wishlist">("collection");
+    const [isModalVisible, setIsModalVisible] = useState(false); // State for modal visibility
+    const [newCollectionName, setNewCollectionName] = useState(""); // State for collection name
+    const [newCollectionDescription, setNewCollectionDescription] = useState(""); // State for collection description
     const { t } = useTranslation();
     const { width } = useWindowDimensions();
     const navigation = useNavigation();
 
     const filteredCollections = collections.filter((collection) => collection.type === selectedTab);
 
-    const renderCollectionItem = ({ item }: { item: Collection }) => (
-        <TouchableOpacity
-            style={[styles.collectionItem, { backgroundColor: Colors[theme].backgroundSoft }]}
-            onPress={() => onCollectionPress(item.id)} // Use the onCollectionPress prop to navigate to the collection details
-        >
-            <Text
-                style={[
-                    styles.collectionName,
-                    item.type === "collection" ? { color: Colors[theme].info } : { color: Colors[theme].success },
-                ]}
-            >
-                {item.name.length > 20 ? `${item.name.slice(0, 20)}...` : item.name}
-            </Text>
-            <Text style={[styles.collectionDescription, { color: Colors[theme].textSoft }]}>
-                {item.description.length > 30 ? `${item.description.slice(0, 30)}...` : item.description}
-            </Text>
-        </TouchableOpacity>
-    );
+    const handleCreateCollection = async () => {
+        const newCollection = {
+            name: newCollectionName,
+            description: newCollectionDescription,
+            type: selectedTab, // Set type based on the selected tab
+        };
+
+        try {
+            await api.post(`/collections/${userId}`, newCollection); // Use userId in the route
+            Toast.show({
+                type: "success",
+                text1: t("collection_created_successfully"),
+            }); // Success toast
+            setIsModalVisible(false); // Close the modal
+            setNewCollectionName(""); // Reset the name field
+            setNewCollectionDescription(""); // Reset the description field
+            onCollectionPress(""); // Trigger a refresh of the carousel
+        } catch (error) {
+            console.error("Error creating collection:", error);
+            Toast.show({
+                type: "error",
+                text1: t("error_creating_collection"),
+            }); // Error toast
+        }
+    };
 
     return (
-        <View style={[styles.container, { backgroundColor: Colors[theme].TabBarBackground, width: width * 0.95  }]}>
+        <View style={[styles.container, { backgroundColor: Colors[theme].TabBarBackground, width: width * 0.95 }]}>
             <View style={[styles.tabContainer, { backgroundColor: Colors[theme].background }]}>
                 <TouchableOpacity
                     style={[
@@ -76,20 +102,114 @@ const CollectionCarousel: React.FC<CollectionCarouselProps> = ({ collections, on
             </View>
             <View style={styles.contentWrapper}>
                 {filteredCollections.length > 0 ? (
-                    <FlatList
-                        data={filteredCollections}
-                        renderItem={renderCollectionItem}
-                        keyExtractor={(item) => item.id}
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.carousel}
-                    />
+                    <ScrollView
+                        horizontal // Enable horizontal scrolling
+                        showsHorizontalScrollIndicator={false} // Show horizontal scroll indicator
+                        contentContainerStyle={[styles.carousel, { paddingVertical: 10 }]} // Add vertical padding to prevent cutting
+                    >
+                        {filteredCollections.map((collection) => (
+                            <TouchableOpacity
+                                key={collection.id}
+                                style={[styles.collectionItem, { backgroundColor: Colors[theme].backgroundSoft }]}
+                                onPress={() => onCollectionPress(collection.id)} // Pass collection.id correctly
+                            >
+                                <Text
+                                    style={[
+                                        styles.collectionName,
+                                        collection.type === "collection"
+                                            ? { color: Colors[theme].info }
+                                            : { color: Colors[theme].success },
+                                    ]}
+                                >
+                                    {collection.name.length > 20
+                                        ? `${collection.name.slice(0, 20)}...`
+                                        : collection.name}
+                                </Text>
+                                <Text style={[styles.collectionDescription, { color: Colors[theme].textSoft }]}>
+                                    {collection.description.length > 30
+                                        ? `${collection.description.slice(0, 30)}...`
+                                        : collection.description}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
                 ) : (
                     <View style={styles.emptyState}>
-                        <Text style={[styles.placeholder, { color: Colors[theme].text }]}>{t("no_collections")}</Text>
+                        <View style={styles.emptyStateContent}>
+                            <Text style={[styles.placeholder, { color: Colors[theme].text }]}>
+                                {selectedTab === "collection"
+                                    ? t("create_your_first_collection")
+                                    : t("create_your_first_wishlist")}
+                            </Text>
+                            <TouchableOpacity onPress={() => setIsModalVisible(true)}>
+                                <Ionicons name="add-circle" size={30} color={Colors[theme].info} />
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 )}
             </View>
+
+            {/* Modal for creating a new collection */}
+            <Modal visible={isModalVisible} transparent animationType="fade">
+                <TouchableOpacity
+                    style={styles.modalContainer}
+                    activeOpacity={1}
+                    onPressOut={() => setIsModalVisible(false)} // Close modal when clicking outside
+                >
+                    <View style={[styles.modalContent, { backgroundColor: Colors[theme].background }]}>
+                        <Text style={[styles.modalTitle, { color: Colors[theme].text }]}>
+                            {selectedTab === "collection" ? t("new_collection") : t("new_wishlist")}
+                        </Text>
+                        <TextInput
+                            style={[
+                                styles.input,
+                                {
+                                    borderColor: Colors[theme].background,
+                                    color: Colors[theme].text,
+                                    backgroundColor: Colors[theme].backgroundSoft,
+                                },
+                            ]}
+                            placeholder={t("name")}
+                            placeholderTextColor={Colors[theme].tabIconDefault}
+                            value={newCollectionName}
+                            onChangeText={setNewCollectionName}
+                        />
+                        <TextInput
+                            style={[
+                                styles.input,
+                                {
+                                    borderColor: Colors[theme].background,
+                                    color: Colors[theme].text,
+                                    backgroundColor: Colors[theme].backgroundSoft,
+                                },
+                            ]}
+                            placeholder={t("description")}
+                            placeholderTextColor={Colors[theme].tabIconDefault}
+                            value={newCollectionDescription}
+                            onChangeText={setNewCollectionDescription}
+                            multiline
+                        />
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                style={[styles.modalButton, { backgroundColor: Colors[theme].error }]}
+                                onPress={() => setIsModalVisible(false)}
+                            >
+                                <Text style={[styles.modalButtonText, { color: Colors[theme].background }]}>
+                                    {t("cancel")}
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.modalButton, { backgroundColor: Colors[theme].success }]}
+                                onPress={handleCreateCollection}
+                            >
+                                <Text style={[styles.modalButtonText, { color: Colors[theme].background }]}>
+                                    {t("create")}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </View>
     );
 };
@@ -113,6 +233,14 @@ const styles = StyleSheet.create({
         // minHeight: 150, // Matches the minimum height of the contentWrapper
         justifyContent: "center", // Centers the text vertically
         alignItems: "center", // Centers the text horizontally
+        paddingVertical: 20, // Add padding to the empty state
+    },
+    emptyStateContent: {
+        flexDirection: "row",
+        alignItems: "center", // Center icon vertically with text
+        justifyContent: "center",
+        gap: 10, // Add spacing between text and icon
+        marginTop: 20, // Add margin to the top for spacing
     },
     tabContainer: {
         flexDirection: "row",
@@ -137,21 +265,16 @@ const styles = StyleSheet.create({
     carousel: {
         paddingHorizontal: 10,
         marginTop: 20, // Add margin to account for the protruding tabs
-        width: "100%", // Ensures the FlatList spans the full width
+        paddingVertical: 10, // Add vertical padding to prevent cutting
     },
     collectionItem: {
         paddingHorizontal: 20,
-        paddingVertical: 15, // Increased padding for better spacing
+        paddingVertical: 20, // Adjust padding for better spacing
         borderRadius: 10, // Slightly more rounded corners
         marginHorizontal: 8, // Increased margin for better spacing between items
         alignItems: "flex-start",
         justifyContent: "center",
         gap: 8, // Increased gap between name and description
-        shadowColor: "#000", // Add shadow for depth
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3, // Shadow for Android
     },
     collectionName: {
         fontSize: 16, // Slightly larger font size
@@ -165,8 +288,55 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "bold",
         textAlign: "center",
-        marginTop: 20,
         paddingVertical: 25,
+    },
+    modalContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent background
+    },
+    modalContent: {
+        width: "85%",
+        padding: 20,
+        borderRadius: 15,
+        alignItems: "center",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5, // Add shadow for Android
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: "bold",
+        marginBottom: 15,
+        textAlign: "center",
+    },
+    input: {
+        width: "100%",
+        borderWidth: 1,
+        borderRadius: 10,
+        padding: 12,
+        marginBottom: 15,
+        fontSize: 16,
+    },
+    modalButtons: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        width: "100%",
+        marginTop: 10,
+    },
+    modalButton: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 10,
+        alignItems: "center",
+        marginHorizontal: 5,
+    },
+    modalButtonText: {
+        fontSize: 16,
+        fontWeight: "bold",
     },
 });
 

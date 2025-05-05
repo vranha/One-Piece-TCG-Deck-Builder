@@ -22,10 +22,13 @@ const getCollectionsByUser = async (userId) => {
 };
 
 const createCollection = async (collectionData) => {
-    const { data, error } = await supabase.from("collections").insert([collectionData]);
+    console.log("Inserting collection data:", collectionData); // Log the data being inserted
+    const { error } = await supabase.from("collections").insert([collectionData]); // Remove .select()
 
-    if (error) throw error;
-    return data;
+    if (error) {
+        console.error("Error inserting collection into database:", error);
+        throw error; // Throw the error to be handled by the controller
+    }
 };
 
 const updateCollection = async (collectionId, updates) => {

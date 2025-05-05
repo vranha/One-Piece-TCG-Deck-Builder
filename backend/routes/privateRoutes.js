@@ -915,7 +915,7 @@ router.get("/friends", async (req, res) => {
 router.get("/notifications", notificationController.checkNotifications);
 
 router.get("/collections/:userId", collectionController.getUserCollections);
-router.post("/collections", collectionController.createCollection);
+router.post("/collections/:userId", collectionController.createCollection);
 router.put("/collection/:collectionId", collectionController.updateCollection);
 router.delete("/collections/:collectionId", collectionController.deleteCollection);
 router.get("/collection/:collectionId", collectionController.getCollectionById);
