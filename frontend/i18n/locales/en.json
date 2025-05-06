@@ -207,5 +207,17 @@
     "collection_deleted_successfully": "Collection deleted successfully",
     "error_deleting_collection": "Error deleting collection",
     "failed_to_update_collection": "Failed to update collection",
-    "collection_updated": "Collection updated"
+    "collection_updated": "Collection updated",
+    "auth": {
+        "errors": {
+          "Invalid login credentials": "Invalid login credentials",
+          "Email not confirmed": "Email not confirmed",
+          "User already registered": "User already registered",
+          "Password should be at least 6 characters": "Password should be at least 6 characters",
+          "Invalid email or password": "Invalid email or password",
+          "default": "An unknown error has occurred"
+        }
+      },
+      "paste_html_here": "Paste HTML here",
+      "html_placeholder": "<!doctype html>..."
 }

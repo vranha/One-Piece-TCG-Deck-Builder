@@ -1,10 +1,14 @@
 const friendService = require("../services/friendService");
+const { notifyFriendRequest } = require("../services/notificationService");
 
 const sendFriendRequest = async (req, res) => {
     const { userId, friendId } = req.body;
     try {
         await friendService.sendFriendRequest(userId, friendId);
         res.status(201).json({ message: "Solicitud de amistad enviada." });
+
+        // Notify the receiver
+        await notifyFriendRequest(friendId, userId);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: err.message });

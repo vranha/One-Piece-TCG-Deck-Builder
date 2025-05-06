@@ -106,7 +106,7 @@ const getCurrentUserController = async (req, res) => {
 };
 
 const updateUserDetailsController = async (req, res) => {
-    const { username, bio, location, region, avatar_url } = req.body;
+    const { username, bio, location, region, avatar_url, lang } = req.body; // Include lang
     const userId = req.query.id; // Retrieve userId from query parameters
 
     if (!userId) {
@@ -120,6 +120,7 @@ const updateUserDetailsController = async (req, res) => {
     if (location !== undefined) updates.location = location;
     if (region !== undefined) updates.region = region;
     if (avatar_url !== undefined) updates.avatar_url = avatar_url;
+    if (lang !== undefined) updates.lang = lang; // Add lang to updates
 
     if (Object.keys(updates).length === 0) {
         console.error("No fields to update in the request.");

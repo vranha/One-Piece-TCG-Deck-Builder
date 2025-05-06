@@ -39,6 +39,50 @@ const checkNotifications = async (req, res) => {
     }
 };
 
+const registerPushToken = async (req, res) => {
+    const { userId, token } = req.body;
+
+    if (!userId || !token) {
+        console.error("User ID or token is missing.");
+        return res.status(400).json({ error: "User ID and token are required" });
+    }
+
+    try {
+        const { error } = await supabase
+            .from("push_tokens")
+            .upsert({ user_id: userId, token }, { onConflict: "user_id" });
+
+        if (error) {
+            console.error("Error saving push token:", error.message);
+            return res.status(500).json({ error: "Failed to save push token" });
+        }
+
+        res.status(200).json({ message: "Push token registered successfully" });
+    } catch (error) {
+        console.error("Unexpected error registering push token:", error.message);
+        res.status(500).json({ error: "Unexpected error" });
+    }
+};
+
+const getUserNotifications = async (req, res) => {
+    const { userId } = req.params;
+
+    if (!userId) {
+        console.error("User ID is missing in the request.");
+        return res.status(400).json({ error: "User ID is required" });
+    }
+
+    try {
+        const notifications = await notificationService.getUserNotifications(userId);
+        res.status(200).json(notifications);
+    } catch (error) {
+        console.error("Error fetching user notifications:", error.message);
+        res.status(500).json({ error: "Failed to fetch notifications" });
+    }
+};
+
 module.exports = {
     checkNotifications,
+    registerPushToken,
+    getUserNotifications,
 };

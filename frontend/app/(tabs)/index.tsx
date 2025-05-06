@@ -16,6 +16,8 @@ import FriendCarousel from "@/components/FriendCarousel";
 import CollectionCarousel from "@/components/CollectionCarousel";
 import { Ionicons } from "@expo/vector-icons"; // Importar iconos
 import { useFocusEffect } from "@react-navigation/native"; // Import useFocusEffect
+import * as ExpoNotifications from "expo-notifications";
+import * as Device from "expo-device";
 
 interface Deck {
     id: string;
@@ -182,6 +184,51 @@ export default function HomeScreen() {
             refreshData();
         }, [])
     );
+
+    useEffect(() => {
+        const registerForPushNotifications = async () => {
+            console.log("Registering for push notifications...");
+            try {
+                if (!userId) {
+                    console.log("Waiting for userId to be available before registering push notifications.");
+                    return; // No intentamos registrar hasta que userId esté disponible
+                }
+
+                if (Device.isDevice) {
+                    const { status: existingStatus } = await ExpoNotifications.getPermissionsAsync();
+                    let finalStatus = existingStatus;
+                    if (existingStatus !== "granted") {
+                        const { status } = await ExpoNotifications.requestPermissionsAsync();
+                        finalStatus = status;
+                    }
+                    if (finalStatus !== "granted") {
+                        console.error("Failed to get push token for notifications!");
+                        return;
+                    }
+                    const token = (await ExpoNotifications.getExpoPushTokenAsync()).data;
+                    console.log("Push notification token:", token);
+
+                    // Enviar el token al backend para asociarlo con el usuario
+                    const response = await api.post("/notifications/register-token", { userId, token });
+                    console.log("Push notification token registered successfully:", response.data);
+                } else {
+                    console.error("Must use physical device for Push Notifications");
+                }
+            } catch (error) {
+                if (error instanceof Error && (error as any).response?.status === 404) {
+                    console.error(
+                        "Endpoint not found: Ensure the backend route '/notifications/register-token' exists."
+                    );
+                } else if (error instanceof Error) {
+                    console.error("Error registering for push notifications:", error.message);
+                } else {
+                    console.error("Error registering for push notifications:", error);
+                }
+            }
+        };
+
+        registerForPushNotifications();
+    }, [userId]); // Solo se ejecuta cuando userId está disponible
 
     return (
         <ThemedView style={[styles.container, { backgroundColor: Colors[theme].background }]}>

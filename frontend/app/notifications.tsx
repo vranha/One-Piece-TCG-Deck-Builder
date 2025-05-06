@@ -9,8 +9,11 @@ import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next"; // Import translation hook
 import { useRouter } from "expo-router"; // Import useRouter
 import useStore from "@/store/useStore"; // Import useStore
+import * as ExpoNotifications from "expo-notifications"; // Renombrar el import para evitar conflictos
+import * as Device from "expo-device";
 
-export default function Notifications() {
+export default function NotificationsScreen() {
+    // Renombrar el componente
     const [activeTab, setActiveTab] = useState<"notifications" | "friendRequests">("notifications");
     interface FriendRequest {
         id: string;
@@ -26,6 +29,7 @@ export default function Notifications() {
     const { t } = useTranslation(); // Initialize translation hook
     const router = useRouter(); // Initialize router
     const setRefreshFriends = useStore((state) => state.setRefreshFriends); // Access setRefreshFriends
+    const [notifications, setNotifications] = useState([]);
 
     useEffect(() => {
         const fetchUserId = async () => {
@@ -50,7 +54,7 @@ export default function Notifications() {
     useEffect(() => {
         const fetchFriends = async () => {
             if (!userId) {
-                console.error("Cannot fetch friends: userId is undefined.");
+                console.log("Cannot fetch friends: userId is undefined.");
                 return;
             }
 
@@ -80,6 +84,26 @@ export default function Notifications() {
 
         if (activeTab === "friendRequests") {
             fetchFriends();
+        }
+    }, [activeTab, userId]);
+
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            if (!userId) {
+                console.log("Cannot fetch notifications: userId is undefined.");
+                return;
+            }
+
+            try {
+                const { data } = await api.get(`/userNotifications/${userId}`);
+                setNotifications(data);
+            } catch (error) {
+                console.error("Error fetching notifications:", error);
+            }
+        };
+
+        if (activeTab === "notifications") {
+            fetchNotifications();
         }
     }, [activeTab, userId]);
 
@@ -115,12 +139,81 @@ export default function Notifications() {
 
     return (
         <View style={[styles.container, { backgroundColor: Colors[theme].background }]}>
-            {/* Header */}
             <NotificationsHeader activeTab={activeTab} setActiveTab={setActiveTab} />
-            {/* Content */}
             <View style={{ flex: 1, marginTop: 20, paddingHorizontal: 10 }}>
                 {activeTab === "notifications" ? (
-                    <Text style={{ color: Colors[theme].text }}>{t("all_notifications")}</Text>
+                    <FlatList
+                        data={
+                            notifications as {
+                                id: string;
+                                title: string;
+                                body: string;
+                                created_at: string;
+                                type: string;
+                            }[]
+                        }
+                        keyExtractor={(item) => item.id}
+                        ListEmptyComponent={
+                            <View style={{ alignItems: "center", marginTop: 50, gap: 5 }}>
+                                <Text style={{ fontSize: 18, fontWeight: "bold", color: Colors[theme].text }}>
+                                    {t("all_notifications")}
+                                </Text>
+                            </View>
+                        }
+                        contentContainerStyle={{ alignItems: "center" }} // Add padding to the bottom of the list
+                        renderItem={({
+                            item,
+                        }: {
+                            item: { id: string; title: string; body: string; created_at: string; type: string };
+                        }) => {
+                            let backgroundColor;
+                            switch (item.type) {
+                                case "friend_request":
+                                    backgroundColor = Colors[theme].success;
+                                    break;
+                                case "updated_database":
+                                    backgroundColor = Colors[theme].info;
+                                    break;
+                                case "message":
+                                    backgroundColor = Colors[theme].tint;
+                                    break;
+                                default:
+                                    backgroundColor = Colors[theme].TabBarBackground;
+                            }
+                            let titleColor;
+                            switch (item.type) {
+                                case "friend_request":
+                                    titleColor = Colors[theme].success;
+                                    break;
+                                case "updated_database":
+                                    titleColor = Colors[theme].info;
+                                    break;
+                                case "message":
+                                    titleColor = Colors[theme].tint;
+                                    break;
+                                default:
+                                    titleColor = Colors[theme].text;
+                            }
+                            return (
+                                <View
+                                    style={[
+                                        styles.notificationCard,
+                                        { backgroundColor: Colors[theme].TabBarBackground },
+                                    ]}
+                                >
+                                    <Text style={[styles.username, { color: titleColor }]}>{item.title}</Text>
+                                    <Text style={{ color: Colors[theme].text }}>{item.body}</Text>
+                                    <Text style={{ color: Colors[theme].disabled, fontSize: 12, alignSelf: "flex-end" }}>
+                                        {new Date(item.created_at).toLocaleDateString(undefined, {
+                                            year: "numeric",
+                                            month: "2-digit",
+                                            day: "2-digit",
+                                        })}
+                                    </Text>
+                                </View>
+                            );
+                        }}
+                    />
                 ) : (
                     <FlatList
                         data={[
@@ -238,6 +331,19 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 2,
         width: "100%", // Ensure the card spans the full width
+    },
+    notificationCard: {
+        alignSelf: "flex-start", // Ensure the card only takes the space it needs
+        paddingVertical: 10,
+        paddingHorizontal: 25,
+        marginVertical: 5,
+        borderRadius: 8,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+        gap: 5,
     },
     avatar: {
         width: 50,

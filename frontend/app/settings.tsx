@@ -12,6 +12,8 @@ import {
     FlatList,
     Platform,
     Dimensions,
+    Modal,
+    Button,
 } from "react-native";
 import { useTheme } from "@/hooks/ThemeContext";
 import { ThemedText } from "@/components/ThemedText";
@@ -41,9 +43,14 @@ export default function SettingsScreen() {
     const [bio, setBio] = useState("");
     const [location, setLocation] = useState("");
     const [region, setRegion] = useState("West");
+    const [lang, setLang] = useState("en");
+    const [isAdmin, setIsAdmin] = useState("user");
     const [isAccordionOpen, setIsAccordionOpen] = useState(true); // State to control accordion visibility
     const [presetAvatars, setPresetAvatars] = useState<string[]>([]);
     const modalizeRef = React.useRef<Modalize>(null);
+    const [isImportModalVisible, setIsImportModalVisible] = useState(false);
+    const [htmlContent, setHtmlContent] = useState("");
+    const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
 
     useEffect(() => {
         navigation.setOptions({ headerShown: true, title: t("settings") });
@@ -67,12 +74,14 @@ export default function SettingsScreen() {
                 } = await supabase.auth.getSession();
                 if (session && session.user) {
                     const response = await api.get(`/me?id=${session.user.id}`);
-                    const { username, bio, location, region, avatar_url } = response.data;
+                    const { username, bio, location, region, avatar_url, lang, role } = response.data;
                     setUsername(username || "");
                     setBio(bio || "");
                     setLocation(location || "");
                     setRegion(region || "West");
                     setAvatar(avatar_url || "West");
+                    setLang(lang || "en");
+                    setIsAdmin(role || "user");
                 }
             } catch (error: any) {
                 Alert.alert("Error", error.response?.data?.error || "Failed to fetch user data.");
@@ -107,6 +116,22 @@ export default function SettingsScreen() {
         fetchAvatars();
     }, []);
 
+    useEffect(() => {
+        const channel = supabase
+            .channel("import_progress_updates")
+            .on("postgres_changes", { event: "INSERT", schema: "public", table: "import_progress" }, (payload) => {
+                setImportProgress({
+                    current: payload.new.current,
+                    total: payload.new.total,
+                });
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, []);
+
     const { theme, toggleTheme } = useTheme();
     const isDarkMode = theme === "dark";
     const router = useRouter();
@@ -120,17 +145,46 @@ export default function SettingsScreen() {
         }
     };
 
-    const handleLanguageChange = (language: string) => {
+    const handleLanguageChange = async (language: string) => {
         i18n.changeLanguage(language);
-    };
+        setLang(language); // Update local state
 
-    const handleImportCards = async () => {
-        setIsLoading(true);
         try {
-            const response = await api.post("/import-cards");
-            Alert.alert("Éxito", response.data.message);
+            setIsLoading(true);
+            const {
+                data: { session },
+            } = await supabase.auth.getSession();
+            if (session && session.user) {
+                await api.put(`/users/update-details?id=${session.user.id}`, {
+                    lang: language,
+                });
+                Toast.show({
+                    type: "success",
+                    text1: t("language_update_success_title"),
+                    text2: t("language_update_success_message"),
+                    position: "bottom",
+                    visibilityTime: 4000,
+                    autoHide: true,
+                });
+            } else {
+                Toast.show({
+                    type: "error",
+                    text1: t("language_update_error_title"),
+                    text2: t("user_session_not_found"),
+                    position: "bottom",
+                    visibilityTime: 4000,
+                    autoHide: true,
+                });
+            }
         } catch (error: any) {
-            Alert.alert("Error", error.response?.data?.error || "Error al importar cartas.");
+            Toast.show({
+                type: "error",
+                text1: t("language_update_error_title"),
+                text2: t("language_update_error_message"),
+                position: "bottom",
+                visibilityTime: 4000,
+                autoHide: true,
+            });
         } finally {
             setIsLoading(false);
         }
@@ -222,6 +276,33 @@ export default function SettingsScreen() {
         modalizeRef.current?.close();
     };
 
+    const handleImportCards = async () => {
+        try {
+            setIsLoading(true);
+            const response = await api.post("/import-cards-from-html", { html: htmlContent });
+            Toast.show({
+                type: "success",
+                text1: t("import_success_title"),
+                text2: `${response.data.message}`,
+                position: "bottom",
+                visibilityTime: 4000,
+                autoHide: true,
+            });
+        } catch (error: any) {
+            Toast.show({
+                type: "error",
+                text1: t("import_error_title"),
+                text2: t("import_error_message"),
+                position: "bottom",
+                visibilityTime: 4000,
+                autoHide: true,
+            });
+        } finally {
+            setIsLoading(false);
+            setIsImportModalVisible(false);
+        }
+    };
+
     return (
         <>
             <ScrollView contentContainerStyle={{ flexGrow: 1, backgroundColor: Colors[theme].background }}>
@@ -244,7 +325,6 @@ export default function SettingsScreen() {
                         openAvatarModal={openAvatarModal} // Pass the new prop
                     />
 
-                    {/* Selección de Idioma */}
                     <View style={[styles.card, { backgroundColor: Colors[theme].TabBarBackground }]}>
                         <View style={styles.row}>
                             <Ionicons name="language" size={24} color={Colors[theme].icon} />
@@ -283,8 +363,11 @@ export default function SettingsScreen() {
                                 {t("light/dark_mode")}
                             </ThemedText>
                         </View>
-                        <Switch value={isDarkMode} onValueChange={toggleTheme} thumbColor={isDarkMode ? Colors[theme].info : Colors[theme].highlight}/>
-                        
+                        <Switch
+                            value={isDarkMode}
+                            onValueChange={toggleTheme}
+                            thumbColor={isDarkMode ? Colors[theme].info : Colors[theme].highlight}
+                        />
                     </View>
 
                     {/* Preferencia de Email */}
@@ -342,6 +425,64 @@ export default function SettingsScreen() {
                         t={t} // Pass the translation function to the modal
                         showToast={handleFeedbackToast} // Pass the Toast handler to the modal
                     />
+                    {isAdmin === "admin" && (
+                        <TouchableOpacity
+                            style={[styles.importButton, { backgroundColor: Colors[theme].info }]}
+                            onPress={() => setIsImportModalVisible(true)}
+                        >
+                            <Ionicons name="cloud-upload-outline" size={20} color="#FFF" />
+                            <ThemedText style={styles.importText}>{t("import_cards")}</ThemedText>
+                        </TouchableOpacity>
+                    )}
+
+                    <Modal
+                        visible={isImportModalVisible}
+                        animationType="slide"
+                        transparent={true}
+                        onRequestClose={() => setIsImportModalVisible(false)}
+                    >
+                        <View style={styles.modalContainer}>
+                            <View style={[styles.modalContent, { backgroundColor: Colors[theme].background }]}>
+                                <ThemedText style={[styles.modalTitle, { color: Colors[theme].text }]}>
+                                    {t("paste_html_here")}
+                                </ThemedText>
+                                {isLoading ? (
+                                    <ActivityIndicator size="large" color={Colors[theme].info} />
+                                ) : (
+                                    <TextInput
+                                        style={[styles.textArea, { borderColor: Colors[theme].tabIconDefault }]}
+                                        multiline
+                                        value={htmlContent}
+                                        onChangeText={setHtmlContent}
+                                        placeholder={t("html_placeholder")}
+                                        placeholderTextColor={Colors[theme].tabIconDefault}
+                                    />
+                                )}
+                                <View style={styles.modalButtons}>
+                                    <TouchableOpacity
+                                        style={[styles.button, { backgroundColor: Colors[theme].error }]}
+                                        onPress={() => setIsImportModalVisible(false)}
+                                    >
+                                        <ThemedText style={styles.buttonText}>{t("cancel")}</ThemedText>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.button, { backgroundColor: Colors[theme].info }]}
+                                        onPress={handleImportCards}
+                                    >
+                                        <ThemedText style={styles.buttonText}>{t("import")}</ThemedText>
+                                    </TouchableOpacity>
+                                </View>
+                                <View style={styles.progressContainer}>
+                                    <ThemedText style={[styles.progressText, { color: Colors[theme].text }]}>
+                                        {t("import_progress", {
+                                            current: importProgress.current,
+                                            total: importProgress.total,
+                                        })}
+                                    </ThemedText>
+                                </View>
+                            </View>
+                        </View>
+                    </Modal>
                 </View>
             </ScrollView>
             <Modalize
@@ -401,6 +542,11 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         elevation: 2,
     },
+    buttonText: {
+        fontSize: 16,
+        color: "#FFF",
+        fontWeight: "bold",
+    },
     row: {
         flexDirection: "row",
         alignItems: "center",
@@ -408,6 +554,12 @@ const styles = StyleSheet.create({
     optionText: {
         fontSize: 16,
         marginLeft: 10,
+    },
+    button: {
+        padding: 10,
+        borderRadius: 8,
+        alignItems: "center",
+        justifyContent: "center",
     },
     languageContainer: {
         flexDirection: "row",
@@ -439,7 +591,7 @@ const styles = StyleSheet.create({
         width: "100%",
         padding: 15,
         borderRadius: 12,
-        marginTop: 20,
+        marginTop: 0,
     },
     importText: {
         color: "#FFF",
@@ -493,5 +645,40 @@ const styles = StyleSheet.create({
         height: 80,
         margin: 5,
         borderRadius: 40,
+    },
+    modalContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+    },
+    modalContent: {
+        width: "90%",
+        padding: 20,
+        borderRadius: 10,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: "bold",
+        marginBottom: 10,
+    },
+    textArea: {
+        height: 150,
+        borderWidth: 1,
+        borderRadius: 8,
+        padding: 10,
+        textAlignVertical: "top",
+        marginBottom: 20,
+    },
+    modalButtons: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+    },
+    progressContainer: {
+        marginTop: 20,
+        alignItems: "center",
+    },
+    progressText: {
+        fontSize: 16,
     },
 });

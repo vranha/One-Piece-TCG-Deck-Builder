@@ -434,14 +434,16 @@ export default function DeckSearcher() {
                     </View>
                     {friend ? (
                         friend.status === "accepted" ? (
-                            <Ionicons name="person-add-sharp" size={24} color={Colors[theme].success} />
+                            <View style={{ width: 24, height: 24 }} />
                         ) : friend.status === "pending" ? (
                             <Ionicons name="hourglass-outline" size={24} color={Colors[theme].disabled} />
                         ) : (
                             <View style={{ width: 24, height: 24 }} />
                         )
                     ) : (
-                        <View style={{ width: 24, height: 24 }} />
+                        <TouchableOpacity onPress={() => handleSendFriendRequest(item.id)}>
+                            <Ionicons name="person-add-sharp" size={24} color={Colors[theme].success} />
+                        </TouchableOpacity>
                     )}
                 </View>
             </TouchableOpacity>

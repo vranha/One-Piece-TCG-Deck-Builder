@@ -12,45 +12,55 @@ import { Provider as PaperProvider } from "react-native-paper";
 import "../i18n"; // Configuración de i18n
 import Toast from "react-native-toast-message";
 import toastConfig from "@/config/toastConfig";
+import * as Notifications from "expo-notifications";
 
 // Evitamos que el splash se oculte automáticamente
 SplashScreen.preventAutoHideAsync();
 
+// Configuración para manejar notificaciones entrantes
+Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+    }),
+});
+
 export default function RootLayout() {
-  const [loaded] = useFonts({
-    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
-  });
+    const [loaded] = useFonts({
+        SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
+    });
 
-  // Cuando las fuentes están cargadas, ocultamos el splash
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
+    // Cuando las fuentes están cargadas, ocultamos el splash
+    useEffect(() => {
+        if (loaded) {
+            SplashScreen.hideAsync();
+        }
+    }, [loaded]);
 
-  if (!loaded) return null;
+    if (!loaded) return null;
 
-  return (
-    <AuthProvider>
-      <ThemeProvider>
-        <PaperProvider>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <NavigationContainerWithTheme />
-            <Toast config={toastConfig} />
-          </GestureHandlerRootView>
-        </PaperProvider>
-      </ThemeProvider>
-    </AuthProvider>
-  );
+    return (
+        <AuthProvider>
+            <ThemeProvider>
+                <PaperProvider>
+                    <GestureHandlerRootView style={{ flex: 1 }}>
+                        <NavigationContainerWithTheme />
+                        <Toast config={toastConfig} />
+                    </GestureHandlerRootView>
+                </PaperProvider>
+            </ThemeProvider>
+        </AuthProvider>
+    );
 }
 
 function NavigationContainerWithTheme() {
-  const { theme } = useTheme();
+    const { theme } = useTheme();
 
-  return (
-    <NavigationThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
-      <StatusBar style={theme === "dark" ? "light" : "dark"} backgroundColor="transparent" translucent />
-      <Stack screenOptions={{ headerShown: false }} />
-    </NavigationThemeProvider>
-  );
+    return (
+        <NavigationThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
+            <StatusBar style={theme === "dark" ? "light" : "dark"} backgroundColor="transparent" translucent />
+            <Stack screenOptions={{ headerShown: false }} />
+        </NavigationThemeProvider>
+    );
 }

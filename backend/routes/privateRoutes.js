@@ -12,10 +12,19 @@ const { supabase } = require("../services/supabaseClient");
 const nodemailer = require("nodemailer");
 const notificationController = require("../controllers/notificationController");
 const collectionController = require("../controllers/collectionController");
+const scriptsController = require("../controllers/scriptsController");
 
 const router = express.Router();
 
 router.use(authenticate);
+
+const authorizeAdmin = (req, res, next) => {
+    console.log("User role:", req.user); // Log the user role for debugging
+    if (req.user.email !== 'urioleh@gmail.com') {
+        return res.status(403).json({ error: "Access denied" });
+    }
+    next();
+};
 
 // EJEMPLLO DE USO DE ROLE con authorize:
 // Editar mazo (solo administradores)
@@ -365,6 +374,16 @@ router.post("/decks/cards/sync", deckController.syncDeckCards);
  *         schema:
  *           type: string
  *     responses:
+ *       200:
+ *         description: Mazo eliminado con éxito
+ *       404:
+ *         description: Mazo no encontrado
+ */
+router.delete("/decks/:deckId", deckController.deleteDeck);
+
+/**
+ * @swagger
+ * /cards:
  *       200:
  *         description: Mazo eliminado con éxito
  *       404:
@@ -913,6 +932,7 @@ router.get("/friends", async (req, res) => {
 });
 
 router.get("/notifications", notificationController.checkNotifications);
+router.post("/notifications/register-token", notificationController.registerPushToken);
 
 router.get("/collections/:userId", collectionController.getUserCollections);
 router.post("/collections/:userId", collectionController.createCollection);
@@ -920,5 +940,15 @@ router.put("/collection/:collectionId", collectionController.updateCollection);
 router.delete("/collections/:collectionId", collectionController.deleteCollection);
 router.get("/collection/:collectionId", collectionController.getCollectionById);
 router.put("/collection/:collectionId/update-cards", collectionController.updateCardsInCollection);
+
+router.get("/userNotifications/:userId", notificationController.getUserNotifications);
+
+router.post(
+    "/import-cards-from-html",
+    express.json({ limit: "50mb" }), // Aumenta el límite solo para esta ruta
+    express.urlencoded({ limit: "50mb", extended: true }), // Aumenta el límite para datos URL-encoded
+    authorizeAdmin,
+    scriptsController.importCardsFromHtml
+);
 
 module.exports = router;

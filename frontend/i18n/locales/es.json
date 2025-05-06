@@ -205,5 +205,23 @@
     "collection_deleted_successfully": "Colección eliminada con éxito",
     "error_deleting_collection": "Error al eliminar la colección",
     "failed_to_update_collection": "Error al actualizar la colección",
-    "collection_updated": "Colección actualizada"
+    "collection_updated": "Colección actualizada",
+    "Invalid login credentials": "Credenciales inválidas",
+    "Email not confirmed": "Tu correo electrónico no está confirmado",
+    "User already registered": "Este usuario ya está registrado",
+    "Password should be at least 6 characters": "La contraseña debe tener al menos 6 caracteres",
+    "Invalid email or password": "Correo o contraseña incorrectos",
+    "default": "Ha ocurrido un error desconocido",
+    "auth": {
+        "errors": {
+          "Invalid login credentials": "Credenciales inválidas",
+          "Email not confirmed": "Tu correo electrónico no está confirmado",
+          "User already registered": "Este usuario ya está registrado",
+          "Password should be at least 6 characters": "La contraseña debe tener al menos 6 caracteres",
+          "Invalid email or password": "Correo o contraseña incorrectos",
+          "default": "Ha ocurrido un error desconocido"
+        }
+      },
+    "paste_html_here": "Pega HTML aquí",
+    "html_placeholder": "<!doctype html>..."
 }

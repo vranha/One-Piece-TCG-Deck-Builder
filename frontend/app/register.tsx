@@ -30,7 +30,7 @@ export default function RegisterScreen() {
                 type: "error",
                 text1: "Error",
                 text2: t("passwords_do_not_match"),
-                position: "bottom",
+                position: "top",
             });
             return;
         }
@@ -42,8 +42,8 @@ export default function RegisterScreen() {
             Toast.show({
                 type: "error",
                 text1: "Error",
-                text2: authError.message,
-                position: "bottom",
+                text2: t(`auth.errors.${authError.message}`, { defaultValue: t('auth.errors.default') }),
+                position: "top", // Change position to "top" so it appears at the top of the screen
             });
             return;
         }
@@ -53,7 +53,7 @@ export default function RegisterScreen() {
                 type: "error",
                 text1: "Error",
                 text2: t("registration_failed"),
-                position: "bottom",
+                position: "top",
             });
             return;
         }
@@ -65,6 +65,7 @@ export default function RegisterScreen() {
                 email,
                 username: email.split("@")[0],
                 region,
+                lang : "en",
                 avatar_url:
                     "https://siapwdlehejtwlrhrkvp.supabase.co/storage/v1/object/public/avatars/presets/COLOR_LUFFY.png",
             };

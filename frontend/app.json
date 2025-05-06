@@ -8,6 +8,10 @@
         "scheme": "oplab",
         "userInterfaceStyle": "automatic",
         "newArchEnabled": true,
+        "notification": {
+            "icon": "./assets/images/favicon.png",
+            "color": "#ffffff"
+          },
         "splash": {
             "image": "./assets/images/OPLAB-logo.png",
             "resizeMode": "contain",
