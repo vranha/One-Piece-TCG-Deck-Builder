@@ -51,6 +51,7 @@ export default function SettingsScreen() {
     const [isImportModalVisible, setIsImportModalVisible] = useState(false);
     const [htmlContent, setHtmlContent] = useState("");
     const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
+    const [expansion, setExpansion] = useState(""); // New state for expansion name
 
     useEffect(() => {
         navigation.setOptions({ headerShown: true, title: t("settings") });
@@ -279,7 +280,7 @@ export default function SettingsScreen() {
     const handleImportCards = async () => {
         try {
             setIsLoading(true);
-            const response = await api.post("/import-cards-from-html", { html: htmlContent });
+            const response = await api.post("/import-cards-from-html", { html: htmlContent, expansion });
             Toast.show({
                 type: "success",
                 text1: t("import_success_title"),
@@ -437,7 +438,7 @@ export default function SettingsScreen() {
 
                     <Modal
                         visible={isImportModalVisible}
-                        animationType="slide"
+                        animationType="fade"
                         transparent={true}
                         onRequestClose={() => setIsImportModalVisible(false)}
                     >
@@ -449,14 +450,23 @@ export default function SettingsScreen() {
                                 {isLoading ? (
                                     <ActivityIndicator size="large" color={Colors[theme].info} />
                                 ) : (
-                                    <TextInput
-                                        style={[styles.textArea, { borderColor: Colors[theme].tabIconDefault }]}
-                                        multiline
-                                        value={htmlContent}
-                                        onChangeText={setHtmlContent}
-                                        placeholder={t("html_placeholder")}
-                                        placeholderTextColor={Colors[theme].tabIconDefault}
-                                    />
+                                    <>
+                                        <TextInput
+                                            style={[styles.textArea, { borderColor: Colors[theme].tabIconDefault }]}
+                                            multiline
+                                            value={htmlContent}
+                                            onChangeText={setHtmlContent}
+                                            placeholder={t("html_placeholder")}
+                                            placeholderTextColor={Colors[theme].tabIconDefault}
+                                        />
+                                        <TextInput
+                                            style={[styles.textInput, { borderColor: Colors[theme].tabIconDefault }]} // New TextInput for expansion
+                                            value={expansion}
+                                            onChangeText={setExpansion}
+                                            placeholder={t("expansion_placeholder")}
+                                            placeholderTextColor={Colors[theme].tabIconDefault}
+                                        />
+                                    </>
                                 )}
                                 <View style={styles.modalButtons}>
                                     <TouchableOpacity
@@ -471,14 +481,6 @@ export default function SettingsScreen() {
                                     >
                                         <ThemedText style={styles.buttonText}>{t("import")}</ThemedText>
                                     </TouchableOpacity>
-                                </View>
-                                <View style={styles.progressContainer}>
-                                    <ThemedText style={[styles.progressText, { color: Colors[theme].text }]}>
-                                        {t("import_progress", {
-                                            current: importProgress.current,
-                                            total: importProgress.total,
-                                        })}
-                                    </ThemedText>
                                 </View>
                             </View>
                         </View>
@@ -664,6 +666,14 @@ const styles = StyleSheet.create({
     },
     textArea: {
         height: 150,
+        borderWidth: 1,
+        borderRadius: 8,
+        padding: 10,
+        textAlignVertical: "top",
+        marginBottom: 20,
+    },
+    textInput: {
+        height: 50,
         borderWidth: 1,
         borderRadius: 8,
         padding: 10,

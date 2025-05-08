@@ -40,19 +40,13 @@ const sendPushNotification = async (token, title, body) => {
     }
 };
 
-const sendPushNotificationsToAll = async (tokens, title, body) => {
-    if (!tokens || tokens.length === 0) {
-        console.error("No push tokens provided.");
+const sendPushNotificationsToAll = async (messages) => {
+    if (!messages || messages.length === 0) {
+        console.error("No messages provided.");
         return;
     }
 
     try {
-        const messages = tokens.map((token) => ({
-            to: token,
-            title,
-            body,
-        }));
-
         await axios.post("https://exp.host/--/api/v2/push/send", messages);
     } catch (error) {
         console.error("Error sending push notifications:", error.response?.data || error.message);

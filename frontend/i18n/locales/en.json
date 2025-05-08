@@ -219,5 +219,9 @@
         }
       },
       "paste_html_here": "Paste HTML here",
-      "html_placeholder": "<!doctype html>..."
+      "html_placeholder": "<!doctype html>...",
+      "language_update_success_title": "Wow!",
+      "language_update_success_message": "Language updated successfully.",
+      "language_update_error_title": "Error",
+      "language_update_error_message": "Error updating language."
 }

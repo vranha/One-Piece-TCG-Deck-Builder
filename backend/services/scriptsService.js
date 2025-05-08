@@ -1,8 +1,8 @@
 const cheerio = require("cheerio");
 const { supabase } = require("../services/supabaseClient");
-const { sendPushNotification, sendPushNotificationsToAll } = require("./notificationService"); // Import the notification service and the new function
+const { sendPushNotificationsToAll } = require("./notificationService"); // Import the notification service and the new function
 
-const processHtmlAndInsertCards = async (html) => {
+const processHtmlAndInsertCards = async (html, expansion) => {
     const $ = cheerio.load(html);
     const cards = [];
 
@@ -49,15 +49,52 @@ const processHtmlAndInsertCards = async (html) => {
         }
     }
 
-    // Fetch all push tokens
-    const { data: users, error: usersError } = await supabase.from("push_tokens").select("token");
+    // Fetch all push tokens and their associated user IDs
+    const { data: tokensData, error: tokensError } = await supabase.from("push_tokens").select("token, user_id");
+    if (tokensError) {
+        console.error("Error fetching push tokens:", tokensError.message);
+        return cards.length;
+    }
+
+    // Extract unique user IDs from the tokens data
+    const userIds = [...new Set(tokensData.map((tokenData) => tokenData.user_id))];
+
+    // Fetch languages for all user IDs
+    const { data: usersData, error: usersError } = await supabase.from("users").select("id, lang").in("id", userIds);
+
     if (usersError) {
-        console.error("Error fetching push tokens:", usersError.message);
-    } else {
-        const tokens = users.map((user) => user.token).filter(Boolean); // Extract valid tokens
-        const title = "Database Updated";
-        const body = "New cards have arrived .";
-        await sendPushNotificationsToAll(tokens, title, body); // Use the new function
+        console.error("Error fetching user languages:", usersError.message);
+        return cards.length;
+    }
+
+    // Localized messages
+    const titles = {
+        en: "DATABASE UPDATED, NAKAMA",
+        es: "BASE DE DATOS ACTUALIZADA, NAKAMA",
+        fr: "BASE DE DONNÉES MISE À JOUR, NAKAMA",
+    };
+
+    const bodies = {
+        en: `${expansion} arrived, hurry up!`,
+        es: `¡${expansion} ha llegado, date prisa!`,
+        fr: `${expansion} est arrivé, dépêche-toi !`,
+    };
+
+    // Map user languages and prepare messages
+    const messages = tokensData.map(({ token, user_id }) => {
+        const userLang = usersData.find((user) => user.id === user_id)?.lang || "en"; // Default to English
+        return {
+            to: token,
+            title: titles[userLang] || titles.en,
+            body: bodies[userLang] || bodies.en,
+        };
+    });
+
+    try {
+        // Send localized push notifications
+        await sendPushNotificationsToAll(messages); // Pass the array of messages
+    } catch (error) {
+        console.error("Error sending localized push notifications:", error.message);
     }
 
     return cards.length;

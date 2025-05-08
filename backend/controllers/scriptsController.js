@@ -1,14 +1,14 @@
 const scriptsService = require("../services/scriptsService");
 
 const importCardsFromHtml = async (req, res) => {
-    const { html } = req.body;
+    const { html, expansion } = req.body; // Extract expansion
 
-    if (!html) {
-        return res.status(400).json({ error: "HTML content is required" });
+    if (!html || !expansion) {
+        return res.status(400).json({ error: "HTML content and expansion are required" });
     }
 
     try {
-        const result = await scriptsService.processHtmlAndInsertCards(html);
+        const result = await scriptsService.processHtmlAndInsertCards(html, expansion); // Pass expansion
         res.status(200).json({ message: `${result} cards imported successfully.` });
     } catch (error) {
         console.error("Error processing HTML:", error.message);
