@@ -43,6 +43,8 @@ export default function HomeScreen() {
     const setRefreshDecks = useStore((state) => state.setRefreshDecks);
     const refreshFriends = useStore((state) => state.refreshFriends);
     const setRefreshFriends = useStore((state) => state.setRefreshFriends);
+    const refreshCollections = useStore((state) => state.refreshCollections);
+    const setRefreshCollections = useStore((state) => state.setRefreshCollections);
 
     const handleCreateDeck = (leader: string, name: string, description: string) => {
         // Logic to create a new deck
@@ -156,12 +158,23 @@ export default function HomeScreen() {
     }, [refreshFriends, userId, token]);
 
     useEffect(() => {
+        if (refreshCollections && userId && token) {
+            async function refresh() {
+                fetchCollections(userId, token);
+            }
+
+            refresh();
+            setRefreshCollections(false);
+        }
+    }, [refreshCollections, userId, token]);
+
+    useEffect(() => {
         if (userId && token) {
             fetchCollections(userId, token); // Refresh collections on userId or token change
         }
     }, [userId, token]);
 
-    const refreshCollections = () => {
+    const refreshCollectionsManually = () => {
         if (userId && token) {
             fetchCollections(userId, token); // Refresh collections manually
         }
@@ -273,7 +286,7 @@ export default function HomeScreen() {
                                         pathname: `/(tabs)/collection/[collectionId]`,
                                         params: { collectionId },
                                     });
-                                    refreshCollections(); // Refresh collections after navigating
+                                    refreshCollectionsManually(); // Refresh collections after navigating
                                 }}
                             />
                         </View>

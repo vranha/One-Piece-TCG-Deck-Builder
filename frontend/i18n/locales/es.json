@@ -227,5 +227,6 @@
     "language_update_success_title": "¡Guau!",
     "language_update_success_message": "Idioma actualizado con éxito.",
     "language_update_error_title": "Error",
-    "language_update_error_message": "Error al actualizar el idioma."
+    "language_update_error_message": "Error al actualizar el idioma.",
+    "you": "Tú"
 }

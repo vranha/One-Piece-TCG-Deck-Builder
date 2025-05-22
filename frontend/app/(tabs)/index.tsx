@@ -33,6 +33,10 @@ export default function HomeScreen() {
     const [userName, setUserName] = useState("");
     const [avatarUrl, setAvatarUrl] = useState("");
     const [loading, setLoading] = useState(true);
+    // Añadir estados de loading individuales
+    const [decksLoading, setDecksLoading] = useState(true);
+    const [friendsLoading, setFriendsLoading] = useState(true);
+    const [collectionsLoading, setCollectionsLoading] = useState(true);
     const [decks, setDecks] = useState<Deck[]>([]);
     const [newDeckModalVisible, setNewDeckModalVisible] = useState(false);
     const [friends, setFriends] = useState([]);
@@ -45,6 +49,8 @@ export default function HomeScreen() {
     const setRefreshDecks = useStore((state) => state.setRefreshDecks);
     const refreshFriends = useStore((state) => state.refreshFriends);
     const setRefreshFriends = useStore((state) => state.setRefreshFriends);
+    const refreshCollectionsFlag = useStore((state) => state.refreshCollections);
+    const setRefreshCollections = useStore((state) => state.setRefreshCollections);
 
     const handleCreateDeck = (leader: string, name: string, description: string) => {
         // Logic to create a new deck
@@ -53,6 +59,7 @@ export default function HomeScreen() {
     };
 
     const fetchDecks = async (userId: string | null, token: string | null) => {
+        setDecksLoading(true);
         try {
             const { data } = await api.get(`/decks/${userId}`, {
                 headers: {
@@ -62,10 +69,13 @@ export default function HomeScreen() {
             setDecks([{ id: "new", name: t("create_new_deck"), deck_colors: [], leaderCardImage: null }, ...data.data]);
         } catch (error) {
             console.error("Error fetching decks:", error);
+        } finally {
+            setDecksLoading(false);
         }
     };
 
     const fetchFriends = async (userId: string | null, token: string | null) => {
+        setFriendsLoading(true);
         try {
             const { data } = await api.get(`/friends/${userId}/accepted`, {
                 headers: {
@@ -75,10 +85,13 @@ export default function HomeScreen() {
             setFriends(data);
         } catch (error) {
             console.error("Error fetching friends:", error);
+        } finally {
+            setFriendsLoading(false);
         }
     };
 
     const fetchCollections = async (userId: string | null, token: string | null) => {
+        setCollectionsLoading(true);
         try {
             const { data } = await api.get(`/collections/${userId}`, {
                 headers: {
@@ -88,8 +101,19 @@ export default function HomeScreen() {
             setCollections(data.data);
         } catch (error) {
             console.error("Error fetching collections:", error);
+        } finally {
+            setCollectionsLoading(false);
         }
     };
+
+    useEffect(() => {
+        // El loading global solo se desactiva cuando todos los datos han sido cargados
+        if (!decksLoading && !friendsLoading && !collectionsLoading) {
+            setLoading(false);
+        } else {
+            setLoading(true);
+        }
+    }, [decksLoading, friendsLoading, collectionsLoading]);
 
     useEffect(() => {
         async function fetchSession() {
@@ -105,9 +129,8 @@ export default function HomeScreen() {
                 }
             } catch (error) {
                 console.error("Error fetching session:", error);
-            } finally {
-                setLoading(false); // Ensure loading is set to false
             }
+            // Quitar setLoading(false) de aquí
         }
 
         fetchSession();
@@ -158,6 +181,16 @@ export default function HomeScreen() {
     }, [refreshFriends, userId, token]);
 
     useEffect(() => {
+        if (refreshCollectionsFlag && userId && token) {
+            async function refresh() {
+                fetchCollections(userId, token);
+            }
+            refresh();
+            setRefreshCollections(false);
+        }
+    }, [refreshCollectionsFlag, userId, token]);
+
+    useEffect(() => {
         if (userId && token) {
             fetchCollections(userId, token); // Refresh collections on userId or token change
         }
@@ -178,9 +211,9 @@ export default function HomeScreen() {
                 if (session && session.user) {
                     fetchDecks(session.user.id, session.access_token); // Refresh decks
                     fetchFriends(session.user.id, session.access_token); // Refresh friends
+                    fetchCollections(session.user.id, session.access_token); // <-- Añade esto
                 }
             }
-            console.log("Refreshing data...");
             refreshData();
         }, [])
     );
@@ -233,7 +266,9 @@ export default function HomeScreen() {
     return (
         <ThemedView style={[styles.container, { backgroundColor: Colors[theme].background }]}>
             {loading ? (
-                <ActivityIndicator size="large" color={Colors[theme].tint} />
+                <View style={styles.loadingWrapper}>
+                    <ActivityIndicator size="large" color={Colors[theme].tint} />
+                </View>
             ) : (
                 <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
                     <View style={styles.welcomeContainer}>
@@ -345,6 +380,13 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "flex-start",
         alignItems: "center",
+    },
+    loadingWrapper: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        minHeight: 400, // asegura centrado incluso si el padre no estira
+        width: "100%",
     },
     scrollContainer: {
         alignItems: "center",

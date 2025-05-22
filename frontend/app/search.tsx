@@ -533,6 +533,7 @@ export default function SearchScreen() {
                             styles={styles}
                             Colors={Colors}
                             theme={theme}
+                            loading={loading}
                             isSelectionEnabled={isSelectionEnabled}
                             selectedQuantity={selectedCards.find((card) => card.cardId === item.id)?.quantity || 0}
                             updateCardQuantity={(cardId, change) =>
@@ -561,7 +562,7 @@ export default function SearchScreen() {
                 </View>
             )}
 
-            {loading && (
+            {(loading && !initialLoading) && (
                 <View style={styles.absoluteLoader}>
                     <ActivityIndicator size="large" color={Colors[theme].text} />
                 </View>

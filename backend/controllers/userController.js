@@ -157,6 +157,17 @@ const getUserByIdController = async (req, res) => {
     }
 };
 
+const searchUsersWithFriendsFirst = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { query } = req.query;
+        const users = await userService.searchUsersWithFriendsFirst(userId, query);
+        res.json(users);
+    } catch (err) {
+        res.status(500).json({ error: "Error searching users" });
+    }
+};
+
 module.exports = {
     getAllUsers,
     registerUserController,
@@ -166,4 +177,5 @@ module.exports = {
     getCurrentUserController,
     updateUserDetails: updateUserDetailsController,
     getUserByIdController,
+    searchUsersWithFriendsFirst,
 };

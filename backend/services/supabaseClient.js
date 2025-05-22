@@ -215,6 +215,31 @@ const getUserById = async (userId) => {
     return data;
 };
 
+const searchUsersWithFriendsFirst = async (userId, query) => {
+    // 1. Buscar amigos que coincidan
+    let { data: friends, error: friendsError } = await supabase
+        .from("friends")
+        .select("friend_id")
+        .eq("user_id", userId)
+        .eq("status", "accepted");
+    if (friendsError) throw friendsError;
+    const friendIds = friends.map(f => f.friend_id);
+
+    // 2. Buscar usuarios que coincidan con el query
+    let { data: users, error: usersError } = await supabase
+        .from("users")
+        .select("id,username,avatar_url")
+        .ilike("username", `%${query}%`);
+    if (usersError) throw usersError;
+
+    // 3. Priorizar amigos
+    const friendsFirst = [
+        ...users.filter(u => friendIds.includes(u.id)),
+        ...users.filter(u => !friendIds.includes(u.id)),
+    ];
+    return friendsFirst;
+};
+
 // Otras funciones necesarias (como mazos, cartas, etc.)
 
 module.exports = {
@@ -227,5 +252,6 @@ module.exports = {
     getCurrentUser,
     updateUserDetails,
     getUserById,
+    searchUsersWithFriendsFirst,
     supabase,
 };

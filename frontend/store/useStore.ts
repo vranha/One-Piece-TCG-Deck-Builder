@@ -40,6 +40,8 @@ interface StoreState {
     setRefreshDecks: (refresh: boolean) => void;
     refreshFriends: boolean;
     setRefreshFriends: (refresh: boolean) => void;
+    refreshCollections: boolean;
+    setRefreshCollections: (refresh: boolean) => void;
 }
 
 const useStore = create<StoreState>((set) => ({
@@ -171,6 +173,8 @@ const useStore = create<StoreState>((set) => ({
     setRefreshDecks: (refresh) => set({ refreshDecks: refresh }),
     refreshFriends: false,
     setRefreshFriends: (refresh) => set({ refreshFriends: refresh }),
+    refreshCollections: false,
+    setRefreshCollections: (refresh) => set({ refreshCollections: refresh }),
 }));
 
 export default useStore;

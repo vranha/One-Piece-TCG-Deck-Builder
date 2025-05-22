@@ -22,6 +22,7 @@ interface CardItemProps {
     styles: any;
     Colors: any;
     theme: string;
+    loading: boolean;
     isSelectionEnabled: boolean;
     selectedQuantity: number;
     updateCardQuantity: (cardId: string, change: number, color: string) => void;
@@ -34,11 +35,12 @@ export default function CardItem({
     styles,
     Colors,
     theme,
+    loading,
     isSelectionEnabled,
     selectedQuantity,
     updateCardQuantity,
 }: CardItemProps) {
-    const [loading, setLoading] = useState(true);
+    const [imageLoaded, setImageLoaded] = useState(false);
 
     // Determina las dimensiones y estilos según cardSizeOption
     const getCardDimensions = () => {
@@ -99,37 +101,35 @@ export default function CardItem({
                     <ExpoImage
                         source={{ uri: item.images_small }}
                         placeholder={require("../assets/images/card_placeholder.webp")}
-                        style={[styles.cardImage, imageStyle, loading && { opacity: 0.3 }]}
+                        style={[styles.cardImage, imageStyle]}
                         contentFit="contain"
                         transition={300}
                         cachePolicy="memory-disk"
-                        onLoadStart={() => setLoading(true)}
-                        onLoadEnd={() => setLoading(false)}
+                        onLoadEnd={() => setImageLoaded(true)}
                     />
-                    {loading && (
-                        <View
-                            style={{
-                                position: "absolute",
-                                bottom: 5,
-                                left: 0,
-                                right: 0,
-                                justifyContent: "flex-end",
-                                alignItems: "center",
-                                paddingHorizontal: 8,
-                            }}
-                        >
-                            <ThemedText
-                                style={{
-                                    color: Colors[theme].tabIconDefault,
-                                    fontWeight: "bold",
-                                    fontSize: 14,
-                                    textAlign: "center",
-                                }}
-                            >
-                                {item.code}
-                            </ThemedText>
-                        </View>
-                    )}
+                                                        {!imageLoaded && (
+                                                            <View
+                                                                style={{
+                                                                    position: "absolute",
+                                                                    bottom: 5,
+                                                                    justifyContent: "flex-end",
+                                                                    alignItems: "center",
+                                                                    // backgroundColor: "rgba(0,0,0,0.2)",
+                                                                    paddingHorizontal: 8,
+                                                                }}
+                                                            >
+                                                                <ThemedText
+                                                                    style={{
+                                                                        color: Colors[theme as keyof typeof Colors].tabIconDefault,
+                                                                        fontWeight: "bold",
+                                                                        fontSize: 14,
+                                                                        textAlign: "center",
+                                                                    }}
+                                                                >
+                                                                    {item.code}
+                                                                </ThemedText>
+                                                            </View>
+                                                        )}
                     {cardSizeOption === 2 && !loading && (
                         <View style={styles.cardDetails}>
                             <View style={[styles.cardRarityContainer, { backgroundColor: Colors[theme].background }]}>

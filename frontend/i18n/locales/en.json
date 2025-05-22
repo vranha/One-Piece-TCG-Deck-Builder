@@ -223,5 +223,6 @@
       "language_update_success_title": "Wow!",
       "language_update_success_message": "Language updated successfully.",
       "language_update_error_title": "Error",
-      "language_update_error_message": "Error updating language."
+      "language_update_error_message": "Error updating language.",
+      "you": "You"
 }

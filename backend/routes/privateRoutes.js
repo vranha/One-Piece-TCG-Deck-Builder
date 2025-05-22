@@ -3,6 +3,7 @@ const validate = require("../middlewares/validate");
 const { addCardToDeckSchema, editDeckSchema, createDeckSchema } = require("../validators/deckValidator");
 const { loginUserSchema, registerUserSchema } = require("../validators/userValidator");
 const userController = require("../controllers/userController");
+const chatController = require("../controllers/chatController");
 const deckController = require("../controllers/deckController");
 const cardController = require("../controllers/cardController");
 const friendController = require("../controllers/friendController");
@@ -20,7 +21,7 @@ router.use(authenticate);
 
 const authorizeAdmin = (req, res, next) => {
     console.log("User role:", req.user); // Log the user role for debugging
-    if (req.user.email !== 'urioleh@gmail.com') {
+    if (req.user.email !== "urioleh@gmail.com") {
         return res.status(403).json({ error: "Access denied" });
     }
     next();
@@ -942,6 +943,16 @@ router.get("/collection/:collectionId", collectionController.getCollectionById);
 router.put("/collection/:collectionId/update-cards", collectionController.updateCardsInCollection);
 
 router.get("/userNotifications/:userId", notificationController.getUserNotifications);
+
+// Chats
+// Obtener los chats de un usuario por su ID
+router.get("/chats/:userId", chatController.getUserChats); // Obtener chats del usuario actual
+router.post("/chats", chatController.createOrGetChat); // Crear chat (o devolver si ya existe)
+router.get("/chats/:chatId/messages", chatController.getChatMessages); // Obtener mensajes de un chat
+router.post("/chats/:chatId/messages", chatController.sendMessage); // Enviar mensaje
+
+// Buscar usuarios (priorizando amigos)
+router.get("/users/search", userController.searchUsersWithFriendsFirst);
 
 router.post(
     "/import-cards-from-html",

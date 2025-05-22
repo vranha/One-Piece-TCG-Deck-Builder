@@ -3,6 +3,7 @@ import React, { useState, useRef } from "react";
 import { Platform, View, StyleSheet, Animated, ActivityIndicator } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Modalize } from "react-native-modalize";
+import { TouchableOpacity } from "react-native-gesture-handler";
 
 import { HapticTab } from "@/components/HapticTab";
 import TabBarBackground from "@/components/ui/TabBarBackground";
@@ -11,20 +12,24 @@ import { useTheme } from "@/hooks/ThemeContext";
 import Header from "@/components/Header";
 import TabBarButton from "@/components/TabBarButton";
 import Bubbles from "@/components/Bubbles";
-import Modal from "@/components/Modal";
+import ChatModal from "@/components/ChatModal";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import NewDeckModal from "@/components/NewDeckModal";
 import ImportDeckModal from "@/components/ImportDeckModal";
+import NewCollectionModal from "@/components/NewCollectionModal"; // Importa el nuevo modal
 import { Portal } from "react-native-paper";
 import useApi from "@/hooks/useApi";
 import Toast from "react-native-toast-message";
 import { useAuth } from "@/contexts/AuthContext";
 import useStore from "@/store/useStore";
+import { ThemedText } from "@/components/ThemedText";
+import { useTranslation } from "react-i18next";
 
 export default function TabLayout() {
     const { theme } = useTheme();
     const router = useRouter();
     const { session } = useAuth();
+    const { t } = useTranslation();
     const [showBubbles, setShowBubbles] = useState(false);
     const blurAnim = useRef(new Animated.Value(0)).current;
     const bubbleAnim = useRef(new Animated.Value(0)).current;
@@ -38,6 +43,11 @@ export default function TabLayout() {
     const [isNewDeckModalVisible, setIsNewDeckModalVisible] = useState(false);
     const [isImportDeckModalVisible, setIsImportDeckModalVisible] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isNewCollectionModalVisible, setIsNewCollectionModalVisible] = useState(false);
+    const [collectionType, setCollectionType] = useState<"collection" | "wishlist">("collection");
+    const [newCollectionName, setNewCollectionName] = useState("");
+    const [newCollectionDescription, setNewCollectionDescription] = useState("");
+    const setRefreshCollections = useStore((state) => state.setRefreshCollections);
     const api = useApi();
 
     const toggleBubbles = () => {
@@ -72,6 +82,14 @@ export default function TabLayout() {
         if (index === 3) {
             // Index for "Nuevo Mazo"
             setIsNewDeckModalVisible(true);
+            toggleBubbles();
+        }
+        if (index === 2) {
+            // Bubble para crear colección/wishlist
+            setIsNewCollectionModalVisible(true);
+            setCollectionType("collection");
+            setNewCollectionName("");
+            setNewCollectionDescription("");
             toggleBubbles();
         }
     };
@@ -130,6 +148,33 @@ export default function TabLayout() {
             });
         } finally {
             setIsLoading(false); // Hide the loading indicator
+        }
+    };
+
+    const handleCreateCollection = async (name: string, description: string, type: "collection" | "wishlist") => {
+        if (!name.trim()) return;
+        try {
+            setIsLoading(true);
+            await api.post(`/collections/${session?.user.id}`, {
+                name,
+                description,
+                type,
+            });
+            Toast.show({
+                type: "success",
+                text1: t("collection_created_successfully"),
+            });
+            setIsNewCollectionModalVisible(false);
+            setNewCollectionName("");
+            setNewCollectionDescription("");
+            setRefreshCollections(true);
+        } catch (error) {
+            Toast.show({
+                type: "error",
+                text1: t("error_creating_collection"),
+            });
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -233,7 +278,7 @@ export default function TabLayout() {
                         onBubblePress={handleBubblePress}
                     />
                 )}
-                <Modal ref={modalizeRef} />
+                <ChatModal ref={modalizeRef} />
                 <Portal>
                     {isLoading && (
                         <View style={[styles.loadingOverlay, { justifyContent: "center", alignItems: "center" }]}>
@@ -251,6 +296,19 @@ export default function TabLayout() {
                         visible={isImportDeckModalVisible}
                         onClose={() => setIsImportDeckModalVisible(false)}
                         onImport={handleImportDeck}
+                    />
+                </Portal>
+                <Portal>
+                    <NewCollectionModal
+                        visible={isNewCollectionModalVisible}
+                        onClose={() => setIsNewCollectionModalVisible(false)}
+                        type={collectionType}
+                        setType={setCollectionType}
+                        name={newCollectionName}
+                        setName={setNewCollectionName}
+                        description={newCollectionDescription}
+                        setDescription={setNewCollectionDescription}
+                        onCreate={handleCreateCollection}
                     />
                 </Portal>
             </View>
@@ -273,5 +331,51 @@ const styles = StyleSheet.create({
         alignItems: "center",
         backgroundColor: "rgba(0, 0, 0, 0.5)",
         zIndex: 1000,
+    },
+    modalOverlay: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(0,0,0,0.5)",
+    },
+    modalContent: {
+        width: "85%",
+        padding: 20,
+        borderRadius: 15,
+        alignItems: "center",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    typeSwitchRow: {
+        flexDirection: "row",
+        width: "100%",
+        marginBottom: 15,
+        gap: 10,
+    },
+    typeSwitchButton: {
+        flex: 1,
+        paddingVertical: 10,
+        borderRadius: 10,
+        alignItems: "center",
+        marginHorizontal: 2,
+        backgroundColor: "transparent",
+        borderWidth: 1,
+        borderColor: "#ccc",
+    },
+    modalButtons: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        width: "100%",
+        marginTop: 10,
+    },
+    modalButton: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 10,
+        alignItems: "center",
+        marginHorizontal: 5,
     },
 });

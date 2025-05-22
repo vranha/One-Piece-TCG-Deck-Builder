@@ -1467,7 +1467,15 @@ export default function DeckDetailScreen() {
                                                 : {},
                                         ]}
                                     >
-                                        <ExpoImage source={{ uri: item.images_small }} style={styles.cardImage} />
+                                        <ExpoImage
+                                            source={{ uri: item.images_small }}
+                                            style={styles.cardImage} 
+                                            placeholder={require("../../../assets/images/card_placeholder.webp")}
+                                            contentFit="contain"
+                                            transition={300}
+                                            cachePolicy="memory-disk"
+                                            />
+                                            
                                         {!item.is_leader ? (
                                             <View
                                                 style={[
