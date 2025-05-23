@@ -220,9 +220,12 @@
       },
       "paste_html_here": "Paste HTML here",
       "html_placeholder": "<!doctype html>...",
+      "expansion_placeholder": "Set Name...",
       "language_update_success_title": "Wow!",
       "language_update_success_message": "Language updated successfully.",
       "language_update_error_title": "Error",
       "language_update_error_message": "Error updating language.",
-      "you": "You"
+      "you": "You",
+      "title_notification_set": "{{title}} Has Arrived to the Grand Line",
+      "body_notification_set": "Let's build your new decks of {{body}}"
 }

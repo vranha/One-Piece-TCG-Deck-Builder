@@ -131,23 +131,34 @@ const notifyFriendRequest = async (receiverId, senderId) => {
         console.error("Error notifying friend request:", error.message);
     }
 };
-
 const getUserNotifications = async (userId) => {
     try {
-        const { data, error } = await supabase
+        // 1. Notificaciones específicas del usuario
+        const { data: userData, error: userError } = await supabase
             .from("notifications")
             .select("*")
-            .eq("user_id", userId)
-            .order("created_at", { ascending: false });
+            .eq("user_id", userId);
 
-        if (error) {
-            console.error("Error fetching user notifications:", error.message);
-            throw error;
-        }
+        if (userError) throw new Error(`Error fetching user notifications: ${userError.message}`);
 
-        return data;
+        // 2. Notificaciones globales (user_id = null)
+        const { data: globalData, error: globalError } = await supabase
+            .from("notifications")
+            .select("*")
+            .is("user_id", null);
+
+        if (globalError) throw new Error(`Error fetching global notifications: ${globalError.message}`);
+
+        // 3. Fusionar y ordenar por fecha
+        console.log("User notifications:", userData);
+        console.log("Global notifications:", globalData);
+        const allNotifications = [...userData, ...globalData].sort(
+            (a, b) => new Date(b.created_at) - new Date(a.created_at)
+        );
+
+        return allNotifications;
     } catch (error) {
-        console.error("Unexpected error in getUserNotifications:", error.message);
+        console.error("Error fetching notifications:", error.message);
         throw error;
     }
 };

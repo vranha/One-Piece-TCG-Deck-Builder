@@ -224,9 +224,12 @@
       },
     "paste_html_here": "Pega HTML aquí",
     "html_placeholder": "<!doctype html>...",
+    "expansion_placeholder": "Nombre del set...",
     "language_update_success_title": "¡Guau!",
     "language_update_success_message": "Idioma actualizado con éxito.",
     "language_update_error_title": "Error",
     "language_update_error_message": "Error al actualizar el idioma.",
-    "you": "Tú"
+    "you": "Tú",
+    "title_notification_set": "{{title}} Ha Llegado a la Grand Line",
+    "body_notification_set": "Vamos a construir tus nuevos mazos de {{body}}"
 }

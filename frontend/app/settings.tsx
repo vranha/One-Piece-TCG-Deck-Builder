@@ -452,7 +452,7 @@ export default function SettingsScreen() {
                                 ) : (
                                     <>
                                         <TextInput
-                                            style={[styles.textArea, { borderColor: Colors[theme].tabIconDefault }]}
+                                            style={[styles.textArea, { borderColor: Colors[theme].tabIconDefault, color:Colors[theme].text }]}
                                             multiline
                                             value={htmlContent}
                                             onChangeText={setHtmlContent}
@@ -460,7 +460,7 @@ export default function SettingsScreen() {
                                             placeholderTextColor={Colors[theme].tabIconDefault}
                                         />
                                         <TextInput
-                                            style={[styles.textInput, { borderColor: Colors[theme].tabIconDefault }]} // New TextInput for expansion
+                                            style={[styles.textInput, { borderColor: Colors[theme].tabIconDefault, color:Colors[theme].text }]} // New TextInput for expansion
                                             value={expansion}
                                             onChangeText={setExpansion}
                                             placeholder={t("expansion_placeholder")}

@@ -97,6 +97,24 @@ const processHtmlAndInsertCards = async (html, expansion) => {
         console.error("Error sending localized push notifications:", error.message);
     }
 
+    // Notificación global para todos los usuarios (localizada)
+    try {
+        // Usamos el idioma más común (por ejemplo, inglés) para el título y body global,
+        // pero podrías insertar una notificación por cada idioma si lo prefieres.
+        await supabase.from("notifications").insert([
+            {
+                user_id: null,
+                type: "new_set",
+                title: expansion, // Puedes cambiar a "es" o "fr" si prefieres otro idioma por defecto
+                body: expansion,
+                is_read: false,
+                created_at: new Date().toISOString(),
+            },
+        ]);
+    } catch (error) {
+        console.error("Error insertando notificación global:", error.message);
+    }
+
     return cards.length;
 };
 

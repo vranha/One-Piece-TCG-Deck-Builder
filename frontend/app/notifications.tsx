@@ -160,7 +160,7 @@ export default function NotificationsScreen() {
                                 </Text>
                             </View>
                         }
-                        contentContainerStyle={{ alignItems: "center" }} // Add padding to the bottom of the list
+                        contentContainerStyle={{  paddingHorizontal: 10, paddingBottom: 20  }} // Add padding to the bottom of the list
                         renderItem={({
                             item,
                         }: {
@@ -177,6 +177,9 @@ export default function NotificationsScreen() {
                                 case "message":
                                     backgroundColor = Colors[theme].tint;
                                     break;
+                                case "new_set":
+                                    backgroundColor = Colors[theme].info;
+                                    break;
                                 default:
                                     backgroundColor = Colors[theme].TabBarBackground;
                             }
@@ -191,9 +194,22 @@ export default function NotificationsScreen() {
                                 case "message":
                                     titleColor = Colors[theme].tint;
                                     break;
+                                case "new_set":
+                                    titleColor = Colors[theme].info;
+                                    break;
                                 default:
                                     titleColor = Colors[theme].text;
                             }
+                            // Cambios aquí para el type "new_set"
+                            const notificationTitle =
+                                item.type === "new_set"
+                                    ? t("title_notification_set", { title: item.title })
+                                    : item.title;
+                            const notificationBody =
+                                item.type === "new_set"
+                                    ? t("body_notification_set", { body: item.body })
+                                    : item.body;
+
                             return (
                                 <View
                                     style={[
@@ -201,9 +217,9 @@ export default function NotificationsScreen() {
                                         { backgroundColor: Colors[theme].TabBarBackground },
                                     ]}
                                 >
-                                    <Text style={[styles.username, { color: titleColor }]}>{item.title}</Text>
-                                    <Text style={{ color: Colors[theme].text }}>{item.body}</Text>
-                                    <Text style={{ color: Colors[theme].disabled, fontSize: 12, alignSelf: "flex-end" }}>
+                                    <Text style={[styles.username, { color: titleColor }]}>{notificationTitle}</Text>
+                                    <Text style={{ color: Colors[theme].text }}>{notificationBody}</Text>
+                                    <Text style={{ color: Colors[theme].disabled, fontSize: 12, alignSelf: "flex-end", marginTop: 8 }}>
                                         {new Date(item.created_at).toLocaleDateString(undefined, {
                                             year: "numeric",
                                             month: "2-digit",
@@ -333,6 +349,8 @@ const styles = StyleSheet.create({
         width: "100%", // Ensure the card spans the full width
     },
     notificationCard: {
+        flexDirection: "column",
+        justifyContent: "space-between",
         alignSelf: "flex-start", // Ensure the card only takes the space it needs
         paddingVertical: 10,
         paddingHorizontal: 25,
@@ -344,6 +362,7 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 2,
         gap: 5,
+        width: "100%", // ✅ O también puedes usar alignSelf: "stretch"
     },
     avatar: {
         width: 50,
