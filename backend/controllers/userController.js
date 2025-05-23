@@ -9,6 +9,7 @@ const {
     updateUserDetails,
     getUserById,
 } = require("../services/supabaseClient");
+const friendService = require("../services/friendService");
 
 // Obtener todos los usuarios
 const getAllUsers = async (req, res) => {
@@ -159,10 +160,24 @@ const getUserByIdController = async (req, res) => {
 
 const searchUsersWithFriendsFirst = async (req, res) => {
     try {
-        const userId = req.user.id;
-        const { query } = req.query;
-        const users = await userService.searchUsersWithFriendsFirst(userId, query);
-        res.json(users);
+        const userId = req.params.userId;
+        const { query = "" } = req.query;
+        if (!userId) return res.status(400).json({ error: "userId is required" });
+
+        // Buscar todos los usuarios
+        const allUsers = await getUsers(1, 10000, query); // Trae todos los users que coincidan con el query
+        const usersList = allUsers.data || [];
+
+        // Buscar amigos
+        const friends = await friendService.getFriends(userId);
+        const friendIds = friends.map((f) => f.id);
+
+        // Marcar cada usuario con isFriend
+        const usersWithFriendFlag = usersList.map((u) => ({ ...u, isFriend: friendIds.includes(u.id) }));
+        // Ordenar: amigos primero
+        usersWithFriendFlag.sort((a, b) => (b.isFriend ? 1 : 0) - (a.isFriend ? 1 : 0));
+
+        res.json(usersWithFriendFlag);
     } catch (err) {
         res.status(500).json({ error: "Error searching users" });
     }

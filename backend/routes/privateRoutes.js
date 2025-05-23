@@ -950,9 +950,10 @@ router.get("/chats/:userId", chatController.getUserChats); // Obtener chats del 
 router.post("/chats", chatController.createOrGetChat); // Crear chat (o devolver si ya existe)
 router.get("/chats/:chatId/messages", chatController.getChatMessages); // Obtener mensajes de un chat
 router.post("/chats/:chatId/messages", chatController.sendMessage); // Enviar mensaje
+router.post("/chats/:chatId/read", chatController.markChatAsRead); // Marcar chat como leído
 
 // Buscar usuarios (priorizando amigos)
-router.get("/users/search", userController.searchUsersWithFriendsFirst);
+router.get("/users/search/:userId", userController.searchUsersWithFriendsFirst);
 
 router.post(
     "/import-cards-from-html",

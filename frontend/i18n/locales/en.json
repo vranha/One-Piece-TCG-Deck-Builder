@@ -227,5 +227,6 @@
       "language_update_error_message": "Error updating language.",
       "you": "You",
       "title_notification_set": "{{title}} Has Arrived to the Grand Line",
-      "body_notification_set": "Let's build your new decks of {{body}}"
+      "body_notification_set": "Let's build your new decks of {{body}}",
+      "message": "Message"
 }

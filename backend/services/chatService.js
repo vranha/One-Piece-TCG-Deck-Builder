@@ -79,7 +79,6 @@ const getChatMessages = async (chatId) => {
 };
 
 const sendMessage = async (chatId, senderId, content) => {
-    // Insertar mensaje y actualizar last_message en chat
     const { data: message, error } = await supabase
         .from("messages")
         .insert([{ chat_id: chatId, sender_id: senderId, content }])
@@ -87,12 +86,38 @@ const sendMessage = async (chatId, senderId, content) => {
         .single();
     if (error) throw error;
 
-    await supabase
+    const { data: chat, error: chatError } = await supabase
         .from("chats")
-        .update({ last_message: content, updated_at: new Date().toISOString() })
-        .eq("id", chatId);
+        .select("user1_id, user2_id")
+        .eq("id", chatId)
+        .single();
+    if (chatError) throw chatError;
+
+    let updateFields = { last_message: content, updated_at: new Date().toISOString() };
+    if (chat.user1_id === senderId) updateFields.user2_read = false;
+    else if (chat.user2_id === senderId) updateFields.user1_read = false;
+
+    await supabase.from("chats").update(updateFields).eq("id", chatId);
 
     return message;
+};
+
+const markChatAsRead = async (chatId, userId) => {
+    const { data: chat, error } = await supabase.from("chats").select("user1_id, user2_id").eq("id", chatId).single();
+    if (error) throw error;
+    if (!chat) throw new Error("Chat not found");
+
+    let updateField = null;
+    if (chat.user1_id === userId) updateField = "user1_read";
+    else if (chat.user2_id === userId) updateField = "user2_read";
+    else throw new Error("User not in chat");
+
+    const { error: updateError } = await supabase
+        .from("chats")
+        .update({ [updateField]: true })
+        .eq("id", chatId);
+    if (updateError) throw updateError;
+    return true;
 };
 
 module.exports = {
@@ -100,4 +125,5 @@ module.exports = {
     createOrGetChat,
     getChatMessages,
     sendMessage,
+    markChatAsRead,
 };

@@ -49,6 +49,7 @@ export default function TabLayout() {
     const [newCollectionDescription, setNewCollectionDescription] = useState("");
     const setRefreshCollections = useStore((state) => state.setRefreshCollections);
     const api = useApi();
+    const hasUnreadChats = useStore((state) => state.hasUnreadChats);
 
     const toggleBubbles = () => {
         if (showBubbles) {
@@ -205,7 +206,7 @@ export default function TabLayout() {
                         options={{
                             tabBarShowLabel: false,
                             title: "OP Lab",
-                            tabBarButton: (props) => <TabBarButton {...props} name="house.fill" />,
+                            tabBarButton: (props) => <TabBarButton {...props} name="house.fill" />, // sin badge
                             headerShown: true,
                             headerTitleAlign: "center",
                             headerTitle: () => <Header title="OP Lab" />,
@@ -230,7 +231,13 @@ export default function TabLayout() {
                         options={{
                             title: "Chat",
                             tabBarButton: (props) => (
-                                <TabBarButton {...props} name="forum.fill" isChatButton onPress={openModal} />
+                                <TabBarButton
+                                    {...props}
+                                    name="forum.fill"
+                                    isChatButton
+                                    onPress={openModal}
+                                    hasUnread={hasUnreadChats}
+                                />
                             ),
                         }}
                     />

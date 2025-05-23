@@ -42,6 +42,8 @@ interface StoreState {
     setRefreshFriends: (refresh: boolean) => void;
     refreshCollections: boolean;
     setRefreshCollections: (refresh: boolean) => void;
+    hasUnreadChats?: boolean;
+    setHasUnreadChats?: (hasUnread: boolean) => void;
 }
 
 const useStore = create<StoreState>((set) => ({
@@ -175,6 +177,8 @@ const useStore = create<StoreState>((set) => ({
     setRefreshFriends: (refresh) => set({ refreshFriends: refresh }),
     refreshCollections: false,
     setRefreshCollections: (refresh) => set({ refreshCollections: refresh }),
+    hasUnreadChats: false,
+    setHasUnreadChats: (hasUnread) => set({ hasUnreadChats: hasUnread }),
 }));
 
 export default useStore;

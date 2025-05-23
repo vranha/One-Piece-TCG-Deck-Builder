@@ -16,8 +16,11 @@ const getUserChats = async (req, res) => {
 };
 const createOrGetChat = async (req, res) => {
     try {
-        const userId = req.user.id;
-        const { otherUserId } = req.body;
+        // Recibe ambos ids por body
+        const { userId, otherUserId } = req.body;
+        if (!userId || !otherUserId) {
+            return res.status(400).json({ error: "Missing userId or otherUserId" });
+        }
         const chat = await chatService.createOrGetChat(userId, otherUserId);
         res.json(chat);
     } catch (err) {
@@ -37,13 +40,29 @@ const getChatMessages = async (req, res) => {
 
 const sendMessage = async (req, res) => {
     try {
-        const { chatId } = req.params;
-        const senderId = req.user.id;
-        const { content } = req.body;
-        const message = await chatService.sendMessage(chatId, senderId, content);
+        const { chat_id, sender_id, content } = req.body;
+        if (!chat_id || !sender_id || !content) {
+            return res.status(400).json({ error: "Missing chat_id, sender_id or content" });
+        }
+        const message = await chatService.sendMessage(chat_id, sender_id, content);
         res.json(message);
     } catch (err) {
         res.status(500).json({ error: "Error sending message" });
+    }
+};
+
+const markChatAsRead = async (req, res) => {
+    try {
+        const { chatId } = req.params;
+        // Permite userId por body o por req.user.id
+        const userId = req.body.userId || (req.user && req.user.id);
+        if (!userId) {
+            return res.status(400).json({ error: "Missing userId" });
+        }
+        await chatService.markChatAsRead(chatId, userId);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: "Error marking chat as read" });
     }
 };
 
@@ -52,4 +71,5 @@ module.exports = {
     getChatMessages,
     createOrGetChat,
     getUserChats,
+    markChatAsRead,
 };

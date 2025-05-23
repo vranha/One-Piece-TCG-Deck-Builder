@@ -160,7 +160,7 @@ export default function NotificationsScreen() {
                                 </Text>
                             </View>
                         }
-                        contentContainerStyle={{  paddingHorizontal: 10, paddingBottom: 20  }} // Add padding to the bottom of the list
+                        contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 20 }} // Add padding to the bottom of the list
                         renderItem={({
                             item,
                         }: {
@@ -206,9 +206,7 @@ export default function NotificationsScreen() {
                                     ? t("title_notification_set", { title: item.title })
                                     : item.title;
                             const notificationBody =
-                                item.type === "new_set"
-                                    ? t("body_notification_set", { body: item.body })
-                                    : item.body;
+                                item.type === "new_set" ? t("body_notification_set", { body: item.body }) : item.body;
 
                             return (
                                 <View
@@ -219,7 +217,14 @@ export default function NotificationsScreen() {
                                 >
                                     <Text style={[styles.username, { color: titleColor }]}>{notificationTitle}</Text>
                                     <Text style={{ color: Colors[theme].text }}>{notificationBody}</Text>
-                                    <Text style={{ color: Colors[theme].disabled, fontSize: 12, alignSelf: "flex-end", marginTop: 8 }}>
+                                    <Text
+                                        style={{
+                                            color: Colors[theme].disabled,
+                                            fontSize: 12,
+                                            alignSelf: "flex-end",
+                                            marginTop: 8,
+                                        }}
+                                    >
                                         {new Date(item.created_at).toLocaleDateString(undefined, {
                                             year: "numeric",
                                             month: "2-digit",

@@ -231,5 +231,6 @@
     "language_update_error_message": "Error al actualizar el idioma.",
     "you": "Tú",
     "title_notification_set": "{{title}} Ha Llegado a la Grand Line",
-    "body_notification_set": "Vamos a construir tus nuevos mazos de {{body}}"
+    "body_notification_set": "Vamos a construir tus nuevos mazos de {{body}}",
+    "message": "Mensaje"
 }
