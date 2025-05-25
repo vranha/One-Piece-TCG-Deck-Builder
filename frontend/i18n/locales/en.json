@@ -228,5 +228,11 @@
       "you": "You",
       "title_notification_set": "{{title}} Has Arrived to the Grand Line",
       "body_notification_set": "Let's build your new decks of {{body}}",
-      "message": "Message"
+      "message": "Message",
+      "no_chat_selected": "No chat selected",
+    "no_results_found_users": "No one in Grand Line matches your search criteria.",
+    "try_searching_another_username": "Try searching another username.",
+    "still_no_messages": "Still no messages on this chat",
+    "send_first_message": "Send the first message to start the new pirate adventure!",
+    "your_chats": "Your Chats"
 }

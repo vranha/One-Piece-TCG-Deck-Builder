@@ -1,5 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Keyboard } from "react-native";
+import {
+    View,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    KeyboardAvoidingView,
+    Platform,
+    Keyboard,
+    FlatList,
+    LogBox,
+} from "react-native";
 import { Modalize } from "react-native-modalize";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/ThemeContext";
@@ -62,11 +72,18 @@ const ChatModal = React.forwardRef((props, ref) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState("");
     const [loading, setLoading] = useState(false);
+    const [messagesLoading, setMessagesLoading] = useState(false);
     const [pendingUser, setPendingUser] = useState<User | null>(null); // Nuevo estado para chat vacío
     const [justOpenedChat, setJustOpenedChat] = useState(false);
     const flashListRef = useRef<FlashList<Message>>(null);
     // Ref para Modalize (asegura acceso correcto)
     const modalizeRef = ref || useRef(null);
+
+    // Oculta el warning de SyntheticEvent/NOBRIDGE si aparece
+    useEffect(() => {
+        // Oculta cualquier warning que contenga 'SyntheticEvent' o 'NOBRIDGE' (más robusto)
+        LogBox.ignoreLogs([/SyntheticEvent/i, /NOBRIDGE/i, /nativeEvent/i]);
+    }, []);
 
     // Obtener chats al abrir modal
     useEffect(() => {
@@ -99,19 +116,42 @@ const ChatModal = React.forwardRef((props, ref) => {
         }
     };
 
+    // Type guard para User (ajustado a la nueva estructura)
+    function isUser(obj: any): obj is User {
+        return (
+            (obj as User).username !== undefined &&
+            (obj as User).id !== undefined &&
+            (obj as Chat).user1_id === undefined
+        );
+    }
+
     const openChat = async (chatOrUser: Chat | User) => {
         setLoading(true);
+        // Limpiar mensajes y chat seleccionado antes de cargar el nuevo chat
+        setMessages([]);
+        setSelectedChat(null);
         try {
             let chat: Chat | null = null;
             if (isUser(chatOrUser)) {
-                // No crear chat aún, solo abrir UI vacía
-                setPendingUser(chatOrUser);
-                setSelectedChat(null);
-                setMessages([]);
-                setView("messages");
-                setJustOpenedChat(true); // <-- Scroll al abrir chat nuevo
-                setLoading(false);
-                return;
+                // Buscar si ya existe un chat con ese usuario
+                const existingChat = chats.find(
+                    (c) =>
+                        (c.user1_id === session?.user.id && c.user2_id === chatOrUser.id) ||
+                        (c.user2_id === session?.user.id && c.user1_id === chatOrUser.id)
+                );
+                if (existingChat) {
+                    // Si ya existe, abrir ese chat
+                    chat = existingChat;
+                } else {
+                    // No crear chat aún, solo abrir UI vacía
+                    setPendingUser(chatOrUser);
+                    setSelectedChat(null);
+                    setMessages([]);
+                    setView("messages");
+                    setJustOpenedChat(true); // <-- Scroll al abrir chat nuevo
+                    setLoading(false);
+                    return;
+                }
             } else {
                 chat = chatOrUser;
             }
@@ -127,8 +167,11 @@ const ChatModal = React.forwardRef((props, ref) => {
             setSelectedChat(chat);
             setPendingUser(null);
             setView("messages");
-            setJustOpenedChat(true); // <-- Scroll al abrir chat existente
-            fetchMessages(chat.id);
+            setJustOpenedChat(true);
+            if (chat) {
+                setMessagesLoading(true);
+                fetchMessages(chat.id);
+            }
             // Quitar el rojo del icono si ya no hay chats no leídos
             setHasUnreadChats(false);
         } catch (e) {
@@ -139,24 +182,15 @@ const ChatModal = React.forwardRef((props, ref) => {
         }
     };
 
-    // Type guard para User (ajustado a la nueva estructura)
-    function isUser(obj: any): obj is User {
-        return (
-            (obj as User).username !== undefined &&
-            (obj as User).id !== undefined &&
-            (obj as Chat).user1_id === undefined
-        );
-    }
-
     const fetchMessages = async (chatId: string, showLoading = true) => {
-        if (showLoading) setLoading(true);
+        if (showLoading) setMessagesLoading(true);
         try {
             const res = await api.get(`/chats/${chatId}/messages`);
             setMessages(res.data);
         } catch (e) {
             setMessages([]);
         } finally {
-            if (showLoading) setLoading(false);
+            if (showLoading) setMessagesLoading(false);
         }
     };
 
@@ -168,6 +202,12 @@ const ChatModal = React.forwardRef((props, ref) => {
             if (!chatId && pendingUser) {
                 const res = await api.post("/chats", { userId: session.user.id, otherUserId: pendingUser.id });
                 const chat = res.data;
+                // Rellenar manualmente el campo other_user para la UI
+                chat.other_user = {
+                    id: pendingUser.id,
+                    username: pendingUser.username,
+                    avatar_url: pendingUser.avatar_url,
+                };
                 setSelectedChat(chat);
                 setPendingUser(null);
                 chatId = chat.id;
@@ -200,13 +240,19 @@ const ChatModal = React.forwardRef((props, ref) => {
                     table: "messages",
                     filter: `chat_id=eq.${selectedChat.id}`,
                 },
-                (payload) => {
+                async (payload) => {
                     // Asegura que el payload tiene la forma de Message
                     const newMsg = payload.new as Message;
                     setMessages((prev) => {
                         if (prev.some((m) => m.id === newMsg.id)) return prev;
                         return [...prev, newMsg];
                     });
+                    // Marcar como leído automáticamente si estamos en el chat
+                    try {
+                        await api.post(`/chats/${selectedChat.id}/read`, { userId: session?.user.id });
+                    } catch (e) {
+                        // No bloquear la UI si falla
+                    }
                 }
             )
             .subscribe();
@@ -268,10 +314,7 @@ const ChatModal = React.forwardRef((props, ref) => {
         if (view === "messages" && justOpenedChat && messages.length > 0) {
             setTimeout(() => {
                 try {
-                    flashListRef.current?.scrollToIndex({
-                        index: messages.length - 1,
-                        animated: false,
-                    });
+                    flashListRef.current?.scrollToEnd({ animated: false });
                 } catch (e) {}
                 setJustOpenedChat(false);
             }, 100);
@@ -305,23 +348,47 @@ const ChatModal = React.forwardRef((props, ref) => {
         }
     };
 
+    // Header para la lista de chats
+    const ChatsHeader = (
+        <View style={styles.headerRowChats}>
+            <ThemedText type="subtitle" style={[styles.text, { color: Colors[theme].text }]}>
+                {t("your_chats")}
+            </ThemedText>
+            <TouchableOpacity
+                onPress={() => {
+                    setView("search");
+                    setSearchQuery("");
+                    setSearchResults([]);
+                }}
+            >
+                <Ionicons name="search" size={24} color={Colors[theme].tint} />
+            </TouchableOpacity>
+        </View>
+    );
+
+    // Header para la búsqueda de usuarios
+    const SearchHeader = (
+        <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => setView("chats")}>
+                <Ionicons name="arrow-back" size={24} color={Colors[theme].tint} />
+            </TouchableOpacity>
+            <TextInput
+                style={[styles.inputSearch, { color: Colors[theme].text, borderColor: Colors[theme].tint }]}
+                placeholder={t("Buscar usuario")}
+                placeholderTextColor={Colors[theme].text + "99"}
+                value={searchQuery}
+                onChangeText={(text) => {
+                    setSearchQuery(text);
+                    searchUsers(text);
+                }}
+            />
+        </View>
+    );
+
     // Renderizado condicional
     const renderChats = () => (
         <View style={styles.container}>
-            <View style={styles.headerRowChats}>
-                <ThemedText type="subtitle" style={[styles.text, { color: Colors[theme].text }]}>
-                    {t("Tus chats")}
-                </ThemedText>
-                <TouchableOpacity
-                    onPress={() => {
-                        setView("search");
-                        setSearchQuery("");
-                        setSearchResults([]);
-                    }}
-                >
-                    <Ionicons name="search" size={24} color={Colors[theme].tint} />
-                </TouchableOpacity>
-            </View>
+            {/* Header eliminado, ahora va en HeaderComponent */}
             {loading ? (
                 <View style={{ flex: 1, justifyContent: "center", alignItems: "center", minHeight: 500 }}>
                     <ActivityIndicator size="large" color={Colors[theme].tint} />
@@ -391,21 +458,7 @@ const ChatModal = React.forwardRef((props, ref) => {
 
     const renderSearch = () => (
         <View style={styles.container}>
-            <View style={styles.headerRow}>
-                <TouchableOpacity onPress={() => setView("chats")}>
-                    <Ionicons name="arrow-back" size={24} color={Colors[theme].tint} />
-                </TouchableOpacity>
-                <TextInput
-                    style={[styles.inputSearch, { color: Colors[theme].text, borderColor: Colors[theme].tint }]}
-                    placeholder={t("Buscar usuario")}
-                    placeholderTextColor={Colors[theme].text + "99"}
-                    value={searchQuery}
-                    onChangeText={(text) => {
-                        setSearchQuery(text);
-                        searchUsers(text); // Siempre busca, aunque sea vacío o una letra
-                    }}
-                />
-            </View>
+            {/* Header eliminado, ahora va en HeaderComponent */}
             {loading ? (
                 <View style={{ flex: 1, justifyContent: "center", alignItems: "center", minHeight: 500 }}>
                     <ActivityIndicator size="large" color={Colors[theme].tint} />
@@ -416,7 +469,10 @@ const ChatModal = React.forwardRef((props, ref) => {
                     keyExtractor={(item) => item.id?.toString()}
                     renderItem={({ item }) => {
                         return (
-                            <TouchableOpacity style={styles.userCard} onPress={() => openChat(item)}>
+                            <TouchableOpacity
+                                style={[styles.userCard, { backgroundColor: Colors[theme].background }]}
+                                onPress={() => openChat(item)}
+                            >
                                 {item.avatar_url ? (
                                     <Image
                                         source={item.avatar_url}
@@ -431,8 +487,8 @@ const ChatModal = React.forwardRef((props, ref) => {
                                     <ThemedText style={styles.userName}>{item.username}</ThemedText>
                                 </View>
                                 {item.isFriend && (
-                                    <View style={styles.friendBadge}>
-                                        <ThemedText style={styles.friendBadgeText}>Amigo</ThemedText>
+                                    <View style={[styles.friendBadge, { backgroundColor: Colors[theme].tint }]}>
+                                        <Ionicons name="people" size={16} color="#fff" />
                                     </View>
                                 )}
                             </TouchableOpacity>
@@ -442,9 +498,42 @@ const ChatModal = React.forwardRef((props, ref) => {
                     estimatedItemSize={60}
                     ListEmptyComponent={
                         searchQuery.length > 1 ? (
-                            <ThemedText style={{ color: Colors[theme].text }}>
-                                {t("No se encontraron usuarios")}
-                            </ThemedText>
+                            <View
+                                style={{
+                                    flex: 1,
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    paddingVertical: 60,
+                                }}
+                            >
+                                <Ionicons
+                                    name="skull"
+                                    size={48}
+                                    color={Colors[theme].tint}
+                                    style={{ marginBottom: 12 }}
+                                />
+                                <ThemedText
+                                    style={{
+                                        color: Colors[theme].text,
+                                        fontWeight: "bold",
+                                        fontSize: 18,
+                                        textAlign: "center",
+                                        marginBottom: 6,
+                                    }}
+                                >
+                                    {t("no_results_found_users")}
+                                </ThemedText>
+                                <ThemedText
+                                    style={{
+                                        color: Colors[theme].text + "99",
+                                        fontSize: 15,
+                                        textAlign: "center",
+                                        maxWidth: 260,
+                                    }}
+                                >
+                                    {t("try_searching_another_username")}
+                                </ThemedText>
+                            </View>
                         ) : null
                     }
                 />
@@ -454,17 +543,12 @@ const ChatModal = React.forwardRef((props, ref) => {
 
     // Renderizado condicional para la vista de mensajes
     const renderMessages = () => {
-        // Si pendingUser está definido, es un chat vacío
         if (pendingUser) {
             return <View style={{ flex: 1, minHeight: 0, flexGrow: 1, flexShrink: 1 }} />;
         }
-
-        // Filtrar mensajes undefined/null para evitar errores
         const safeMessages = Array.isArray(messages)
             ? messages.filter((m) => m && typeof m === "object" && m.id && m.content && m.sender_id)
             : [];
-
-        // Si no hay chat seleccionado y no hay pendingUser, no renderizar FlashList
         if (!selectedChat && !pendingUser) {
             return (
                 <View
@@ -477,16 +561,14 @@ const ChatModal = React.forwardRef((props, ref) => {
                         alignItems: "center",
                     }}
                 >
-                    <ThemedText style={{ color: Colors[theme].text }}>{t("No hay chat seleccionado")}</ThemedText>
+                    <ThemedText style={{ color: Colors[theme].text }}>{t("no_chat_selected")}</ThemedText>
                 </View>
             );
         }
-
-        // Siempre pasar un array a FlashList y asegurar flex: 1 y minHeight: 0
         return (
             <View style={{ flex: 1, minHeight: 0, flexGrow: 1, flexShrink: 1 }}>
-                <FlashList
-                    ref={flashListRef}
+                <FlatList
+                    ref={flashListRef as any}
                     data={safeMessages}
                     keyExtractor={(item) => item.id?.toString?.() || Math.random().toString()}
                     renderItem={({ item }) => (
@@ -520,43 +602,64 @@ const ChatModal = React.forwardRef((props, ref) => {
                         paddingTop: 8,
                     }}
                     ListEmptyComponent={
-                        <ThemedText style={{ color: Colors[theme].text }}>{t("No hay mensajes")}</ThemedText>
+                        !messagesLoading && safeMessages.length === 0 ? (
+                            <View
+                                style={{
+                                    flex: 1,
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    paddingVertical: 60,
+                                }}
+                            >
+                                <Ionicons
+                                    name="skull"
+                                    size={48}
+                                    color={Colors[theme].tint}
+                                    style={{ marginBottom: 12 }}
+                                />
+                                <ThemedText
+                                    style={{
+                                        color: Colors[theme].text,
+                                        fontWeight: "bold",
+                                        fontSize: 18,
+                                        textAlign: "center",
+                                        marginBottom: 6,
+                                    }}
+                                >
+                                    {t("still_no_messages")}
+                                </ThemedText>
+                                <ThemedText
+                                    style={{
+                                        color: Colors[theme].text + "99",
+                                        fontSize: 15,
+                                        textAlign: "center",
+                                        maxWidth: 260,
+                                    }}
+                                >
+                                    {t("send_first_message")}
+                                </ThemedText>
+                            </View>
+                        ) : null
                     }
                     keyboardShouldPersistTaps="handled"
-                    estimatedItemSize={80}
                     scrollEnabled={true}
-                    onLayout={() => {
-                        // Forzar scroll al final solo al abrir el chat
-                        if (justOpenedChat && safeMessages.length > 0) {
-                            setTimeout(() => {
-                                try {
-                                    if (flashListRef.current && flashListRef.current.scrollToIndex) {
-                                        flashListRef.current.scrollToIndex({
-                                            index: safeMessages.length - 1,
-                                            animated: false,
-                                        });
-                                    }
-                                } catch (e) {}
-                                setJustOpenedChat(false);
-                            }, 0);
-                        }
-                    }}
+                    inverted={true}
                 />
             </View>
         );
     };
 
-    return (
-        <Modalize
-            ref={modalizeRef}
-            adjustToContentHeight={false}
-            modalHeight={600}
-            disableScrollIfPossible={true}
-            modalStyle={{ backgroundColor: Colors[theme].TabBarBackground }}
-            onOpen={handleModalOpen}
-            onClose={() => setView("chats")}
-            HeaderComponent={
-                view === "messages" && (
+    if (view === "messages") {
+        return (
+            <Modalize
+                ref={modalizeRef}
+                adjustToContentHeight={false}
+                modalHeight={600}
+                disableScrollIfPossible={true}
+                modalStyle={{ backgroundColor: Colors[theme].TabBarBackground }}
+                onOpen={handleModalOpen}
+                onClose={() => setView("chats")}
+                HeaderComponent={
                     <View
                         style={{
                             flexDirection: "row",
@@ -610,10 +713,8 @@ const ChatModal = React.forwardRef((props, ref) => {
                             {selectedChat?.other_user?.username || pendingUser?.username || t("Usuario")}
                         </ThemedText>
                     </View>
-                )
-            }
-            FooterComponent={
-                view === "messages" && (
+                }
+                FooterComponent={
                     <View
                         style={{
                             paddingHorizontal: 16,
@@ -658,34 +759,122 @@ const ChatModal = React.forwardRef((props, ref) => {
                             <Ionicons name="send" size={20} color={Colors[theme].background} />
                         </TouchableOpacity>
                     </View>
-                )
-            }
+                }
+                keyboardAvoidingBehavior="padding"
+                keyboardAvoidingOffset={80}
+                panGestureEnabled={false}
+                closeOnOverlayTap={true}
+                flatListProps={{
+                    data: Array.isArray(messages)
+                        ? messages
+                              .filter((m) => m && typeof m === "object" && m.id && m.content && m.sender_id)
+                              .reverse()
+                        : [],
+                    keyExtractor: (item: any) => item.id?.toString?.() || Math.random().toString(),
+                    renderItem: ({ item }: any) => (
+                        <View
+                            style={[
+                                styles.messageRow,
+                                {
+                                    alignSelf: item.sender_id === session?.user.id ? "flex-end" : "flex-start",
+                                    backgroundColor:
+                                        item.sender_id === session?.user.id
+                                            ? Colors[theme].ownMessageBackground
+                                            : Colors[theme].receivedMessageBackground,
+                                },
+                            ]}
+                        >
+                            <ThemedText
+                                style={{
+                                    color:
+                                        item.sender_id === session?.user.id
+                                            ? Colors[theme].ownMessageText
+                                            : Colors[theme].receivedMessageText,
+                                }}
+                            >
+                                {item.content}
+                            </ThemedText>
+                        </View>
+                    ),
+                    contentContainerStyle: {
+                        paddingHorizontal: 12,
+                        paddingBottom: 16,
+                        paddingTop: 8,
+                    },
+                    ListEmptyComponent:
+                        !messagesLoading && (!messages || messages.length === 0) ? (
+                            <View
+                                style={{
+                                    flex: 1,
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    paddingVertical: 60,
+                                }}
+                            >
+                                <Ionicons
+                                    name="skull"
+                                    size={48}
+                                    color={Colors[theme].tint}
+                                    style={{ marginBottom: 12 }}
+                                />
+                                <ThemedText
+                                    style={{
+                                        color: Colors[theme].text,
+                                        fontWeight: "bold",
+                                        fontSize: 18,
+                                        textAlign: "center",
+                                        marginBottom: 6,
+                                    }}
+                                >
+                                    {t("¡Todavía no hay mensajes en esta aventura!")}
+                                </ThemedText>
+                                <ThemedText
+                                    style={{
+                                        color: Colors[theme].text + "99",
+                                        fontSize: 15,
+                                        textAlign: "center",
+                                        maxWidth: 260,
+                                    }}
+                                >
+                                    {t("Envía el primer mensaje y comienza tu viaje pirata.")}
+                                </ThemedText>
+                            </View>
+                        ) : null,
+                    keyboardShouldPersistTaps: "handled",
+                    scrollEnabled: true,
+                    inverted: true,
+                }}
+            />
+        );
+    }
+
+    // Para chats/search:
+    return (
+        <Modalize
+            ref={modalizeRef}
+            adjustToContentHeight={false}
+            modalHeight={600}
+            disableScrollIfPossible={true}
+            modalStyle={{ backgroundColor: Colors[theme].TabBarBackground }}
+            onOpen={handleModalOpen}
+            onClose={() => setView("chats")}
             keyboardAvoidingBehavior="padding"
             keyboardAvoidingOffset={80}
             panGestureEnabled={false}
             closeOnOverlayTap={true}
+            HeaderComponent={view === "chats" ? ChatsHeader : view === "search" ? SearchHeader : null}
+            FooterComponent={null}
         >
-            {/* Solo renderizar children si NO estamos en mensajes */}
             {view === "chats" && <View style={{ flex: 1, minHeight: 600 }}>{renderChats()}</View>}
             {view === "search" && <View style={{ flex: 1, minHeight: 600 }}>{renderSearch()}</View>}
-            {view === "messages" && (
-                <View style={{ flex: 1, minHeight: 0, flexGrow: 1, flexShrink: 1, paddingBottom: 20 }}>
-                    {loading ? (
-                        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", minHeight: 500 }}>
-                            <ActivityIndicator size="large" color={Colors[theme].tint} />
-                        </View>
-                    ) : (
-                        renderMessages()
-                    )}
-                </View>
-            )}
         </Modalize>
     );
 });
 
 const styles = StyleSheet.create({
     container: {
-        padding: 20,
+        padding: 10,
+        paddingTop: 0,
         // flex: 1,
     },
     text: {
@@ -696,14 +885,16 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "flex-start",
         gap: 10,
-        marginBottom: 16,
+        padding: 20,
+        paddingBottom: 10,
     },
     headerRowChats: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         gap: 10,
-        marginBottom: 16,
+        padding: 20,
+        paddingBottom: 10,
     },
     headerRowMessages: {
         flexDirection: "row",
@@ -773,7 +964,6 @@ const styles = StyleSheet.create({
     userCard: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#f5f5f5",
         borderRadius: 12,
         marginBottom: 10,
         paddingVertical: 10,
@@ -802,10 +992,9 @@ const styles = StyleSheet.create({
         textAlign: "left",
     },
     friendBadge: {
-        backgroundColor: "#e74c3c",
         borderRadius: 8,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
         marginLeft: 10,
         alignSelf: "center",
     },
