@@ -39,8 +39,8 @@ export default function TabBarButton({
                 style={[
                     styles.button,
                     isChatButton
-                        ? [styles.chatButton, { backgroundColor: Colors[theme].TabBarBackground }]
-                        : { backgroundColor: Colors[theme].TabBarBackground },
+                        ? [styles.chatButton, { backgroundColor: Colors[theme].backgroundSoft }]
+                        : { backgroundColor: Colors[theme].backgroundSoft },
                 ]}
             >
                 <IconSymbol

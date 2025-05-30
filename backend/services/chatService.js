@@ -1,4 +1,6 @@
 const { supabase } = require("./supabaseClient");
+const deckService = require("./deckService");
+const cardService = require("./cardService");
 
 const getUserChats = async (userId) => {
     console.log("Buscando chats para userId:", userId);
@@ -69,13 +71,57 @@ const createOrGetChat = async (userId, otherUserId) => {
 };
 
 const getChatMessages = async (chatId) => {
-    const { data, error } = await supabase
+    const { data: messages, error } = await supabase
         .from("messages")
         .select("*")
         .eq("chat_id", chatId)
         .order("created_at", { ascending: true });
     if (error) throw error;
-    return data;
+    if (!messages || messages.length === 0) return [];
+
+    // Buscar los mensajes especiales (type === 'deck' o 'card')
+    const deckMsgIds = messages.filter((m) => m.type === "deck" && m.ref_id).map((m) => m.ref_id);
+    const cardMsgIds = messages.filter((m) => m.type === "card" && m.ref_id).map((m) => m.ref_id);
+
+    // Consultar decks y cards en paralelo si hay
+    let decksById = {},
+        cardsById = {};
+    if (deckMsgIds.length > 0) {
+        const decks = await Promise.all(
+            deckMsgIds.map(async (id) => {
+                try {
+                    const deck = await deckService.getDeckById(id);
+                    return deck;
+                } catch (e) {
+                    console.warn(`Deck no encontrado para id: ${id}`);
+                    return { id, notFound: true };
+                }
+            })
+        );
+        decks.forEach((deck) => {
+            if (deck && deck.id) decksById[deck.id] = deck;
+        });
+    }
+    if (cardMsgIds.length > 0) {
+        const cards = await cardService.getCardsByCodes(cardMsgIds);
+        cards.forEach((card) => {
+            if (card && card.id) cardsById[card.id] = card;
+        });
+    }
+
+    // Enriquecer los mensajes
+    const enriched = messages.map((m) => {
+        if (m.type === "deck" && m.ref_id) {
+            const deck = decksById[m.ref_id];
+            if (deck && !deck.notFound) return { ...m, deck };
+            if (deck && deck.notFound) return { ...m, deck: null };
+        }
+        if (m.type === "card" && m.ref_id && cardsById[m.ref_id]) {
+            return { ...m, card: cardsById[m.ref_id] };
+        }
+        return m;
+    });
+    return enriched;
 };
 
 const sendMessage = async (chatId, senderId, content) => {

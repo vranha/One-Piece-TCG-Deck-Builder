@@ -238,5 +238,6 @@
      "try_searching_another_username": "Prueba con otro nombre de usuario o busca a otro pirata para tu tripulación.",
      "still_no_messages": "¡Todavía no hay mensajes en este chat!",
       "send_first_message": "Envía el primer mensaje para comenzar la aventura.",
-      "your_chats": "Tus Chats"
+      "your_chats": "Tus Chats",
+       "card": "Carta"
 }

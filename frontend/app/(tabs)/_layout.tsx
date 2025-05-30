@@ -190,7 +190,7 @@ export default function TabLayout() {
                         tabBarBackground: TabBarBackground,
                         tabBarStyle: [
                             {
-                                backgroundColor: Colors[theme].TabBarBackground,
+                                backgroundColor: Colors[theme].backgroundSoft,
                                 height: 65,
                                 position: "absolute",
                             },

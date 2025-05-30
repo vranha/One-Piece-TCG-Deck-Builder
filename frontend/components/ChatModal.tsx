@@ -9,6 +9,9 @@ import {
     Keyboard,
     FlatList,
     LogBox,
+    Modal,
+    TouchableWithoutFeedback,
+    Pressable,
 } from "react-native";
 import { Modalize } from "react-native-modalize";
 import { ThemedText } from "@/components/ThemedText";
@@ -19,10 +22,31 @@ import { ActivityIndicator } from "react-native";
 import useApi from "@/hooks/useApi";
 import { useAuth } from "@/contexts/AuthContext";
 import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { supabase } from "../supabaseClient";
 import useStore from "@/store/useStore";
 import { FlashList } from "@shopify/flash-list";
+import { useRouter } from "expo-router";
+
+// Utilidad para obtener el ref real de Modalize
+function getModalizeRef(modalizeRef: any) {
+    if (modalizeRef && typeof modalizeRef !== "function" && "current" in modalizeRef) {
+        return modalizeRef.current;
+    }
+    return null;
+}
+
+// Utilidad para mapear color string a color real
+const colorMap: Record<string, string> = {
+    red: "#e74c3c",
+    blue: "#3498db",
+    green: "#27ae60",
+    yellow: "#f1c40f",
+    purple: "#9b59b6",
+    black: "#222",
+    white: "#fff",
+    // Agrega más si tu juego tiene más colores
+};
 
 // Tipos mínimos para chats, usuarios y mensajes
 interface User {
@@ -54,14 +78,25 @@ interface Message {
     sender_id: string;
     content: string;
     created_at: string;
+    type?: string;
+    ref_id?: string;
+    deck?: any;
+    card?: any;
 }
 
-const ChatModal = React.forwardRef((props, ref) => {
+interface ChatModalProps {
+    onAttachCard?: () => void;
+    onAttachDeck?: () => void;
+    // ...otros props si existen...
+}
+
+const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
     const { theme } = useTheme();
     const { t } = useTranslation();
     const api = useApi();
     const { session } = useAuth();
     const setHasUnreadChats = useStore((state) => state.setHasUnreadChats || (() => {}));
+    const router = useRouter();
 
     // Estados principales
     const [view, setView] = useState<"chats" | "search" | "messages">("chats");
@@ -75,6 +110,7 @@ const ChatModal = React.forwardRef((props, ref) => {
     const [messagesLoading, setMessagesLoading] = useState(false);
     const [pendingUser, setPendingUser] = useState<User | null>(null); // Nuevo estado para chat vacío
     const [justOpenedChat, setJustOpenedChat] = useState(false);
+    const [attachModalVisible, setAttachModalVisible] = React.useState(false);
     const flashListRef = useRef<FlashList<Message>>(null);
     // Ref para Modalize (asegura acceso correcto)
     const modalizeRef = ref || useRef(null);
@@ -542,112 +578,154 @@ const ChatModal = React.forwardRef((props, ref) => {
     );
 
     // Renderizado condicional para la vista de mensajes
-    const renderMessages = () => {
-        if (pendingUser) {
-            return <View style={{ flex: 1, minHeight: 0, flexGrow: 1, flexShrink: 1 }} />;
-        }
-        const safeMessages = Array.isArray(messages)
-            ? messages.filter((m) => m && typeof m === "object" && m.id && m.content && m.sender_id)
-            : [];
-        if (!selectedChat && !pendingUser) {
-            return (
-                <View
-                    style={{
-                        flex: 1,
-                        minHeight: 0,
-                        flexGrow: 1,
-                        flexShrink: 1,
-                        justifyContent: "center",
-                        alignItems: "center",
-                    }}
-                >
-                    <ThemedText style={{ color: Colors[theme].text }}>{t("no_chat_selected")}</ThemedText>
-                </View>
-            );
-        }
-        return (
-            <View style={{ flex: 1, minHeight: 0, flexGrow: 1, flexShrink: 1 }}>
-                <FlatList
-                    ref={flashListRef as any}
-                    data={safeMessages}
-                    keyExtractor={(item) => item.id?.toString?.() || Math.random().toString()}
-                    renderItem={({ item }) => (
-                        <View
-                            style={[
-                                styles.messageRow,
-                                {
-                                    alignSelf: item.sender_id === session?.user.id ? "flex-end" : "flex-start",
-                                    backgroundColor:
-                                        item.sender_id === session?.user.id
-                                            ? Colors[theme].ownMessageBackground
-                                            : Colors[theme].receivedMessageBackground,
-                                },
-                            ]}
-                        >
-                            <ThemedText
-                                style={{
-                                    color:
-                                        item.sender_id === session?.user.id
-                                            ? Colors[theme].ownMessageText
-                                            : Colors[theme].receivedMessageText,
-                                }}
-                            >
-                                {item.content}
-                            </ThemedText>
-                        </View>
-                    )}
-                    contentContainerStyle={{
-                        paddingHorizontal: 12,
-                        paddingBottom: 16,
-                        paddingTop: 8,
-                    }}
-                    ListEmptyComponent={
-                        !messagesLoading && safeMessages.length === 0 ? (
-                            <View
-                                style={{
-                                    flex: 1,
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    paddingVertical: 60,
-                                }}
-                            >
-                                <Ionicons
-                                    name="skull"
-                                    size={48}
-                                    color={Colors[theme].tint}
-                                    style={{ marginBottom: 12 }}
-                                />
-                                <ThemedText
-                                    style={{
-                                        color: Colors[theme].text,
-                                        fontWeight: "bold",
-                                        fontSize: 18,
-                                        textAlign: "center",
-                                        marginBottom: 6,
-                                    }}
-                                >
-                                    {t("still_no_messages")}
-                                </ThemedText>
-                                <ThemedText
-                                    style={{
-                                        color: Colors[theme].text + "99",
-                                        fontSize: 15,
-                                        textAlign: "center",
-                                        maxWidth: 260,
-                                    }}
-                                >
-                                    {t("send_first_message")}
-                                </ThemedText>
-                            </View>
-                        ) : null
-                    }
-                    keyboardShouldPersistTaps="handled"
-                    scrollEnabled={true}
-                    inverted={true}
-                />
-            </View>
-        );
-    };
+    // const renderMessages = () => {
+    //     if (pendingUser) {
+    //         return <View style={{ flex: 1, minHeight: 0, flexGrow: 1, flexShrink: 1 }} />;
+    //     }
+    //     const safeMessages = Array.isArray(messages)
+    //         ? messages.filter((m) => m && typeof m === "object" && m.id && m.sender_id)
+    //         : [];
+    //     if (!selectedChat && !pendingUser) {
+    //         return (
+    //             <View
+    //                 style={{
+    //                     flex: 1,
+    //                     minHeight: 0,
+    //                     flexGrow: 1,
+    //                     flexShrink: 1,
+    //                     justifyContent: "center",
+    //                     alignItems: "center",
+    //                 }}
+    //             >
+    //                 <ThemedText style={{ color: Colors[theme].text }}>{t("no_chat_selected")}</ThemedText>
+    //             </View>
+    //         );
+    //     }
+    //     return (
+    //         <View style={{ flex: 1, minHeight: 0, flexGrow: 1, flexShrink: 1 }}>
+    //             <FlatList
+    //                 ref={flashListRef as any}
+    //                 data={safeMessages}
+    //                 keyExtractor={(item) => item.id?.toString?.() || Math.random().toString()}
+    //                 renderItem={({ item }) => {
+    //                     // Renderizado especial para mensajes de tipo deck/card
+    //                     if (item.type === "deck" && item.deck) {
+    //                         return (
+    //                             <View
+    //                                 style={[
+    //                                     styles.messageRow,
+    //                                     {
+    //                                         backgroundColor: Colors[theme].backgroundSoft,
+    //                                         alignSelf: item.sender_id === session?.user.id ? "flex-end" : "flex-start",
+    //                                     },
+    //                                 ]}
+    //                             >
+    //                                 <ThemedText style={{ fontWeight: "bold", color: Colors[theme].tint }}>
+    //                                     {t("shared_deck")}
+    //                                 </ThemedText>
+    //                                 <ThemedText style={{ color: Colors[theme].text }}>{item.deck.name}</ThemedText>
+    //                                 {/* Puedes agregar más detalles del deck aquí */}
+    //                             </View>
+    //                         );
+    //                     }
+    //                     if (item.type === "card" && item.card) {
+    //                         return (
+    //                             <View
+    //                                 style={[
+    //                                     styles.messageRow,
+    //                                     {
+    //                                         backgroundColor: Colors[theme].backgroundSoft,
+    //                                         alignSelf: item.sender_id === session?.user.id ? "flex-end" : "flex-start",
+    //                                     },
+    //                                 ]}
+    //                             >
+    //                                 <ThemedText style={{ fontWeight: "bold", color: Colors[theme].tint }}>
+    //                                     {t("shared_card")}
+    //                                 </ThemedText>
+    //                                 <ThemedText style={{ color: Colors[theme].text }}>{item.card.name}</ThemedText>
+    //                                 {/* Puedes agregar más detalles de la carta aquí */}
+    //                             </View>
+    //                         );
+    //                     }
+    //                     // Mensaje normal
+    //                     return (
+    //                         <View
+    //                             style={[
+    //                                 styles.messageRow,
+    //                                 {
+    //                                     alignSelf: item.sender_id === session?.user.id ? "flex-end" : "flex-start",
+    //                                     backgroundColor:
+    //                                         item.sender_id === session?.user.id
+    //                                             ? Colors[theme].ownMessageBackground
+    //                                             : Colors[theme].receivedMessageBackground,
+    //                                 },
+    //                             ]}
+    //                         >
+    //                             <ThemedText
+    //                                 style={{
+    //                                     color:
+    //                                         item.sender_id === session?.user.id
+    //                                             ? Colors[theme].ownMessageText
+    //                                             : Colors[theme].receivedMessageText,
+    //                                 }}
+    //                             >
+    //                                 {item.content}
+    //                             </ThemedText>
+    //                         </View>
+    //                     );
+    //                 }}
+    //                 contentContainerStyle={{
+    //                     paddingHorizontal: 12,
+    //                     paddingBottom: 16,
+    //                     paddingTop: 8,
+    //                 }}
+    //                 ListEmptyComponent={
+    //                     !messagesLoading && safeMessages.length === 0 ? (
+    //                         <View
+    //                             style={{
+    //                                 flex: 1,
+    //                                 alignItems: "center",
+    //                                 justifyContent: "center",
+    //                                 paddingVertical: 60,
+    //                             }}
+    //                         >
+    //                             <Ionicons
+    //                                 name="skull"
+    //                                 size={48}
+    //                                 color={Colors[theme].tint}
+    //                                 style={{ marginBottom: 12 }}
+    //                             />
+    //                             <ThemedText
+    //                                 style={{
+    //                                     color: Colors[theme].text,
+    //                                     fontWeight: "bold",
+    //                                     fontSize: 18,
+    //                                     textAlign: "center",
+    //                                     marginBottom: 6,
+    //                                 }}
+    //                             >
+    //                                 {t("still_no_messages")}
+    //                             </ThemedText>
+    //                             <ThemedText
+    //                                 style={{
+    //                                     color: Colors[theme].text + "99",
+    //                                     fontSize: 15,
+    //                                     textAlign: "center",
+    //                                     maxWidth: 260,
+    //                                 }}
+    //                             >
+    //                                 {t("send_first_message")}
+    //                             </ThemedText>
+    //                         </View>
+    //                     ) : null
+    //                 }
+    //                 keyboardShouldPersistTaps="handled"
+    //                 scrollEnabled={true}
+    //                 inverted={true}
+    //             />
+    //         </View>
+    //     );
+    // };
 
     if (view === "messages") {
         return (
@@ -725,8 +803,31 @@ const ChatModal = React.forwardRef((props, ref) => {
                             borderTopWidth: 1,
                             borderTopColor: Colors[theme].backgroundSoft ?? Colors[theme].text + "10",
                             gap: 8,
+                            position: "relative",
                         }}
                     >
+                        {/* Botón para adjuntar carta o mazo */}
+                        <TouchableOpacity
+                            onPress={() => setAttachModalVisible((v) => !v)}
+                            style={{
+                                backgroundColor: attachModalVisible ? Colors[theme].tint : Colors[theme].background,
+                                padding: 10,
+                                borderRadius: 20,
+                                justifyContent: "center",
+                                alignItems: "center",
+                                marginRight: 2,
+                                shadowColor: "#000",
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: 0.18,
+                                shadowRadius: 4,
+                            }}
+                        >
+                            <Ionicons
+                                name={attachModalVisible ? "close" : "add-circle-outline"}
+                                size={24}
+                                color={attachModalVisible ? Colors[theme].background : Colors[theme].tint}
+                            />
+                        </TouchableOpacity>
                         <TextInput
                             style={{
                                 flex: 1,
@@ -758,6 +859,88 @@ const ChatModal = React.forwardRef((props, ref) => {
                         >
                             <Ionicons name="send" size={20} color={Colors[theme].background} />
                         </TouchableOpacity>
+                        {/* Menú de adjuntos mejorado */}
+                        {attachModalVisible && (
+                            <Pressable
+                                style={{
+                                    position: "absolute",
+                                    left: 0,
+                                    bottom: 70,
+                                    alignItems: "center",
+                                    zIndex: 100,
+                                    width: "100%",
+                                }}
+                                onPress={() => setAttachModalVisible(false)}
+                            >
+                                <View
+                                    style={{
+                                        width: "100%",
+                                        flexDirection: "row",
+                                        gap: 20,
+                                        backgroundColor: Colors[theme].TabBarBackground,
+                                        borderWidth: 1,
+                                        borderBottomWidth: 0,
+                                        borderColor: Colors[theme].backgroundSoft ?? Colors[theme].text + "10",
+                                        borderTopRightRadius: 12,
+                                        paddingVertical: 15,
+                                        paddingHorizontal: 20,
+                                        alignItems: "center",
+                                        justifyContent: "flex-start",
+                                    }}
+                                >
+                                    <View style={{ alignItems: "center" }}>
+                                        <TouchableOpacity
+                                            style={{
+                                                borderColor: Colors[theme].tint,
+                                                borderWidth: 1,
+                                                flexDirection: "row",
+                                                alignItems: "center",
+                                                padding: 14,
+                                                borderRadius: 12,
+                                                gap: 5,
+                                                backgroundColor: Colors[theme].background,
+                                                justifyContent: "flex-start",
+                                            }}
+                                            onPress={() => {
+                                                setAttachModalVisible(false);
+                                                if (props.onAttachCard) props.onAttachCard();
+                                            }}
+                                            activeOpacity={0.8}
+                                        >
+                                            <MaterialIcons name="style" size={28} color={Colors[theme].tint} />
+                                        </TouchableOpacity>
+                                        <ThemedText style={{ fontSize: 17, color: Colors[theme].tabIconDefault, fontWeight: "500" }}>
+                                            {t("card")}
+                                        </ThemedText>
+                                    </View>
+                                    <View style={{ alignItems: "center" }}>
+                                        <TouchableOpacity
+                                            style={{
+                                                borderColor: Colors[theme].tint,
+                                                borderWidth: 1,
+                                                flexDirection: "row",
+                                                alignItems: "center",
+                                                padding: 14,
+                                                borderRadius: 12,
+                                                gap: 5,
+                                                backgroundColor: Colors[theme].background,
+                                                justifyContent: "flex-start",
+                                            }}
+                                            onPress={() => {
+                                                setAttachModalVisible(false);
+                                                if (props.onAttachDeck) props.onAttachDeck();
+                                            }}
+                                            activeOpacity={0.8}
+                                        >
+                                            <Ionicons name="albums" size={28} color={Colors[theme].tint} />
+                                        </TouchableOpacity>
+                                        <ThemedText style={{ fontSize: 17, color: Colors[theme].tabIconDefault, fontWeight: "500" }}>
+                                            {t("deck")}
+                                        </ThemedText>
+                                    </View>
+                                </View>
+                            </Pressable>
+                        )}
                     </View>
                 }
                 keyboardAvoidingBehavior="padding"
@@ -766,36 +949,261 @@ const ChatModal = React.forwardRef((props, ref) => {
                 closeOnOverlayTap={true}
                 flatListProps={{
                     data: Array.isArray(messages)
-                        ? messages
-                              .filter((m) => m && typeof m === "object" && m.id && m.content && m.sender_id)
-                              .reverse()
+                        ? messages.filter((m) => m && typeof m === "object" && m.id && m.sender_id).reverse()
                         : [],
                     keyExtractor: (item: any) => item.id?.toString?.() || Math.random().toString(),
-                    renderItem: ({ item }: any) => (
-                        <View
-                            style={[
-                                styles.messageRow,
-                                {
-                                    alignSelf: item.sender_id === session?.user.id ? "flex-end" : "flex-start",
-                                    backgroundColor:
-                                        item.sender_id === session?.user.id
-                                            ? Colors[theme].ownMessageBackground
-                                            : Colors[theme].receivedMessageBackground,
-                                },
-                            ]}
-                        >
-                            <ThemedText
-                                style={{
-                                    color:
-                                        item.sender_id === session?.user.id
-                                            ? Colors[theme].ownMessageText
-                                            : Colors[theme].receivedMessageText,
-                                }}
+                    renderItem: ({ item }: any) => {
+                        // Renderizado especial para mensajes de tipo deck/card
+                        if (item.type === "deck" && item.deck) {
+                            const leader = item.deck.cards.find((c: any) => c.type === "LEADER");
+                            const isMine = item.sender_id === session?.user.id;
+                            return (
+                                <View
+                                    style={[
+                                        styles.messageRow,
+                                        {
+                                            backgroundColor: isMine
+                                                ? Colors[theme].ownMessageBackground
+                                                : Colors[theme].receivedMessageBackground,
+                                            alignSelf: isMine ? "flex-end" : "flex-start",
+                                            borderRightWidth: isMine ? 4 : 0,
+                                            borderLeftWidth: !isMine ? 4 : 0,
+                                            borderRightColor: isMine ? Colors[theme].info : undefined,
+                                            borderLeftColor: !isMine ? Colors[theme].info : undefined,
+                                        },
+                                    ]}
+                                >
+                                    <TouchableOpacity
+                                        activeOpacity={0.8}
+                                        onPress={() => {
+                                            const modalRefObj = getModalizeRef(modalizeRef);
+                                            if (modalRefObj && modalRefObj.close) {
+                                                modalRefObj.close();
+                                            }
+                                            setTimeout(() => {
+                                                router.push({
+                                                    pathname: "/(tabs)/deck/[deckId]",
+                                                    params: { deckId: item.deck.id, cardName: item.deck.name },
+                                                });
+                                            }, 200);
+                                        }}
+                                        style={{ flexDirection: "row", gap: 4 }}
+                                    >
+                                        <Image
+                                            source={leader.images_small || item.deck.cards[0]?.images_small}
+                                            style={{
+                                                width: 60,
+                                                height: 80,
+                                                borderRadius: 3,
+                                                borderWidth: 2,
+                                                borderColor: Colors[theme].tabIconDefault,
+                                            }}
+                                            contentFit="cover"
+                                            cachePolicy="memory-disk"
+                                        />
+                                        <View style={{ flexDirection: "column", gap: 0, justifyContent: "flex-start" }}>
+                                            <ThemedText style={{ fontWeight: "bold", color: Colors[theme].info }}>
+                                                {item.deck.name}
+                                            </ThemedText>
+                                            <View
+                                                style={{
+                                                    flexDirection: "row",
+                                                    alignItems: "center",
+                                                    gap: 4,
+                                                    marginTop: 2,
+                                                }}
+                                            >
+                                                <ThemedText
+                                                    style={{
+                                                        fontWeight: "bold",
+                                                        color:
+                                                            item.sender_id === session?.user.id
+                                                                ? Colors[theme].ownMessageText
+                                                                : Colors[theme].receivedMessageText,
+                                                    }}
+                                                >
+                                                    {leader.name}
+                                                </ThemedText>
+                                                {Array.isArray(item.deck.cards) &&
+                                                    item.deck.cards
+                                                        .filter((c: any) => c.type === "LEADER")
+                                                        .flatMap((c: any) => (Array.isArray(c.color) ? c.color : []))
+                                                        .map((color: string, idx: number) => (
+                                                            <View
+                                                                key={color + idx}
+                                                                style={{
+                                                                    width: 14,
+                                                                    height: 14,
+                                                                    borderRadius: 7,
+                                                                    backgroundColor:
+                                                                        colorMap[color.toLowerCase()] || color,
+                                                                    borderWidth: 1,
+                                                                    borderColor: Colors[theme].tabIconDefault,
+                                                                    marginLeft: 2,
+                                                                }}
+                                                            />
+                                                        ))}
+                                            </View>
+                                            <ThemedText
+                                                style={{ fontSize: 13, color: Colors[theme].text + "BB", marginTop: 2 }}
+                                            >
+                                                {/* {item.card.rarity} */}
+                                            </ThemedText>
+                                        </View>
+                                    </TouchableOpacity>
+                                    {item.content && (
+                                        <ThemedText
+                                            style={{
+                                                marginTop: 8,
+                                                color:
+                                                    item.sender_id === session?.user.id
+                                                        ? Colors[theme].ownMessageText
+                                                        : Colors[theme].receivedMessageText,
+                                                fontSize: 15,
+                                            }}
+                                        >
+                                            {item.content}
+                                        </ThemedText>
+                                    )}
+                                </View>
+                            );
+                        }
+                        if (item.type === "card" && item.card) {
+                            const isMine = item.sender_id === session?.user.id;
+                            return (
+                                <View
+                                    style={[
+                                        styles.messageRow,
+                                        {
+                                            backgroundColor: isMine
+                                                ? Colors[theme].ownMessageBackground
+                                                : Colors[theme].receivedMessageBackground,
+                                            alignSelf: isMine ? "flex-end" : "flex-start",
+                                            borderRightWidth: isMine ? 4 : 0,
+                                            borderLeftWidth: !isMine ? 4 : 0,
+                                            borderRightColor: isMine ? Colors[theme].success : undefined,
+                                            borderLeftColor: !isMine ? Colors[theme].success : undefined,
+                                        },
+                                    ]}
+                                >
+                                    <TouchableOpacity
+                                        activeOpacity={0.8}
+                                        onPress={() => {
+                                            const modalRefObj = getModalizeRef(modalizeRef);
+                                            if (modalRefObj && modalRefObj.close) {
+                                                modalRefObj.close();
+                                            }
+                                            setTimeout(() => {
+                                                router.push({
+                                                    pathname: "/(tabs)/[cardId]",
+                                                    params: { cardId: item.card.id, cardName: item.card.name },
+                                                });
+                                            }, 200);
+                                        }}
+                                        style={{ flexDirection: "row", gap: 4 }}
+                                    >
+                                        <Image
+                                            source={item.card.images_small}
+                                            style={{
+                                                width: 60,
+                                                height: 80,
+                                                borderRadius: 3,
+                                                borderWidth: 2,
+                                                borderColor: Colors[theme].tabIconDefault,
+                                            }}
+                                            contentFit="cover"
+                                            cachePolicy="memory-disk"
+                                        />
+                                        <View style={{ flexDirection: "column", gap: 0, justifyContent: "flex-start" }}>
+                                            <ThemedText style={{ fontWeight: "bold", color: Colors[theme].success }}>
+                                                {item.card.name}
+                                            </ThemedText>
+                                            <View
+                                                style={{
+                                                    flexDirection: "row",
+                                                    alignItems: "center",
+                                                    gap: 4,
+                                                    marginTop: 2,
+                                                }}
+                                            >
+                                                <ThemedText
+                                                    style={{
+                                                        fontWeight: "bold",
+                                                        color:
+                                                            item.sender_id === session?.user.id
+                                                                ? Colors[theme].ownMessageText
+                                                                : Colors[theme].receivedMessageText,
+                                                    }}
+                                                >
+                                                    {item.card.code}
+                                                </ThemedText>
+                                                {Array.isArray(item.card.color) &&
+                                                    item.card.color.map((color: string, idx: number) => (
+                                                        <View
+                                                            key={color + idx}
+                                                            style={{
+                                                                width: 14,
+                                                                height: 14,
+                                                                borderRadius: 7,
+                                                                backgroundColor: colorMap[color.toLowerCase()] || color,
+                                                                borderWidth: 1,
+                                                                borderColor: Colors[theme].tabIconDefault,
+                                                                marginLeft: 2,
+                                                            }}
+                                                        />
+                                                    ))}
+                                            </View>
+                                            <ThemedText
+                                                style={{ fontSize: 13, color: Colors[theme].text + "BB", marginTop: 2 }}
+                                            >
+                                                {item.card.rarity}
+                                            </ThemedText>
+                                        </View>
+                                    </TouchableOpacity>
+                                    {item.content && (
+                                        <ThemedText
+                                            style={{
+                                                marginTop: 8,
+                                                color:
+                                                    item.sender_id === session?.user.id
+                                                        ? Colors[theme].ownMessageText
+                                                        : Colors[theme].receivedMessageText,
+                                                fontSize: 15,
+                                            }}
+                                        >
+                                            {item.content}
+                                        </ThemedText>
+                                    )}
+                                </View>
+                            );
+                        }
+
+                        return (
+                            <View
+                                style={[
+                                    styles.messageRow,
+                                    {
+                                        alignSelf: item.sender_id === session?.user.id ? "flex-end" : "flex-start",
+                                        backgroundColor:
+                                            item.sender_id === session?.user.id
+                                                ? Colors[theme].ownMessageBackground
+                                                : Colors[theme].receivedMessageBackground,
+                                    },
+                                ]}
                             >
-                                {item.content}
-                            </ThemedText>
-                        </View>
-                    ),
+                                <ThemedText
+                                    style={{
+                                        color:
+                                            item.sender_id === session?.user.id
+                                                ? Colors[theme].ownMessageText
+                                                : Colors[theme].receivedMessageText,
+                                    }}
+                                >
+                                    {item.content}
+                                </ThemedText>
+                            </View>
+                        );
+                    },
                     contentContainerStyle: {
                         paddingHorizontal: 12,
                         paddingBottom: 16,
