@@ -40,11 +40,15 @@ const getChatMessages = async (req, res) => {
 
 const sendMessage = async (req, res) => {
     try {
-        const { chat_id, sender_id, content } = req.body;
+        const { chat_id, sender_id, content, type, ref_id } = req.body;
         if (!chat_id || !sender_id || !content) {
             return res.status(400).json({ error: "Missing chat_id, sender_id or content" });
         }
-        const message = await chatService.sendMessage(chat_id, sender_id, content);
+        // type y ref_id son opcionales, pero si type es 'deck' o 'card', ref_id es obligatorio
+        if ((type === "deck" || type === "card") && !ref_id) {
+            return res.status(400).json({ error: "Missing ref_id for deck/card message" });
+        }
+        const message = await chatService.sendMessage(chat_id, sender_id, content, type, ref_id);
         res.json(message);
     } catch (err) {
         res.status(500).json({ error: "Error sending message" });

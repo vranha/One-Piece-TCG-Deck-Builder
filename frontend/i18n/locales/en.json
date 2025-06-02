@@ -235,5 +235,9 @@
     "still_no_messages": "Still no messages on this chat",
     "send_first_message": "Send the first message to start the new pirate adventure!",
     "your_chats": "Your Chats",
-    "card": "Card"
+    "card": "Card",
+    "select_deck": "Select Deck",
+    "send_deck": "Send Deck",
+    "add_a_message": "Add a message...",
+    "cards_count": "Cards: {{count}}"
 }

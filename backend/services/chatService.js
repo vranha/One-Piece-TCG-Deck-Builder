@@ -124,12 +124,10 @@ const getChatMessages = async (chatId) => {
     return enriched;
 };
 
-const sendMessage = async (chatId, senderId, content) => {
-    const { data: message, error } = await supabase
-        .from("messages")
-        .insert([{ chat_id: chatId, sender_id: senderId, content }])
-        .select("*")
-        .single();
+const sendMessage = async (chatId, senderId, content, type = "text", ref_id = null) => {
+    const insertObj = { chat_id: chatId, sender_id: senderId, content, type };
+    if (ref_id) insertObj.ref_id = ref_id;
+    const { data: message, error } = await supabase.from("messages").insert([insertObj]).select("*").single();
     if (error) throw error;
 
     const { data: chat, error: chatError } = await supabase

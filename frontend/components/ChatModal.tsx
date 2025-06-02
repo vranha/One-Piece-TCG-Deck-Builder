@@ -12,11 +12,13 @@ import {
     Modal,
     TouchableWithoutFeedback,
     Pressable,
+    Animated,
+    Easing,
 } from "react-native";
 import { Modalize } from "react-native-modalize";
 import { ThemedText } from "@/components/ThemedText";
-import { useTheme } from "@/hooks/ThemeContext";
 import { Colors } from "@/constants/Colors";
+import { useTheme } from "@/hooks/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator } from "react-native";
 import useApi from "@/hooks/useApi";
@@ -27,6 +29,8 @@ import { supabase } from "../supabaseClient";
 import useStore from "@/store/useStore";
 import { FlashList } from "@shopify/flash-list";
 import { useRouter } from "expo-router";
+import DeckSelectModal from "./DeckSelectModal";
+// import DeckSelectModal from "./DeckSelectModal";
 
 // Utilidad para obtener el ref real de Modalize
 function getModalizeRef(modalizeRef: any) {
@@ -91,7 +95,7 @@ interface ChatModalProps {
 }
 
 const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
-    const { theme } = useTheme();
+    const { theme } = useTheme() as { theme: keyof typeof Colors };
     const { t } = useTranslation();
     const api = useApi();
     const { session } = useAuth();
@@ -111,7 +115,29 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
     const [pendingUser, setPendingUser] = useState<User | null>(null); // Nuevo estado para chat vacío
     const [justOpenedChat, setJustOpenedChat] = useState(false);
     const [attachModalVisible, setAttachModalVisible] = React.useState(false);
-    const flashListRef = useRef<FlashList<Message>>(null);
+    const flashListRef = useRef<any>(null); // Añadido para scroll automático
+    // --- ANIMACIÓN MENÚ DE ADJUNTOS ---
+    const [showAttachMenu, setShowAttachMenu] = React.useState(false);
+    const attachMenuAnim = React.useRef(new Animated.Value(0)).current;
+
+    function openAttachMenu() {
+        setShowAttachMenu(true);
+        Animated.timing(attachMenuAnim, {
+            toValue: 1,
+            duration: 220,
+            easing: Easing.out(Easing.ease),
+            useNativeDriver: true,
+        }).start();
+    }
+    function closeAttachMenu() {
+        Animated.timing(attachMenuAnim, {
+            toValue: 0,
+            duration: 180,
+            easing: Easing.in(Easing.ease),
+            useNativeDriver: true,
+        }).start(() => setShowAttachMenu(false));
+    }
+
     // Ref para Modalize (asegura acceso correcto)
     const modalizeRef = ref || useRef(null);
 
@@ -727,308 +753,514 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
     //     );
     // };
 
+    // --- ESTADO Y LÓGICA PARA MODAL DE SELECCIÓN DE DECK ---
+    const [showDeckSelectModal, setShowDeckSelectModal] = useState(false);
+    const [userDecks, setUserDecks] = useState<any[]>([]);
+    const [selectedDeck, setSelectedDeck] = useState<any>(null);
+    const [deckMessageInput, setDeckMessageInput] = useState("");
+    const [loadingDecks, setLoadingDecks] = useState(false);
+
+    // Fetch mazos del usuario cuando se abre el modal
+    useEffect(() => {
+        if (showDeckSelectModal && session?.user.id) {
+            setLoadingDecks(true);
+            api.get(`/decks/${session.user.id}`)
+                .then((res) => setUserDecks(res.data.data))
+                .catch(() => setUserDecks([]))
+                .finally(() => setLoadingDecks(false));
+        } else if (!showDeckSelectModal) {
+            setUserDecks([]);
+            // NO limpiar selectedDeck ni deckMessageInput aquí
+        }
+    }, [showDeckSelectModal, session?.user.id]);
+
+    // Limpiar selectedDeck y deckMessageInput SOLO al cerrar el modal (cuando showDeckSelectModal pasa de true a false)
+    useEffect(() => {
+        if (!showDeckSelectModal) {
+            setSelectedDeck(null);
+            setDeckMessageInput("");
+        }
+        // No dependas de userDecks ni de session
+    }, [showDeckSelectModal]);
+
+    // --- HANDLER PARA ENVIAR DECK COMO MENSAJE ---
+    const handleSendDeckMessage = async () => {
+        if (!selectedDeck || !selectedChat?.id || !session?.user.id) return;
+        try {
+            await api.post(`/chats/${selectedChat.id}/messages`, {
+                content: deckMessageInput,
+                sender_id: session?.user.id,
+                chat_id: selectedChat.id,
+                type: "deck",
+                ref_id: selectedDeck.id,
+            });
+            setShowDeckSelectModal(false);
+            setSelectedDeck(null);
+            setDeckMessageInput("");
+            fetchMessages(selectedChat.id, false);
+        } catch (e) {
+            // Puedes mostrar un toast de error aquí si quieres
+        }
+    };
+
+
     if (view === "messages") {
         return (
-            <Modalize
-                ref={modalizeRef}
-                adjustToContentHeight={false}
-                modalHeight={600}
-                disableScrollIfPossible={true}
-                modalStyle={{ backgroundColor: Colors[theme].TabBarBackground }}
-                onOpen={handleModalOpen}
-                onClose={() => setView("chats")}
-                HeaderComponent={
-                    <View
-                        style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            paddingHorizontal: 16,
-                            paddingVertical: 12,
-                            backgroundColor: Colors[theme].TabBarBackground,
-                            borderBottomWidth: 1,
-                            borderBottomColor: Colors[theme].backgroundSoft ?? Colors[theme].text + "10",
-                            gap: 12,
-                        }}
-                    >
-                        <TouchableOpacity
-                            onPress={() => setView("chats")}
+            <>
+                <Modalize
+                    ref={modalizeRef}
+                    adjustToContentHeight={false}
+                    modalHeight={600}
+                    disableScrollIfPossible={true}
+                    modalStyle={{ backgroundColor: Colors[theme].TabBarBackground }}
+                    onOpen={handleModalOpen}
+                    onClose={() => setView("chats")}
+                    HeaderComponent={
+                        <View
                             style={{
-                                padding: 6,
-                                borderRadius: 100,
-                            }}
-                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                        >
-                            <Ionicons name="arrow-back" size={24} color={Colors[theme].tint} />
-                        </TouchableOpacity>
-                        {selectedChat?.other_user?.avatar_url || pendingUser?.avatar_url ? (
-                            <Image
-                                source={selectedChat?.other_user?.avatar_url || pendingUser?.avatar_url}
-                                style={{ width: 36, height: 36, borderRadius: 18 }}
-                                contentFit="cover"
-                                cachePolicy="memory-disk"
-                            />
-                        ) : (
-                            <View
-                                style={{
-                                    width: 36,
-                                    height: 36,
-                                    borderRadius: 18,
-                                    backgroundColor: Colors[theme].backgroundSoft,
-                                }}
-                            />
-                        )}
-                        <ThemedText
-                            type="subtitle"
-                            style={{
-                                fontSize: 18,
-                                fontWeight: "600",
-                                color: Colors[theme].text,
-                                flexShrink: 1,
-                            }}
-                            numberOfLines={1}
-                            ellipsizeMode="tail"
-                        >
-                            {selectedChat?.other_user?.username || pendingUser?.username || t("Usuario")}
-                        </ThemedText>
-                    </View>
-                }
-                FooterComponent={
-                    <View
-                        style={{
-                            paddingHorizontal: 16,
-                            paddingVertical: 12,
-                            backgroundColor: Colors[theme].TabBarBackground,
-                            flexDirection: "row",
-                            alignItems: "center",
-                            borderTopWidth: 1,
-                            borderTopColor: Colors[theme].backgroundSoft ?? Colors[theme].text + "10",
-                            gap: 8,
-                            position: "relative",
-                        }}
-                    >
-                        {/* Botón para adjuntar carta o mazo */}
-                        <TouchableOpacity
-                            onPress={() => setAttachModalVisible((v) => !v)}
-                            style={{
-                                backgroundColor: attachModalVisible ? Colors[theme].tint : Colors[theme].background,
-                                padding: 10,
-                                borderRadius: 20,
-                                justifyContent: "center",
+                                flexDirection: "row",
                                 alignItems: "center",
-                                marginRight: 2,
-                                shadowColor: "#000",
-                                shadowOffset: { width: 0, height: 2 },
-                                shadowOpacity: 0.18,
-                                shadowRadius: 4,
-                            }}
-                        >
-                            <Ionicons
-                                name={attachModalVisible ? "close" : "add-circle-outline"}
-                                size={24}
-                                color={attachModalVisible ? Colors[theme].background : Colors[theme].tint}
-                            />
-                        </TouchableOpacity>
-                        <TextInput
-                            style={{
-                                flex: 1,
-                                backgroundColor: Colors[theme].background,
-                                borderRadius: 24,
-                                paddingVertical: 10,
                                 paddingHorizontal: 16,
-                                fontSize: 16,
-                                color: Colors[theme].text,
-                                borderWidth: 1,
-                                borderColor: Colors[theme].text + "22",
-                            }}
-                            placeholder={`${t("message")}...`}
-                            placeholderTextColor={Colors[theme].text + "66"}
-                            value={newMessage}
-                            onChangeText={setNewMessage}
-                            onSubmitEditing={handleSendMessage}
-                            returnKeyType="send"
-                        />
-                        <TouchableOpacity
-                            onPress={handleSendMessage}
-                            style={{
-                                backgroundColor: Colors[theme].tint,
-                                padding: 10,
-                                borderRadius: 20,
-                                justifyContent: "center",
-                                alignItems: "center",
+                                paddingVertical: 12,
+                                backgroundColor: Colors[theme].TabBarBackground,
+                                borderBottomWidth: 1,
+                                borderBottomColor: Colors[theme].backgroundSoft ?? Colors[theme].text + "10",
+                                gap: 12,
                             }}
                         >
-                            <Ionicons name="send" size={20} color={Colors[theme].background} />
-                        </TouchableOpacity>
-                        {/* Menú de adjuntos mejorado */}
-                        {attachModalVisible && (
-                            <Pressable
+                            <TouchableOpacity
+                                onPress={() => setView("chats")}
                                 style={{
-                                    position: "absolute",
-                                    left: 0,
-                                    bottom: 70,
-                                    alignItems: "center",
-                                    zIndex: 100,
-                                    width: "100%",
+                                    padding: 6,
+                                    borderRadius: 100,
                                 }}
-                                onPress={() => setAttachModalVisible(false)}
+                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                             >
+                                <Ionicons name="arrow-back" size={24} color={Colors[theme].tint} />
+                            </TouchableOpacity>
+                            {selectedChat?.other_user?.avatar_url || pendingUser?.avatar_url ? (
+                                <Image
+                                    source={selectedChat?.other_user?.avatar_url || pendingUser?.avatar_url}
+                                    style={{ width: 36, height: 36, borderRadius: 18 }}
+                                    contentFit="cover"
+                                    cachePolicy="memory-disk"
+                                />
+                            ) : (
                                 <View
                                     style={{
-                                        width: "100%",
-                                        flexDirection: "row",
-                                        gap: 20,
-                                        backgroundColor: Colors[theme].TabBarBackground,
-                                        borderWidth: 1,
-                                        borderBottomWidth: 0,
-                                        borderColor: Colors[theme].backgroundSoft ?? Colors[theme].text + "10",
-                                        borderTopRightRadius: 12,
-                                        paddingVertical: 15,
-                                        paddingHorizontal: 20,
-                                        alignItems: "center",
-                                        justifyContent: "flex-start",
+                                        width: 36,
+                                        height: 36,
+                                        borderRadius: 18,
+                                        backgroundColor: Colors[theme].backgroundSoft,
                                     }}
+                                />
+                            )}
+                            <ThemedText
+                                type="subtitle"
+                                style={{
+                                    fontSize: 18,
+                                    fontWeight: "600",
+                                    color: Colors[theme].text,
+                                    flexShrink: 1,
+                                }}
+                                numberOfLines={1}
+                                ellipsizeMode="tail"
+                            >
+                                {selectedChat?.other_user?.username || pendingUser?.username || t("Usuario")}
+                            </ThemedText>
+                        </View>
+                    }
+                    FooterComponent={
+                        <View
+                            style={{
+                                paddingHorizontal: 16,
+                                paddingVertical: 12,
+                                backgroundColor: Colors[theme].TabBarBackground,
+                                flexDirection: "row",
+                                alignItems: "center",
+                                borderTopWidth: 1,
+                                borderTopColor: Colors[theme].backgroundSoft ?? Colors[theme].text + "10",
+                                gap: 8,
+                                position: "relative",
+                            }}
+                        >
+                            {/* Botón para adjuntar carta o mazo */}
+                            <TouchableOpacity
+                                onPress={() => {
+                                    if (!showAttachMenu) openAttachMenu();
+                                    else closeAttachMenu();
+                                }}
+                                style={{
+                                    backgroundColor: showAttachMenu ? Colors[theme].tint : Colors[theme].background,
+                                    padding: 10,
+                                    borderRadius: 20,
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    marginRight: 2,
+                                    shadowColor: "#000",
+                                    shadowOffset: { width: 0, height: 2 },
+                                    shadowOpacity: 0.18,
+                                    shadowRadius: 4,
+                                }}
+                            >
+                                <Ionicons
+                                    name={showAttachMenu ? "close" : "add-circle-outline"}
+                                    size={24}
+                                    color={showAttachMenu ? Colors[theme].background : Colors[theme].tint}
+                                />
+                            </TouchableOpacity>
+                            <TextInput
+                                style={{
+                                    flex: 1,
+                                    backgroundColor: Colors[theme].background,
+                                    borderRadius: 24,
+                                    paddingVertical: 10,
+                                    paddingHorizontal: 16,
+                                    fontSize: 16,
+                                    color: Colors[theme].text,
+                                    borderWidth: 1,
+                                    borderColor: Colors[theme].text + "22",
+                                }}
+                                placeholder={`${t("message")}...`}
+                                placeholderTextColor={Colors[theme].text + "66"}
+                                value={newMessage}
+                                onChangeText={setNewMessage}
+                                onSubmitEditing={handleSendMessage}
+                                returnKeyType="send"
+                            />
+                            <TouchableOpacity
+                                onPress={handleSendMessage}
+                                style={{
+                                    backgroundColor: Colors[theme].tint,
+                                    padding: 10,
+                                    borderRadius: 20,
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                }}
+                            >
+                                <Ionicons name="send" size={20} color={Colors[theme].background} />
+                            </TouchableOpacity>
+                            {/* Menú de adjuntos animado, SIEMPRE visible cuando showAttachMenu */}
+                            {showAttachMenu && (
+                                <Pressable
+                                    style={{
+                                        position: "absolute",
+                                        left: 0,
+                                        bottom: 70,
+                                        alignItems: "center",
+                                        zIndex: 100,
+                                        width: "100%",
+                                    }}
+                                    onPress={closeAttachMenu}
                                 >
-                                    <View style={{ alignItems: "center" }}>
-                                        <TouchableOpacity
-                                            style={{
-                                                borderColor: Colors[theme].tint,
-                                                borderWidth: 1,
-                                                flexDirection: "row",
-                                                alignItems: "center",
-                                                padding: 14,
-                                                borderRadius: 12,
-                                                gap: 5,
-                                                backgroundColor: Colors[theme].background,
-                                                justifyContent: "flex-start",
-                                            }}
-                                            onPress={() => {
-                                                setAttachModalVisible(false);
-                                                if (props.onAttachCard) props.onAttachCard();
-                                            }}
-                                            activeOpacity={0.8}
-                                        >
-                                            <MaterialIcons name="style" size={28} color={Colors[theme].tint} />
-                                        </TouchableOpacity>
-                                        <ThemedText style={{ fontSize: 17, color: Colors[theme].tabIconDefault, fontWeight: "500" }}>
-                                            {t("card")}
-                                        </ThemedText>
-                                    </View>
-                                    <View style={{ alignItems: "center" }}>
-                                        <TouchableOpacity
-                                            style={{
-                                                borderColor: Colors[theme].tint,
-                                                borderWidth: 1,
-                                                flexDirection: "row",
-                                                alignItems: "center",
-                                                padding: 14,
-                                                borderRadius: 12,
-                                                gap: 5,
-                                                backgroundColor: Colors[theme].background,
-                                                justifyContent: "flex-start",
-                                            }}
-                                            onPress={() => {
-                                                setAttachModalVisible(false);
-                                                if (props.onAttachDeck) props.onAttachDeck();
-                                            }}
-                                            activeOpacity={0.8}
-                                        >
-                                            <Ionicons name="albums" size={28} color={Colors[theme].tint} />
-                                        </TouchableOpacity>
-                                        <ThemedText style={{ fontSize: 17, color: Colors[theme].tabIconDefault, fontWeight: "500" }}>
-                                            {t("deck")}
-                                        </ThemedText>
-                                    </View>
-                                </View>
-                            </Pressable>
-                        )}
-                    </View>
-                }
-                keyboardAvoidingBehavior="padding"
-                keyboardAvoidingOffset={80}
-                panGestureEnabled={false}
-                closeOnOverlayTap={true}
-                flatListProps={{
-                    data: Array.isArray(messages)
-                        ? messages.filter((m) => m && typeof m === "object" && m.id && m.sender_id).reverse()
-                        : [],
-                    keyExtractor: (item: any) => item.id?.toString?.() || Math.random().toString(),
-                    renderItem: ({ item }: any) => {
-                        // Renderizado especial para mensajes de tipo deck/card
-                        if (item.type === "deck" && item.deck) {
-                            const leader = item.deck.cards.find((c: any) => c.type === "LEADER");
-                            const isMine = item.sender_id === session?.user.id;
-                            return (
-                                <View
-                                    style={[
-                                        styles.messageRow,
-                                        {
-                                            backgroundColor: isMine
-                                                ? Colors[theme].ownMessageBackground
-                                                : Colors[theme].receivedMessageBackground,
-                                            alignSelf: isMine ? "flex-end" : "flex-start",
-                                            borderRightWidth: isMine ? 4 : 0,
-                                            borderLeftWidth: !isMine ? 4 : 0,
-                                            borderRightColor: isMine ? Colors[theme].info : undefined,
-                                            borderLeftColor: !isMine ? Colors[theme].info : undefined,
-                                        },
-                                    ]}
-                                >
-                                    <TouchableOpacity
-                                        activeOpacity={0.8}
-                                        onPress={() => {
-                                            const modalRefObj = getModalizeRef(modalizeRef);
-                                            if (modalRefObj && modalRefObj.close) {
-                                                modalRefObj.close();
-                                            }
-                                            setTimeout(() => {
-                                                router.push({
-                                                    pathname: "/(tabs)/deck/[deckId]",
-                                                    params: { deckId: item.deck.id, cardName: item.deck.name },
-                                                });
-                                            }, 200);
+                                    <Animated.View
+                                        style={{
+                                            width: "100%",
+                                            flexDirection: "row",
+                                            gap: 20,
+                                            backgroundColor: Colors[theme].TabBarBackground,
+                                            borderWidth: 1,
+                                            borderBottomWidth: 0,
+                                            borderColor: Colors[theme].backgroundSoft ?? Colors[theme].text + "10",
+                                            borderTopRightRadius: 12,
+                                            paddingVertical: 15,
+                                            paddingHorizontal: 20,
+                                            alignItems: "center",
+                                            justifyContent: "flex-start",
+                                            opacity: attachMenuAnim,
+                                            transform: [
+                                                {
+                                                    translateY: attachMenuAnim.interpolate({
+                                                        inputRange: [-2, 1],
+                                                        outputRange: [40, 0],
+                                                    }),
+                                                },
+                                            ],
                                         }}
-                                        style={{ flexDirection: "row", gap: 4 }}
                                     >
-                                        <Image
-                                            source={leader.images_small || item.deck.cards[0]?.images_small}
-                                            style={{
-                                                width: 60,
-                                                height: 80,
-                                                borderRadius: 3,
-                                                borderWidth: 2,
-                                                borderColor: Colors[theme].tabIconDefault,
-                                            }}
-                                            contentFit="cover"
-                                            cachePolicy="memory-disk"
-                                        />
-                                        <View style={{ flexDirection: "column", gap: 0, justifyContent: "flex-start" }}>
-                                            <ThemedText style={{ fontWeight: "bold", color: Colors[theme].info }}>
-                                                {item.deck.name}
-                                            </ThemedText>
-                                            <View
+                                        <View style={{ alignItems: "center" }}>
+                                            <TouchableOpacity
                                                 style={{
+                                                    borderColor: Colors[theme].tint,
+                                                    borderWidth: 1,
                                                     flexDirection: "row",
                                                     alignItems: "center",
-                                                    gap: 4,
-                                                    marginTop: 2,
+                                                    padding: 14,
+                                                    borderRadius: 12,
+                                                    gap: 5,
+                                                    backgroundColor: Colors[theme].background,
+                                                    justifyContent: "flex-start",
+                                                }}
+                                                onPress={() => {
+                                                    closeAttachMenu();
+                                                    if (props.onAttachCard) props.onAttachCard();
+                                                }}
+                                                activeOpacity={0.8}
+                                            >
+                                                <MaterialIcons name="style" size={28} color={Colors[theme].tint} />
+                                            </TouchableOpacity>
+                                            <ThemedText
+                                                style={{
+                                                    fontSize: 17,
+                                                    color: Colors[theme].tabIconDefault,
+                                                    fontWeight: "500",
+                                                }}
+                                            >
+                                                {t("card")}
+                                            </ThemedText>
+                                        </View>
+                                        <View style={{ alignItems: "center" }}>
+                                            <TouchableOpacity
+                                                style={{
+                                                    borderColor: Colors[theme].tint,
+                                                    borderWidth: 1,
+                                                    flexDirection: "row",
+                                                    alignItems: "center",
+                                                    padding: 14,
+                                                    borderRadius: 12,
+                                                    gap: 5,
+                                                    backgroundColor: Colors[theme].background,
+                                                    justifyContent: "flex-start",
+                                                }}
+                                                onPress={() => {
+                                                    closeAttachMenu();
+                                                    setShowDeckSelectModal(true);
+                                                }}
+                                                activeOpacity={0.8}
+                                            >
+                                                <Ionicons name="albums" size={28} color={Colors[theme].tint} />
+                                            </TouchableOpacity>
+                                            <ThemedText
+                                                style={{
+                                                    fontSize: 17,
+                                                    color: Colors[theme].tabIconDefault,
+                                                    fontWeight: "500",
+                                                }}
+                                            >
+                                                {t("deck")}
+                                            </ThemedText>
+                                        </View>
+                                    </Animated.View>
+                                </Pressable>
+                            )}
+                        </View>
+                    }
+                    keyboardAvoidingBehavior="padding"
+                    keyboardAvoidingOffset={80}
+                    panGestureEnabled={false}
+                    closeOnOverlayTap={true}
+                    flatListProps={{
+                        data: Array.isArray(messages)
+                            ? messages.filter((m) => m && typeof m === "object" && m.id && m.sender_id).reverse()
+                            : [],
+                        keyExtractor: (item: any) => item.id?.toString?.() || Math.random().toString(),
+                        renderItem: ({ item }: any) => {
+                            // Renderizado especial para mensajes de tipo deck/card
+                            if (item.type === "deck" && item.deck) {
+                                const leader = item.deck.cards.find((c: any) => c.type === "LEADER");
+                                const isMine = item.sender_id === session?.user.id;
+                                return (
+                                    <View
+                                        style={[
+                                            styles.messageRow,
+                                            {
+                                                backgroundColor: isMine
+                                                    ? Colors[theme].ownMessageBackground
+                                                    : Colors[theme].receivedMessageBackground,
+                                                alignSelf: isMine ? "flex-end" : "flex-start",
+                                                borderRightWidth: isMine ? 4 : 0,
+                                                borderLeftWidth: !isMine ? 4 : 0,
+                                                borderRightColor: isMine ? Colors[theme].info : undefined,
+                                                borderLeftColor: !isMine ? Colors[theme].info : undefined,
+                                            },
+                                        ]}
+                                    >
+                                        <TouchableOpacity
+                                            activeOpacity={0.8}
+                                            onPress={() => {
+                                                const modalRefObj = getModalizeRef(modalizeRef);
+                                                if (modalRefObj && modalRefObj.close) {
+                                                    modalRefObj.close();
+                                                }
+                                                setTimeout(() => {
+                                                    router.push({
+                                                        pathname: "/(tabs)/deck/[deckId]",
+                                                        params: { deckId: item.deck.id, cardName: item.deck.name },
+                                                    });
+                                                }, 200);
+                                            }}
+                                            style={{ flexDirection: "row", gap: 4 }}
+                                        >
+                                            <Image
+                                                source={leader.images_small || item.deck.cards[0]?.images_small}
+                                                style={{
+                                                    width: 60,
+                                                    height: 80,
+                                                    borderRadius: 3,
+                                                    borderWidth: 2,
+                                                    borderColor: Colors[theme].tabIconDefault,
+                                                }}
+                                                contentFit="cover"
+                                                cachePolicy="memory-disk"
+                                            />
+                                            <View
+                                                style={{
+                                                    flexDirection: "column",
+                                                    gap: 0,
+                                                    justifyContent: "flex-start",
+                                                }}
+                                            >
+                                                <ThemedText style={{ fontWeight: "bold", color: Colors[theme].info }}>
+                                                    {item.deck.name}
+                                                </ThemedText>
+                                                <View
+                                                    style={{
+                                                        flexDirection: "row",
+                                                        alignItems: "center",
+                                                        gap: 4,
+                                                        marginTop: 2,
+                                                    }}
+                                                >
+                                                    <ThemedText
+                                                        style={{
+                                                            fontWeight: "bold",
+                                                            color:
+                                                                item.sender_id === session?.user.id
+                                                                    ? Colors[theme].ownMessageText
+                                                                    : Colors[theme].receivedMessageText,
+                                                        }}
+                                                    >
+                                                        {leader.name}
+                                                    </ThemedText>
+                                                    {Array.isArray(item.deck.cards) &&
+                                                        item.deck.cards
+                                                            .filter((c: any) => c.type === "LEADER")
+                                                            .flatMap((c: any) =>
+                                                                Array.isArray(c.color) ? c.color : []
+                                                            )
+                                                            .map((color: string, idx: number) => (
+                                                                <View
+                                                                    key={color + idx}
+                                                                    style={{
+                                                                        width: 14,
+                                                                        height: 14,
+                                                                        borderRadius: 7,
+                                                                        backgroundColor:
+                                                                            colorMap[color.toLowerCase()] || color,
+                                                                        borderWidth: 1,
+                                                                        borderColor: Colors[theme].tabIconDefault,
+                                                                        marginLeft: 2,
+                                                                    }}
+                                                                />
+                                                            ))}
+                                                </View>
+                                                <ThemedText
+                                                    style={{
+                                                        fontSize: 13,
+                                                        color: Colors[theme].text + "BB",
+                                                        marginTop: 2,
+                                                    }}
+                                                >
+                                                    {/* {item.card.rarity} */}
+                                                </ThemedText>
+                                            </View>
+                                        </TouchableOpacity>
+                                        {item.content && (
+                                            <ThemedText
+                                                style={{
+                                                    marginTop: 8,
+                                                    color:
+                                                        item.sender_id === session?.user.id
+                                                            ? Colors[theme].ownMessageText
+                                                            : Colors[theme].receivedMessageText,
+                                                    fontSize: 15,
+                                                }}
+                                            >
+                                                {item.content}
+                                            </ThemedText>
+                                        )}
+                                    </View>
+                                );
+                            }
+                            if (item.type === "card" && item.card) {
+                                const isMine = item.sender_id === session?.user.id;
+                                return (
+                                    <View
+                                        style={[
+                                            styles.messageRow,
+                                            {
+                                                backgroundColor: isMine
+                                                    ? Colors[theme].ownMessageBackground
+                                                    : Colors[theme].receivedMessageBackground,
+                                                alignSelf: isMine ? "flex-end" : "flex-start",
+                                                borderRightWidth: isMine ? 4 : 0,
+                                                borderLeftWidth: !isMine ? 4 : 0,
+                                                borderRightColor: isMine ? Colors[theme].success : undefined,
+                                                borderLeftColor: !isMine ? Colors[theme].success : undefined,
+                                            },
+                                        ]}
+                                    >
+                                        <TouchableOpacity
+                                            activeOpacity={0.8}
+                                            onPress={() => {
+                                                const modalRefObj = getModalizeRef(modalizeRef);
+                                                if (modalRefObj && modalRefObj.close) {
+                                                    modalRefObj.close();
+                                                }
+                                                setTimeout(() => {
+                                                    router.push({
+                                                        pathname: "/(tabs)/[cardId]",
+                                                        params: { cardId: item.card.id, cardName: item.card.name },
+                                                    });
+                                                }, 200);
+                                            }}
+                                            style={{ flexDirection: "row", gap: 4 }}
+                                        >
+                                            <Image
+                                                source={item.card.images_small}
+                                                style={{
+                                                    width: 60,
+                                                    height: 80,
+                                                    borderRadius: 3,
+                                                    borderWidth: 2,
+                                                    borderColor: Colors[theme].tabIconDefault,
+                                                }}
+                                                contentFit="cover"
+                                                cachePolicy="memory-disk"
+                                            />
+                                            <View
+                                                style={{
+                                                    flexDirection: "column",
+                                                    gap: 0,
+                                                    justifyContent: "flex-start",
                                                 }}
                                             >
                                                 <ThemedText
+                                                    style={{ fontWeight: "bold", color: Colors[theme].success }}
+                                                >
+                                                    {item.card.name}
+                                                </ThemedText>
+                                                <View
                                                     style={{
-                                                        fontWeight: "bold",
-                                                        color:
-                                                            item.sender_id === session?.user.id
-                                                                ? Colors[theme].ownMessageText
-                                                                : Colors[theme].receivedMessageText,
+                                                        flexDirection: "row",
+                                                        alignItems: "center",
+                                                        gap: 4,
+                                                        marginTop: 2,
                                                     }}
                                                 >
-                                                    {leader.name}
-                                                </ThemedText>
-                                                {Array.isArray(item.deck.cards) &&
-                                                    item.deck.cards
-                                                        .filter((c: any) => c.type === "LEADER")
-                                                        .flatMap((c: any) => (Array.isArray(c.color) ? c.color : []))
-                                                        .map((color: string, idx: number) => (
+                                                    <ThemedText
+                                                        style={{
+                                                            fontWeight: "bold",
+                                                            color:
+                                                                item.sender_id === session?.user.id
+                                                                    ? Colors[theme].ownMessageText
+                                                                    : Colors[theme].receivedMessageText,
+                                                        }}
+                                                    >
+                                                        {item.card.code}
+                                                    </ThemedText>
+                                                    {Array.isArray(item.card.color) &&
+                                                        item.card.color.map((color: string, idx: number) => (
                                                             <View
                                                                 key={color + idx}
                                                                 style={{
@@ -1043,216 +1275,125 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                                 }}
                                                             />
                                                         ))}
+                                                </View>
+                                                <ThemedText
+                                                    style={{
+                                                        fontSize: 13,
+                                                        color: Colors[theme].text + "BB",
+                                                        marginTop: 2,
+                                                    }}
+                                                >
+                                                    {item.card.rarity}
+                                                </ThemedText>
                                             </View>
+                                        </TouchableOpacity>
+                                        {item.content && (
                                             <ThemedText
-                                                style={{ fontSize: 13, color: Colors[theme].text + "BB", marginTop: 2 }}
+                                                style={{
+                                                    marginTop: 8,
+                                                    color:
+                                                        item.sender_id === session?.user.id
+                                                            ? Colors[theme].ownMessageText
+                                                            : Colors[theme].receivedMessageText,
+                                                    fontSize: 15,
+                                                }}
                                             >
-                                                {/* {item.card.rarity} */}
+                                                {item.content}
                                             </ThemedText>
-                                        </View>
-                                    </TouchableOpacity>
-                                    {item.content && (
-                                        <ThemedText
-                                            style={{
-                                                marginTop: 8,
-                                                color:
-                                                    item.sender_id === session?.user.id
-                                                        ? Colors[theme].ownMessageText
-                                                        : Colors[theme].receivedMessageText,
-                                                fontSize: 15,
-                                            }}
-                                        >
-                                            {item.content}
-                                        </ThemedText>
-                                    )}
-                                </View>
-                            );
-                        }
-                        if (item.type === "card" && item.card) {
-                            const isMine = item.sender_id === session?.user.id;
+                                        )}
+                                    </View>
+                                );
+                            }
+
                             return (
                                 <View
                                     style={[
                                         styles.messageRow,
                                         {
-                                            backgroundColor: isMine
-                                                ? Colors[theme].ownMessageBackground
-                                                : Colors[theme].receivedMessageBackground,
-                                            alignSelf: isMine ? "flex-end" : "flex-start",
-                                            borderRightWidth: isMine ? 4 : 0,
-                                            borderLeftWidth: !isMine ? 4 : 0,
-                                            borderRightColor: isMine ? Colors[theme].success : undefined,
-                                            borderLeftColor: !isMine ? Colors[theme].success : undefined,
+                                            alignSelf: item.sender_id === session?.user.id ? "flex-end" : "flex-start",
+                                            backgroundColor:
+                                                item.sender_id === session?.user.id
+                                                    ? Colors[theme].ownMessageBackground
+                                                    : Colors[theme].receivedMessageBackground,
                                         },
                                     ]}
                                 >
-                                    <TouchableOpacity
-                                        activeOpacity={0.8}
-                                        onPress={() => {
-                                            const modalRefObj = getModalizeRef(modalizeRef);
-                                            if (modalRefObj && modalRefObj.close) {
-                                                modalRefObj.close();
-                                            }
-                                            setTimeout(() => {
-                                                router.push({
-                                                    pathname: "/(tabs)/[cardId]",
-                                                    params: { cardId: item.card.id, cardName: item.card.name },
-                                                });
-                                            }, 200);
+                                    <ThemedText
+                                        style={{
+                                            color:
+                                                item.sender_id === session?.user.id
+                                                    ? Colors[theme].ownMessageText
+                                                    : Colors[theme].receivedMessageText,
                                         }}
-                                        style={{ flexDirection: "row", gap: 4 }}
                                     >
-                                        <Image
-                                            source={item.card.images_small}
-                                            style={{
-                                                width: 60,
-                                                height: 80,
-                                                borderRadius: 3,
-                                                borderWidth: 2,
-                                                borderColor: Colors[theme].tabIconDefault,
-                                            }}
-                                            contentFit="cover"
-                                            cachePolicy="memory-disk"
-                                        />
-                                        <View style={{ flexDirection: "column", gap: 0, justifyContent: "flex-start" }}>
-                                            <ThemedText style={{ fontWeight: "bold", color: Colors[theme].success }}>
-                                                {item.card.name}
-                                            </ThemedText>
-                                            <View
-                                                style={{
-                                                    flexDirection: "row",
-                                                    alignItems: "center",
-                                                    gap: 4,
-                                                    marginTop: 2,
-                                                }}
-                                            >
-                                                <ThemedText
-                                                    style={{
-                                                        fontWeight: "bold",
-                                                        color:
-                                                            item.sender_id === session?.user.id
-                                                                ? Colors[theme].ownMessageText
-                                                                : Colors[theme].receivedMessageText,
-                                                    }}
-                                                >
-                                                    {item.card.code}
-                                                </ThemedText>
-                                                {Array.isArray(item.card.color) &&
-                                                    item.card.color.map((color: string, idx: number) => (
-                                                        <View
-                                                            key={color + idx}
-                                                            style={{
-                                                                width: 14,
-                                                                height: 14,
-                                                                borderRadius: 7,
-                                                                backgroundColor: colorMap[color.toLowerCase()] || color,
-                                                                borderWidth: 1,
-                                                                borderColor: Colors[theme].tabIconDefault,
-                                                                marginLeft: 2,
-                                                            }}
-                                                        />
-                                                    ))}
-                                            </View>
-                                            <ThemedText
-                                                style={{ fontSize: 13, color: Colors[theme].text + "BB", marginTop: 2 }}
-                                            >
-                                                {item.card.rarity}
-                                            </ThemedText>
-                                        </View>
-                                    </TouchableOpacity>
-                                    {item.content && (
-                                        <ThemedText
-                                            style={{
-                                                marginTop: 8,
-                                                color:
-                                                    item.sender_id === session?.user.id
-                                                        ? Colors[theme].ownMessageText
-                                                        : Colors[theme].receivedMessageText,
-                                                fontSize: 15,
-                                            }}
-                                        >
-                                            {item.content}
-                                        </ThemedText>
-                                    )}
+                                        {item.content}
+                                    </ThemedText>
                                 </View>
                             );
-                        }
-
-                        return (
-                            <View
-                                style={[
-                                    styles.messageRow,
-                                    {
-                                        alignSelf: item.sender_id === session?.user.id ? "flex-end" : "flex-start",
-                                        backgroundColor:
-                                            item.sender_id === session?.user.id
-                                                ? Colors[theme].ownMessageBackground
-                                                : Colors[theme].receivedMessageBackground,
-                                    },
-                                ]}
-                            >
-                                <ThemedText
+                        },
+                        contentContainerStyle: {
+                            paddingHorizontal: 12,
+                            paddingBottom: 16,
+                            paddingTop: 8,
+                        },
+                        ListEmptyComponent:
+                            !messagesLoading && (!messages || messages.length === 0) ? (
+                                <View
                                     style={{
-                                        color:
-                                            item.sender_id === session?.user.id
-                                                ? Colors[theme].ownMessageText
-                                                : Colors[theme].receivedMessageText,
+                                        flex: 1,
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        paddingVertical: 60,
                                     }}
                                 >
-                                    {item.content}
-                                </ThemedText>
-                            </View>
-                        );
-                    },
-                    contentContainerStyle: {
-                        paddingHorizontal: 12,
-                        paddingBottom: 16,
-                        paddingTop: 8,
-                    },
-                    ListEmptyComponent:
-                        !messagesLoading && (!messages || messages.length === 0) ? (
-                            <View
-                                style={{
-                                    flex: 1,
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    paddingVertical: 60,
-                                }}
-                            >
-                                <Ionicons
-                                    name="skull"
-                                    size={48}
-                                    color={Colors[theme].tint}
-                                    style={{ marginBottom: 12 }}
-                                />
-                                <ThemedText
-                                    style={{
-                                        color: Colors[theme].text,
-                                        fontWeight: "bold",
-                                        fontSize: 18,
-                                        textAlign: "center",
-                                        marginBottom: 6,
-                                    }}
-                                >
-                                    {t("¡Todavía no hay mensajes en esta aventura!")}
-                                </ThemedText>
-                                <ThemedText
-                                    style={{
-                                        color: Colors[theme].text + "99",
-                                        fontSize: 15,
-                                        textAlign: "center",
-                                        maxWidth: 260,
-                                    }}
-                                >
-                                    {t("Envía el primer mensaje y comienza tu viaje pirata.")}
-                                </ThemedText>
-                            </View>
-                        ) : null,
-                    keyboardShouldPersistTaps: "handled",
-                    scrollEnabled: true,
-                    inverted: true,
-                }}
-            />
+                                    <Ionicons
+                                        name="skull"
+                                        size={48}
+                                        color={Colors[theme].tint}
+                                        style={{ marginBottom: 12 }}
+                                    />
+                                    <ThemedText
+                                        style={{
+                                            color: Colors[theme].text,
+                                            fontWeight: "bold",
+                                            fontSize: 18,
+                                            textAlign: "center",
+                                            marginBottom: 6,
+                                        }}
+                                    >
+                                        {t("¡Todavía no hay mensajes en esta aventura!")}
+                                    </ThemedText>
+                                    <ThemedText
+                                        style={{
+                                            color: Colors[theme].text + "99",
+                                            fontSize: 15,
+                                            textAlign: "center",
+                                            maxWidth: 260,
+                                        }}
+                                    >
+                                        {t("Envía el primer mensaje y comienza tu viaje pirata.")}
+                                    </ThemedText>
+                                </View>
+                            ) : null,
+                        keyboardShouldPersistTaps: "handled",
+                        scrollEnabled: true,
+                        inverted: true,
+                    }}
+                />
+                <DeckSelectModal
+                    visible={showDeckSelectModal}
+                    onClose={() => setShowDeckSelectModal(false)}
+                    userDecks={userDecks}
+                    loadingDecks={loadingDecks}
+                    selectedDeck={selectedDeck}
+                    setSelectedDeck={setSelectedDeck}
+                    deckMessageInput={deckMessageInput}
+                    setDeckMessageInput={setDeckMessageInput}
+                    handleSendDeckMessage={handleSendDeckMessage}
+                    theme={theme}
+                    t={t}
+                />
+            </>
         );
     }
 

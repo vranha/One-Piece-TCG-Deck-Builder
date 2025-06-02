@@ -233,11 +233,15 @@
     "title_notification_set": "{{title}} Ha Llegado a la Grand Line",
     "body_notification_set": "Vamos a construir tus nuevos mazos de {{body}}",
     "message": "Mensaje",
-     "no_chat_selected": "No hay chat seleccionado",
-     "no_results_found_users": "¡Nadie en Grand Line responde a ese nombre!",
-     "try_searching_another_username": "Prueba con otro nombre de usuario o busca a otro pirata para tu tripulación.",
-     "still_no_messages": "¡Todavía no hay mensajes en este chat!",
-      "send_first_message": "Envía el primer mensaje para comenzar la aventura.",
-      "your_chats": "Tus Chats",
-       "card": "Carta"
+    "no_chat_selected": "No hay chat seleccionado",
+    "no_results_found_users": "¡Nadie en Grand Line responde a ese nombre!",
+    "try_searching_another_username": "Prueba con otro nombre de usuario o busca a otro pirata para tu tripulación.",
+    "still_no_messages": "¡Todavía no hay mensajes en este chat!",
+    "send_first_message": "Envía el primer mensaje para comenzar la aventura.",
+    "your_chats": "Tus Chats",
+    "card": "Carta",
+    "select_deck": "Selecciona un Mazo",
+    "send_deck": "Enviar Mazo",
+    "add_a_message": "Añade un Mensaje...",
+    "cards_count": "Cartas: {{count}}"
 }
