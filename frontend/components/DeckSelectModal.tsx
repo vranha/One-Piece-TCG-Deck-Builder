@@ -188,7 +188,7 @@ React.useEffect(() => {
                             <View
                                 style={{
                                     borderWidth: 2,
-                                    borderColor: Colors[theme].success,
+                                    borderColor: Colors[theme].backgroundSoft,
                                     borderRadius: 10,
                                     padding: 8,
                                     backgroundColor: Colors[theme].backgroundSoft,
@@ -209,7 +209,7 @@ React.useEffect(() => {
                                     contentFit="cover"
                                     cachePolicy="memory-disk"
                                 />
-                                <View style={{ flex: 1 }}>
+                                <View style={{ flex: 1, alignItems: "flex-start" }}>
                                     <ThemedText
                                         style={{ color: Colors[theme].text, fontWeight: "bold", fontSize: 17 }}
                                     >
@@ -217,7 +217,7 @@ React.useEffect(() => {
                                     </ThemedText>
                                     <ThemedText
                                         style={{
-                                            color: Colors[theme].text,
+                                            color: Colors[theme].tabIconDefault,
                                             fontSize: 14,
                                             marginTop: 2,
                                             fontWeight: "500",

@@ -28,9 +28,9 @@ import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { supabase } from "../supabaseClient";
 import useStore from "@/store/useStore";
 import { FlashList } from "@shopify/flash-list";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import DeckSelectModal from "./DeckSelectModal";
-// import DeckSelectModal from "./DeckSelectModal";
+import CollectionSelectModal from "./CollectionSelectModal";
 
 // Utilidad para obtener el ref real de Modalize
 function getModalizeRef(modalizeRef: any) {
@@ -437,7 +437,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
             <TextInput
                 style={[styles.inputSearch, { color: Colors[theme].text, borderColor: Colors[theme].tint }]}
                 placeholder={t("Buscar usuario")}
-                placeholderTextColor={Colors[theme].text + "99"}
+                placeholderTextColor={Colors[theme].text + "80"}
                 value={searchQuery}
                 onChangeText={(text) => {
                     setSearchQuery(text);
@@ -587,7 +587,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                 </ThemedText>
                                 <ThemedText
                                     style={{
-                                        color: Colors[theme].text + "99",
+                                        color: Colors[theme].text + "80",
                                         fontSize: 15,
                                         textAlign: "center",
                                         maxWidth: 260,
@@ -734,7 +734,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
     //                             </ThemedText>
     //                             <ThemedText
     //                                 style={{
-    //                                     color: Colors[theme].text + "99",
+    //                                     color: Colors[theme].text + "80",
     //                                     fontSize: 15,
     //                                     textAlign: "center",
     //                                     maxWidth: 260,
@@ -760,6 +760,13 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
     const [deckMessageInput, setDeckMessageInput] = useState("");
     const [loadingDecks, setLoadingDecks] = useState(false);
 
+    // --- ESTADO Y LÓGICA PARA MODAL DE SELECCIÓN DE COLECCIÓN ---
+    const [showCollectionSelectModal, setShowCollectionSelectModal] = useState(false);
+    const [userCollections, setUserCollections] = useState<any[]>([]);
+    const [selectedCollection, setSelectedCollection] = useState<any>(null);
+    const [collectionMessageInput, setCollectionMessageInput] = useState("");
+    const [loadingCollections, setLoadingCollections] = useState(false);
+
     // Fetch mazos del usuario cuando se abre el modal
     useEffect(() => {
         if (showDeckSelectModal && session?.user.id) {
@@ -783,6 +790,53 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
         // No dependas de userDecks ni de session
     }, [showDeckSelectModal]);
 
+    // Fetch colecciones del usuario cuando se abre el modal
+    useEffect(() => {
+        if (showCollectionSelectModal && session?.user.id) {
+            setLoadingCollections(true);
+            fetch(`/collections/${session.user.id}`)
+                .then((res) => res.json())
+                .then((data) => setUserCollections(data))
+                .catch(() => setUserCollections([]))
+                .finally(() => setLoadingCollections(false));
+        } else if (!showCollectionSelectModal) {
+            setUserCollections([]);
+        }
+    }, [showCollectionSelectModal, session?.user.id]);
+
+    // Limpiar selectedCollection y collectionMessageInput SOLO al cerrar el modal
+    useEffect(() => {
+        if (!showCollectionSelectModal) {
+            setSelectedCollection(null);
+            setCollectionMessageInput("");
+        }
+    }, [showCollectionSelectModal]);
+
+    const params = useLocalSearchParams();
+    const [hasHandledOpenModalize, setHasHandledOpenModalize] = useState(false);
+
+    useEffect(() => {
+        // Si viene de adjuntar carta, abrir el modal y el chat correspondiente SOLO una vez
+        if (
+            params.openModalize === "1" &&
+            params.chatId &&
+            !hasHandledOpenModalize &&
+            chats.length > 0 // Espera a que los chats estén cargados
+        ) {
+            const chatToOpen = chats.find((c) => c.id === params.chatId);
+            if (chatToOpen) {
+                openChat(chatToOpen);
+            }
+            const modalRefObj = getModalizeRef(modalizeRef);
+            if (modalRefObj && modalRefObj.open) {
+                modalRefObj.open();
+            }
+            setHasHandledOpenModalize(true);
+            // Limpiar los params de la URL para evitar reapertura en futuras navegaciones
+            router.replace("/(tabs)/index");
+        }
+    }, [params.openModalize, params.chatId, chats, hasHandledOpenModalize]);
+
     // --- HANDLER PARA ENVIAR DECK COMO MENSAJE ---
     const handleSendDeckMessage = async () => {
         if (!selectedDeck || !selectedChat?.id || !session?.user.id) return;
@@ -803,6 +857,29 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
         }
     };
 
+    // --- HANDLER PARA ENVIAR COLECCIÓN COMO MENSAJE ---
+    const handleSendCollectionMessage = async () => {
+        if (!selectedCollection || !selectedChat?.id || !session?.user.id) return;
+        try {
+            setShowCollectionSelectModal(false);
+            setLoadingCollections(false);
+            setSelectedCollection(null);
+            setCollectionMessageInput("");
+            await fetch(`/chats/${selectedChat.id}/messages`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    type: "collection",
+                    collectionId: selectedCollection.id,
+                    content: collectionMessageInput,
+                    sender_id: session.user.id,
+                }),
+            });
+            // Opcional: refrescar mensajes si no hay subscripción en tiempo real
+        } catch (e) {
+            // Manejar error
+        }
+    };
 
     if (view === "messages") {
         return (
@@ -993,7 +1070,19 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                 }}
                                                 onPress={() => {
                                                     closeAttachMenu();
-                                                    if (props.onAttachCard) props.onAttachCard();
+                                                    // Cerrar el modal de chat si está abierto
+                                                    const modalRefObj = getModalizeRef(modalizeRef);
+                                                    if (modalRefObj && modalRefObj.close) {
+                                                        modalRefObj.close();
+                                                    }
+                                                    router.push({
+                                                        pathname: "/search",
+                                                        params: {
+                                                            mode: "attachCard",
+                                                            chatId: selectedChat?.id, // o pendingUser?.id si es chat nuevo
+                                                            openModalize: "1",
+                                                        },
+                                                    });
                                                 }}
                                                 activeOpacity={0.8}
                                             >
@@ -1040,6 +1129,37 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                 {t("deck")}
                                             </ThemedText>
                                         </View>
+                                        <View style={{ alignItems: "center" }}>
+                                            <TouchableOpacity
+                                                style={{
+                                                    borderColor: Colors[theme].tint,
+                                                    borderWidth: 1,
+                                                    flexDirection: "row",
+                                                    alignItems: "center",
+                                                    padding: 14,
+                                                    borderRadius: 12,
+                                                    gap: 5,
+                                                    backgroundColor: Colors[theme].background,
+                                                    justifyContent: "flex-start",
+                                                }}
+                                                onPress={() => {
+                                                    closeAttachMenu();
+                                                    setShowCollectionSelectModal(true);
+                                                }}
+                                                activeOpacity={0.8}
+                                            >
+                                                <Ionicons name="folder" size={28} color={Colors[theme].tint} />
+                                            </TouchableOpacity>
+                                            <ThemedText
+                                                style={{
+                                                    fontSize: 17,
+                                                    color: Colors[theme].tabIconDefault,
+                                                    fontWeight: "500",
+                                                }}
+                                            >
+                                                {t("collection")}
+                                            </ThemedText>
+                                        </View>
                                     </Animated.View>
                                 </Pressable>
                             )}
@@ -1070,8 +1190,8 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                 alignSelf: isMine ? "flex-end" : "flex-start",
                                                 borderRightWidth: isMine ? 4 : 0,
                                                 borderLeftWidth: !isMine ? 4 : 0,
-                                                borderRightColor: isMine ? Colors[theme].info : undefined,
-                                                borderLeftColor: !isMine ? Colors[theme].info : undefined,
+                                                borderRightColor: isMine ? Colors[theme].info + "80" : undefined,
+                                                borderLeftColor: !isMine ? Colors[theme].info + "80" : undefined,
                                             },
                                         ]}
                                     >
@@ -1089,80 +1209,96 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                     });
                                                 }, 200);
                                             }}
-                                            style={{ flexDirection: "row", gap: 4 }}
+                                            style={{ flexDirection: "column", gap: 4 }}
                                         >
-                                            <Image
-                                                source={leader.images_small || item.deck.cards[0]?.images_small}
+                                            <ThemedText
                                                 style={{
-                                                    width: 60,
-                                                    height: 80,
-                                                    borderRadius: 3,
-                                                    borderWidth: 2,
-                                                    borderColor: Colors[theme].tabIconDefault,
-                                                }}
-                                                contentFit="cover"
-                                                cachePolicy="memory-disk"
-                                            />
-                                            <View
-                                                style={{
-                                                    flexDirection: "column",
-                                                    gap: 0,
-                                                    justifyContent: "flex-start",
+                                                    fontWeight: "bold",
+                                                    color: Colors[theme].info + "80",
+                                                    marginBottom: 5,
+                                                    position: "relative",
+                                                    fontSize: 20,
+                                                    textAlign: isMine ? "right" : "left",
                                                 }}
                                             >
-                                                <ThemedText style={{ fontWeight: "bold", color: Colors[theme].info }}>
-                                                    {item.deck.name}
-                                                </ThemedText>
+                                                {t("deck").toUpperCase()}
+                                            </ThemedText>
+                                            <View style={{ flexDirection: "row", gap: 4 }}>
+                                                <Image
+                                                    source={leader.images_small || item.deck.cards[0]?.images_small}
+                                                    style={{
+                                                        width: 60,
+                                                        height: 80,
+                                                        borderRadius: 3,
+                                                        borderWidth: 2,
+                                                        borderColor: Colors[theme].tabIconDefault,
+                                                    }}
+                                                    contentFit="cover"
+                                                    cachePolicy="memory-disk"
+                                                />
                                                 <View
                                                     style={{
-                                                        flexDirection: "row",
-                                                        alignItems: "center",
-                                                        gap: 4,
-                                                        marginTop: 2,
+                                                        flexDirection: "column",
+                                                        gap: 0,
+                                                        justifyContent: "flex-start",
                                                     }}
                                                 >
                                                     <ThemedText
+                                                        style={{ fontWeight: "bold", color: Colors[theme].info }}
+                                                    >
+                                                        {item.deck.name}
+                                                    </ThemedText>
+                                                    <View
                                                         style={{
-                                                            fontWeight: "bold",
-                                                            color:
-                                                                item.sender_id === session?.user.id
-                                                                    ? Colors[theme].ownMessageText
-                                                                    : Colors[theme].receivedMessageText,
+                                                            flexDirection: "row",
+                                                            alignItems: "center",
+                                                            gap: 4,
+                                                            marginTop: 2,
                                                         }}
                                                     >
-                                                        {leader.name}
+                                                        <ThemedText
+                                                            style={{
+                                                                fontWeight: "bold",
+                                                                color:
+                                                                    item.sender_id === session?.user.id
+                                                                        ? Colors[theme].ownMessageText
+                                                                        : Colors[theme].receivedMessageText,
+                                                            }}
+                                                        >
+                                                            {leader.name}
+                                                        </ThemedText>
+                                                        {Array.isArray(item.deck.cards) &&
+                                                            item.deck.cards
+                                                                .filter((c: any) => c.type === "LEADER")
+                                                                .flatMap((c: any) =>
+                                                                    Array.isArray(c.color) ? c.color : []
+                                                                )
+                                                                .map((color: string, idx: number) => (
+                                                                    <View
+                                                                        key={color + idx}
+                                                                        style={{
+                                                                            width: 14,
+                                                                            height: 14,
+                                                                            borderRadius: 7,
+                                                                            backgroundColor:
+                                                                                colorMap[color.toLowerCase()] || color,
+                                                                            borderWidth: 1,
+                                                                            borderColor: Colors[theme].tabIconDefault,
+                                                                            marginLeft: 2,
+                                                                        }}
+                                                                    />
+                                                                ))}
+                                                    </View>
+                                                    <ThemedText
+                                                        style={{
+                                                            fontSize: 13,
+                                                            color: Colors[theme].text + "BB",
+                                                            marginTop: 2,
+                                                        }}
+                                                    >
+                                                        {/* {item.card.rarity} */}
                                                     </ThemedText>
-                                                    {Array.isArray(item.deck.cards) &&
-                                                        item.deck.cards
-                                                            .filter((c: any) => c.type === "LEADER")
-                                                            .flatMap((c: any) =>
-                                                                Array.isArray(c.color) ? c.color : []
-                                                            )
-                                                            .map((color: string, idx: number) => (
-                                                                <View
-                                                                    key={color + idx}
-                                                                    style={{
-                                                                        width: 14,
-                                                                        height: 14,
-                                                                        borderRadius: 7,
-                                                                        backgroundColor:
-                                                                            colorMap[color.toLowerCase()] || color,
-                                                                        borderWidth: 1,
-                                                                        borderColor: Colors[theme].tabIconDefault,
-                                                                        marginLeft: 2,
-                                                                    }}
-                                                                />
-                                                            ))}
                                                 </View>
-                                                <ThemedText
-                                                    style={{
-                                                        fontSize: 13,
-                                                        color: Colors[theme].text + "BB",
-                                                        marginTop: 2,
-                                                    }}
-                                                >
-                                                    {/* {item.card.rarity} */}
-                                                </ThemedText>
                                             </View>
                                         </TouchableOpacity>
                                         {item.content && (
@@ -1195,8 +1331,8 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                 alignSelf: isMine ? "flex-end" : "flex-start",
                                                 borderRightWidth: isMine ? 4 : 0,
                                                 borderLeftWidth: !isMine ? 4 : 0,
-                                                borderRightColor: isMine ? Colors[theme].success : undefined,
-                                                borderLeftColor: !isMine ? Colors[theme].success : undefined,
+                                                borderRightColor: isMine ? Colors[theme].success + "80" : undefined,
+                                                borderLeftColor: !isMine ? Colors[theme].success + "80" : undefined,
                                             },
                                         ]}
                                     >
@@ -1214,77 +1350,89 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                     });
                                                 }, 200);
                                             }}
-                                            style={{ flexDirection: "row", gap: 4 }}
+                                            style={{ flexDirection: "column", gap: 4 }}
                                         >
-                                            <Image
-                                                source={item.card.images_small}
+                                            <ThemedText
                                                 style={{
-                                                    width: 60,
-                                                    height: 80,
-                                                    borderRadius: 3,
-                                                    borderWidth: 2,
-                                                    borderColor: Colors[theme].tabIconDefault,
-                                                }}
-                                                contentFit="cover"
-                                                cachePolicy="memory-disk"
-                                            />
-                                            <View
-                                                style={{
-                                                    flexDirection: "column",
-                                                    gap: 0,
-                                                    justifyContent: "flex-start",
+                                                    fontWeight: "bold",
+                                                    color: Colors[theme].success + "80",
+                                                    marginBottom: 5,
+                                                    position: "relative",
+                                                    fontSize: 20,
+                                                    textAlign: isMine ? "right" : "left",
                                                 }}
                                             >
-                                                <ThemedText
-                                                    style={{ fontWeight: "bold", color: Colors[theme].success }}
-                                                >
-                                                    {item.card.name}
-                                                </ThemedText>
+                                                {t("card").toUpperCase()}
+                                            </ThemedText>
+                                            <View style={{ flexDirection: "row", gap: 4 }}>
+                                                <Image
+                                                    source={item.card.images_small}
+                                                    style={{
+                                                        width: 60,
+                                                        height: 80,
+                                                        borderRadius: 3,
+                                                        borderWidth: 2,
+                                                        borderColor: Colors[theme].tabIconDefault,
+                                                    }}
+                                                    contentFit="cover"
+                                                    cachePolicy="memory-disk"
+                                                />
                                                 <View
                                                     style={{
-                                                        flexDirection: "row",
-                                                        alignItems: "center",
-                                                        gap: 4,
-                                                        marginTop: 2,
+                                                        flexDirection: "column",
+                                                        gap: 0,
+                                                        justifyContent: "flex-start",
                                                     }}
                                                 >
                                                     <ThemedText
+                                                        style={{ fontWeight: "bold", color: Colors[theme].text }}
+                                                    >
+                                                        {item.card.name}
+                                                    </ThemedText>
+                                                    <View
                                                         style={{
-                                                            fontWeight: "bold",
-                                                            color:
-                                                                item.sender_id === session?.user.id
-                                                                    ? Colors[theme].ownMessageText
-                                                                    : Colors[theme].receivedMessageText,
+                                                            flexDirection: "row",
+                                                            alignItems: "center",
+                                                            gap: 4,
+                                                            marginTop: 2,
                                                         }}
                                                     >
-                                                        {item.card.code}
+                                                        <ThemedText
+                                                            style={{
+                                                                fontWeight: "bold",
+                                                                color: Colors[theme].disabled,
+                                                            }}
+                                                        >
+                                                            {item.card.code}
+                                                        </ThemedText>
+                                                        {Array.isArray(item.card.color) &&
+                                                            item.card.color.map((color: string, idx: number) => (
+                                                                <View
+                                                                    key={color + idx}
+                                                                    style={{
+                                                                        width: 14,
+                                                                        height: 14,
+                                                                        borderRadius: 7,
+                                                                        backgroundColor:
+                                                                            colorMap[color.toLowerCase()] || color,
+                                                                        borderWidth: 1,
+                                                                        borderColor: Colors[theme].tabIconDefault,
+                                                                        marginLeft: 2,
+                                                                    }}
+                                                                />
+                                                            ))}
+                                                    </View>
+                                                    <ThemedText
+                                                        style={{
+                                                            fontSize: 14,
+                                                            fontWeight: "500",
+                                                            color: Colors[theme].disabled,
+                                                            marginTop: 2,
+                                                        }}
+                                                    >
+                                                        {item.card.rarity}
                                                     </ThemedText>
-                                                    {Array.isArray(item.card.color) &&
-                                                        item.card.color.map((color: string, idx: number) => (
-                                                            <View
-                                                                key={color + idx}
-                                                                style={{
-                                                                    width: 14,
-                                                                    height: 14,
-                                                                    borderRadius: 7,
-                                                                    backgroundColor:
-                                                                        colorMap[color.toLowerCase()] || color,
-                                                                    borderWidth: 1,
-                                                                    borderColor: Colors[theme].tabIconDefault,
-                                                                    marginLeft: 2,
-                                                                }}
-                                                            />
-                                                        ))}
                                                 </View>
-                                                <ThemedText
-                                                    style={{
-                                                        fontSize: 13,
-                                                        color: Colors[theme].text + "BB",
-                                                        marginTop: 2,
-                                                    }}
-                                                >
-                                                    {item.card.rarity}
-                                                </ThemedText>
                                             </View>
                                         </TouchableOpacity>
                                         {item.content && (
@@ -1365,7 +1513,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                     </ThemedText>
                                     <ThemedText
                                         style={{
-                                            color: Colors[theme].text + "99",
+                                            color: Colors[theme].text + "80",
                                             fontSize: 15,
                                             textAlign: "center",
                                             maxWidth: 260,
@@ -1390,6 +1538,19 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                     deckMessageInput={deckMessageInput}
                     setDeckMessageInput={setDeckMessageInput}
                     handleSendDeckMessage={handleSendDeckMessage}
+                    theme={theme}
+                    t={t}
+                />
+                <CollectionSelectModal
+                    visible={showCollectionSelectModal}
+                    onClose={() => setShowCollectionSelectModal(false)}
+                    userCollections={userCollections}
+                    loadingCollections={loadingCollections}
+                    selectedCollection={selectedCollection}
+                    setSelectedCollection={setSelectedCollection}
+                    collectionMessageInput={collectionMessageInput}
+                    setCollectionMessageInput={setCollectionMessageInput}
+                    handleSendCollectionMessage={handleSendCollectionMessage}
                     theme={theme}
                     t={t}
                 />

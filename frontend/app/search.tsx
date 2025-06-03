@@ -9,7 +9,7 @@ import {
     Platform,
     Dimensions,
 } from "react-native";
-import { useNavigation, useRouter } from "expo-router";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
 import useApi from "@/hooks/useApi";
@@ -39,6 +39,7 @@ import AddToButton from "@/components/AddToButton";
 import useStore from "@/store/useStore";
 import { abilityColorMap } from "@/constants/abilityColorMap";
 import AttributeFilters from "@/components/AttributeFilters"; // Import the new component
+import AttachCardModal from "@/components/AttachCardModal";
 
 interface Card {
     id: string;
@@ -133,6 +134,13 @@ export default function SearchScreen() {
         console.log("Selected", selectedCards);
         setIsModalVisible(true);
     };
+
+    const params = useLocalSearchParams();
+    const isAttachCardMode = params.mode === "attachCard";
+
+    const [showAttachCardModal, setShowAttachCardModal] = useState(false);
+    const [selectedCardToAttach, setSelectedCardToAttach] = useState<Card | null>(null);
+    const [attachCardMessage, setAttachCardMessage] = useState("");
 
     useEffect(() => {
         async function fetchUser() {
@@ -286,11 +294,44 @@ export default function SearchScreen() {
     };
 
     const handleCardPress = (card: Card) => {
-        router.push({
-            pathname: "/(tabs)/[cardId]",
-            params: { cardId: card.id, cardName: card.name },
-        });
+        if (isAttachCardMode) {
+            setSelectedCardToAttach(card);
+            setShowAttachCardModal(true);
+        } else {
+            router.push({
+                pathname: "/(tabs)/[cardId]",
+                params: { cardId: card.id, cardName: card.name },
+            });
+        }
     };
+
+    // Dentro del componente SearchScreen, antes del return:
+const handleSendAttachCard = async () => {
+    try {
+        // Envía el mensaje con la carta adjunta
+        await api.post(`/chats/${params.chatId}/messages`, {
+            content: attachCardMessage,
+            sender_id: userId, // asegúrate de que userId esté definido
+            chat_id: params.chatId,
+            type: "card",
+            ref_id: selectedCardToAttach?.id,
+        });
+    } catch (error) {
+        console.error("Error enviando carta adjunta:", error);
+        // Puedes mostrar un Toast de error aquí si quieres
+    } finally {
+        setShowAttachCardModal(false);
+        setAttachCardMessage("");
+        // Redirige al index con los params para abrir el chat/modal
+        router.push({
+            pathname: "/(tabs)",
+            params: {
+                openModalize: "1",
+                chatId: params.chatId,
+            },
+        });
+    }
+};
 
     const handleTypeSelect = (type: string) => {
         setSelectedTypes(
@@ -562,7 +603,7 @@ export default function SearchScreen() {
                 </View>
             )}
 
-            {(loading && !initialLoading) && (
+            {loading && !initialLoading && (
                 <View style={styles.absoluteLoader}>
                     <ActivityIndicator size="large" color={Colors[theme].text} />
                 </View>
@@ -663,6 +704,17 @@ export default function SearchScreen() {
                 cards={selectedCards.map(({ cardId, quantity }) => ({ cardId, quantity }))}
                 handleAddCardToDeck={handleAddCardToDeck}
             />
+
+            <AttachCardModal
+                visible={showAttachCardModal}
+                onClose={() => setShowAttachCardModal(false)}
+                card={selectedCardToAttach}
+                message={attachCardMessage}
+                setMessage={setAttachCardMessage}
+                onSend={handleSendAttachCard}
+                theme={theme}
+            />
+
             <Toast />
         </View>
     );

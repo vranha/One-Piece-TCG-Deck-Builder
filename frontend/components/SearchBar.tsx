@@ -4,7 +4,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
 import { useTranslation } from "react-i18next";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import useStore from "@/store/useStore";
 
 interface SearchBarProps {
@@ -32,11 +32,26 @@ const SearchBar: React.FC<SearchBarProps> = ({
     const { t } = useTranslation();
     const { searchQuery } = useStore();
 
+    const params = useLocalSearchParams();
+    const isAttachCardMode = params.mode === "attachCard";
+
     return (
         <View style={styles.headerContainer}>
+            {isAttachCardMode ?
+            <TouchableOpacity onPress={() => router.push({
+            pathname: "/(tabs)",
+            params: {
+                openModalize: "1",
+                chatId: params.chatId,
+            },
+        })} style={styles.backButton}>
+                <MaterialIcons name="arrow-back" size={24} color={Colors[theme].text} />
+            </TouchableOpacity>
+            :
             <TouchableOpacity onPress={() => router.push("/")} style={styles.backButton}>
                 <MaterialIcons name="arrow-back" size={24} color={Colors[theme].text} />
             </TouchableOpacity>
+            }
             <TextInput
                 style={[styles.searchBar, { color: Colors[theme].text }]}
                 placeholder={t("search_cards")}
