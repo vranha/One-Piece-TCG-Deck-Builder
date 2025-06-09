@@ -243,5 +243,8 @@
     "select_deck": "Selecciona un Mazo",
     "send_deck": "Enviar Mazo",
     "add_a_message": "Añade un Mensaje...",
-    "cards_count": "Cartas: {{count}}"
+    "cards_count": "Cartas: {{count}}",
+    "no_collections_available": "No hay colecciones disponibles",
+    "select_collection": "Selecciona una Colección",
+    "send_collection": "Enviar Colección"
 }

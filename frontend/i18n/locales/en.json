@@ -239,5 +239,8 @@
     "select_deck": "Select Deck",
     "send_deck": "Send Deck",
     "add_a_message": "Add a message...",
-    "cards_count": "Cards: {{count}}"
+    "cards_count": "Cards: {{count}}",
+    "no_collections_available": "No collections available",
+    "select_collection": "Select Collection",
+    "send_collection": "Send Collection"
 }

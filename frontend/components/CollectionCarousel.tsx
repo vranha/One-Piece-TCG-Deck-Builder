@@ -87,7 +87,14 @@ const CollectionCarousel: React.FC<CollectionCarouselProps> = ({ collections, us
                     ]}
                     onPress={() => setSelectedTab("collection")}
                 >
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                        <Ionicons
+                            name="bookmark"
+                            size={24}
+                            color={selectedTab === "collection" ? Colors[theme].info : Colors[theme].tabIconDefault}
+                        />
                     <Text style={[styles.tabText, { color: Colors[theme].text }]}>{t("collections")}</Text>
+                    </View>
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={[
@@ -97,7 +104,14 @@ const CollectionCarousel: React.FC<CollectionCarouselProps> = ({ collections, us
                     ]}
                     onPress={() => setSelectedTab("wishlist")}
                 >
+                                        <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                        <Ionicons
+                            name="heart"
+                            size={24}
+                            color={selectedTab === "wishlist" ? Colors[theme].success : Colors[theme].tabIconDefault}
+                        />
                     <Text style={[styles.tabText, { color: Colors[theme].text }]}>{t("wishlists")}</Text>
+                    </View>
                 </TouchableOpacity>
             </View>
             <View style={styles.contentWrapper}>

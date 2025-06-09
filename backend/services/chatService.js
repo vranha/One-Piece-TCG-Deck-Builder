@@ -1,6 +1,7 @@
 const { supabase } = require("./supabaseClient");
 const deckService = require("./deckService");
 const cardService = require("./cardService");
+const collectionService = require("./collectionService");
 
 const getUserChats = async (userId) => {
     console.log("Buscando chats para userId:", userId);
@@ -32,18 +33,33 @@ const getUserChats = async (userId) => {
     }
 
     // Mapear los datos de usuario a cada chat
-    const chatsWithUser = chats.map((chat) => {
-        const otherUserId = chat.user1_id === userId ? chat.user2_id : chat.user1_id;
-        const otherUser = users.find((u) => u.id === otherUserId);
-        return {
-            ...chat,
-            other_user: otherUser || {
-                id: otherUserId,
-                username: "Usuario",
-                avatar_url: undefined,
-            },
-        };
-    });
+    const chatsWithUser = await Promise.all(
+        chats.map(async (chat) => {
+            const otherUserId = chat.user1_id === userId ? chat.user2_id : chat.user1_id;
+            const otherUser = users.find((u) => u.id === otherUserId);
+            // Buscar el último mensaje para obtener su type
+            let lastMessageType = null;
+            if (chat.last_message) {
+                const { data: lastMsg, error: lastMsgError } = await supabase
+                    .from("messages")
+                    .select("type")
+                    .eq("chat_id", chat.id)
+                    .order("created_at", { ascending: false })
+                    .limit(1)
+                    .single();
+                if (!lastMsgError && lastMsg) lastMessageType = lastMsg.type;
+            }
+            return {
+                ...chat,
+                other_user: otherUser || {
+                    id: otherUserId,
+                    username: "Usuario",
+                    avatar_url: undefined,
+                },
+                last_message_type: lastMessageType,
+            };
+        })
+    );
     console.log("Resultado de chats:", chatsWithUser);
     return chatsWithUser;
 };
@@ -79,13 +95,15 @@ const getChatMessages = async (chatId) => {
     if (error) throw error;
     if (!messages || messages.length === 0) return [];
 
-    // Buscar los mensajes especiales (type === 'deck' o 'card')
+    // Buscar los mensajes especiales (type === 'deck' o 'card' o 'collection')
     const deckMsgIds = messages.filter((m) => m.type === "deck" && m.ref_id).map((m) => m.ref_id);
     const cardMsgIds = messages.filter((m) => m.type === "card" && m.ref_id).map((m) => m.ref_id);
+    const collectionMsgIds = messages.filter((m) => m.type === "collection" && m.ref_id).map((m) => m.ref_id);
 
-    // Consultar decks y cards en paralelo si hay
+    // Consultar decks, cards y collections en paralelo si hay
     let decksById = {},
-        cardsById = {};
+        cardsById = {},
+        collectionsById = {};
     if (deckMsgIds.length > 0) {
         const decks = await Promise.all(
             deckMsgIds.map(async (id) => {
@@ -108,6 +126,22 @@ const getChatMessages = async (chatId) => {
             if (card && card.id) cardsById[card.id] = card;
         });
     }
+    if (collectionMsgIds.length > 0) {
+        const collections = await Promise.all(
+            collectionMsgIds.map(async (id) => {
+                try {
+                    const collection = await collectionService.getCollectionById(id);
+                    return collection;
+                } catch (e) {
+                    console.warn(`Collection no encontrada para id: ${id}`);
+                    return { id, notFound: true };
+                }
+            })
+        );
+        collections.forEach((collection) => {
+            if (collection && collection.id) collectionsById[collection.id] = collection;
+        });
+    }
 
     // Enriquecer los mensajes
     const enriched = messages.map((m) => {
@@ -118,6 +152,18 @@ const getChatMessages = async (chatId) => {
         }
         if (m.type === "card" && m.ref_id && cardsById[m.ref_id]) {
             return { ...m, card: cardsById[m.ref_id] };
+        }
+        if (m.type === "collection" && m.ref_id) {
+            let collection = collectionsById[m.ref_id];
+            if (collection && !collection.notFound) {
+                // Elimina collection_cards si existe
+                if (collection.collection_cards) {
+                    const { collection_cards, ...rest } = collection;
+                    collection = rest;
+                }
+                return { ...m, collection };
+            }
+            if (collection && collection.notFound) return { ...m, collection: null };
         }
         return m;
     });

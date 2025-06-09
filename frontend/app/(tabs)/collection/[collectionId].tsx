@@ -61,6 +61,7 @@ const CollectionDetails = () => {
 
     interface Collection {
         name: string;
+        type: string;
         description: string;
         collection_cards: { card_id: string }[];
         cards: {
@@ -679,7 +680,14 @@ const CollectionDetails = () => {
                     </View>
                 ) : (
                     <>
+                    <View style={styles.collectionHeader}>
+                        <Ionicons
+                            name={collection.type === "collection" ? "bookmark" : "heart"}
+                            size={24}
+                            color={collection.type === "collection" ? Colors[theme].info : Colors[theme].success}
+                        />
                         <Text style={[styles.title, { color: Colors[theme].text }]}>{collection.name}</Text>
+                    </View>
                         <Text style={[styles.description, { color: Colors[theme].tabIconDefault }]}>
                             {collection.description}
                         </Text>
@@ -1291,7 +1299,6 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 24,
         fontWeight: "bold",
-        marginBottom: 8,
         textAlign: "center", // Center the title theme color for text
     },
     description: {
@@ -1570,6 +1577,13 @@ const styles = StyleSheet.create({
     loadingText: {
         fontSize: 18,
         fontWeight: "bold",
+    },
+    collectionHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        marginVertical: 20,
     },
 });
 

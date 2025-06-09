@@ -157,19 +157,28 @@ const CollectionSelectModal: React.FC<CollectionSelectModalProps> = ({
                                         borderRadius: 10,
                                         marginHorizontal: 0,
                                         marginVertical: 2,
-                                        padding: 4,
+                                        padding: 6,
                                         backgroundColor: Colors[theme].backgroundSoft,
                                         alignItems: "center",
                                         flexDirection: "row",
                                         gap: 12,
                                     }}
                                 >
+                                    {item.type === "collection" ? 
                                     <Ionicons
-                                        name="folder"
-                                        size={40}
-                                        color={Colors[theme].tint}
-                                        style={{ marginRight: 12 }}
+                                        name="bookmark"
+                                        size={22}
+                                        color={Colors[theme].info}
+                                        style={{ marginLeft: 8 }}
                                     />
+                                    :
+                                           <Ionicons
+                                        name="heart"
+                                        size={22}
+                                        color={Colors[theme].success}
+                                        style={{ marginLeft: 8 }}
+                                    />
+                                }
                                     <ThemedText style={{ color: Colors[theme].text, fontWeight: "bold", fontSize: 18 }}>
                                         {item.name}
                                     </ThemedText>
@@ -178,7 +187,7 @@ const CollectionSelectModal: React.FC<CollectionSelectModalProps> = ({
                         />
                     )}
                     {selectedCollection && !loadingCollections && (
-                        <View style={{ width: "100%", alignItems: "center" }}>
+                        <View style={{ width: "100%", alignItems: "center", gap:20 }}>
                             <View
                                 style={{
                                     borderWidth: 2,
@@ -188,16 +197,23 @@ const CollectionSelectModal: React.FC<CollectionSelectModalProps> = ({
                                     backgroundColor: Colors[theme].backgroundSoft,
                                     alignItems: "center",
                                     flexDirection: "row",
-                                    gap: 0,
-                                    marginBottom: 12,
+                                    gap: 5,
+                                    marginVertical: 15,
                                 }}
                             >
-                                <Ionicons
-                                    name="folder"
-                                    size={50}
-                                    color={Colors[theme].tint}
-                                    style={{ marginRight: 16 }}
-                                />
+                                    {selectedCollection.type === "collection" ? 
+                                    <Ionicons
+                                        name="bookmark"
+                                        size={22}
+                                        color={Colors[theme].info}
+                                    />
+                                    :
+                                           <Ionicons
+                                        name="heart"
+                                        size={22}
+                                        color={Colors[theme].success}
+                                    />
+                                }
                                 <ThemedText style={{ color: Colors[theme].text, fontWeight: "bold", fontSize: 20 }}>
                                     {selectedCollection.name}
                                 </ThemedText>

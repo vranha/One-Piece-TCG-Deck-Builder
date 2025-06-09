@@ -65,6 +65,7 @@ interface Chat {
     user1_id: string;
     user2_id: string;
     last_message?: string;
+    last_message_type?: string;
     last_sender_id?: string;
     user1_read?: boolean;
     user2_read?: boolean;
@@ -487,15 +488,38 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                     <ThemedText style={{ fontWeight: "bold", color: Colors[theme].text }}>
                                         {item.other_user?.username || "Usuario"}
                                     </ThemedText>
-                                    <ThemedText
-                                        style={[
-                                            styles.lastMessage,
-                                            isUnread && { color: Colors[theme].tint, fontWeight: "bold" },
-                                        ]}
-                                        numberOfLines={1}
-                                    >
-                                        {item.last_message}
-                                    </ThemedText>
+
+                                    <View style={{ flexDirection: "row", alignItems: "center"}}>
+                                        {item.last_message_type === "deck" && (
+                                            <Ionicons
+                                                name="albums"
+                                                size={18}
+                                                color={Colors[theme].deckBar}
+                                                styles={{ opacity: 0.2 }}
+                                            />
+                                        )}
+                                        {item.last_message_type === "card" && (
+                                            <MaterialIcons name="style" size={18} color={Colors[theme].cardBar}
+                                            styles={{ opacity: 0.2 }} />
+                                        )}
+                                        {item.last_message_type === "collection" && (
+                                            <Ionicons
+                                                name="bookmark"
+                                                size={18}
+                                                color={Colors[theme].info}
+                                                styles={{ opacity: 0.2 }}
+                                            />
+                                        )}
+                                        <ThemedText
+                                            style={[
+                                                styles.lastMessage,
+                                                isUnread ? { color: Colors[theme].tint, fontWeight: "bold" } : { color: Colors[theme].tabIconDefault, fontWeight: "bold"  },
+                                            ]}
+                                            numberOfLines={1}
+                                        >
+                                            {item.last_message}
+                                        </ThemedText>
+                                    </View>
                                 </View>
                                 {isUnread && (
                                     <View
@@ -792,16 +816,22 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
 
     // Fetch colecciones del usuario cuando se abre el modal
     useEffect(() => {
-        if (showCollectionSelectModal && session?.user.id) {
-            setLoadingCollections(true);
-            fetch(`/collections/${session.user.id}`)
-                .then((res) => res.json())
-                .then((data) => setUserCollections(data))
-                .catch(() => setUserCollections([]))
-                .finally(() => setLoadingCollections(false));
-        } else if (!showCollectionSelectModal) {
-            setUserCollections([]);
-        }
+        const fetchCollections = async () => {
+            if (showCollectionSelectModal && session?.user.id) {
+                setLoadingCollections(true);
+                try {
+                    const res = await api.get(`/collections/${session.user.id}`);
+                    setUserCollections(res.data.data);
+                } catch {
+                    setUserCollections([]);
+                } finally {
+                    setLoadingCollections(false);
+                }
+            } else if (!showCollectionSelectModal) {
+                setUserCollections([]);
+            }
+        };
+        fetchCollections();
     }, [showCollectionSelectModal, session?.user.id]);
 
     // Limpiar selectedCollection y collectionMessageInput SOLO al cerrar el modal
@@ -861,21 +891,17 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
     const handleSendCollectionMessage = async () => {
         if (!selectedCollection || !selectedChat?.id || !session?.user.id) return;
         try {
+            await api.post(`/chats/${selectedChat.id}/messages`, {
+                type: "collection",
+                ref_id: selectedCollection.id,
+                content: collectionMessageInput,
+                sender_id: session.user.id,
+                chat_id: selectedChat.id,
+            });
             setShowCollectionSelectModal(false);
-            setLoadingCollections(false);
             setSelectedCollection(null);
             setCollectionMessageInput("");
-            await fetch(`/chats/${selectedChat.id}/messages`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    type: "collection",
-                    collectionId: selectedCollection.id,
-                    content: collectionMessageInput,
-                    sender_id: session.user.id,
-                }),
-            });
-            // Opcional: refrescar mensajes si no hay subscripción en tiempo real
+            fetchMessages(selectedChat.id, false);
         } catch (e) {
             // Manejar error
         }
@@ -1175,7 +1201,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                             : [],
                         keyExtractor: (item: any) => item.id?.toString?.() || Math.random().toString(),
                         renderItem: ({ item }: any) => {
-                            // Renderizado especial para mensajes de tipo deck/card
+                            // Renderizado especial para mensajes de tipo deck/card/collection
                             if (item.type === "deck" && item.deck) {
                                 const leader = item.deck.cards.find((c: any) => c.type === "LEADER");
                                 const isMine = item.sender_id === session?.user.id;
@@ -1190,8 +1216,8 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                 alignSelf: isMine ? "flex-end" : "flex-start",
                                                 borderRightWidth: isMine ? 4 : 0,
                                                 borderLeftWidth: !isMine ? 4 : 0,
-                                                borderRightColor: isMine ? Colors[theme].info + "80" : undefined,
-                                                borderLeftColor: !isMine ? Colors[theme].info + "80" : undefined,
+                                                borderRightColor: isMine ? Colors[theme].deckBar : undefined,
+                                                borderLeftColor: !isMine ? Colors[theme].deckBar : undefined,
                                             },
                                         ]}
                                     >
@@ -1214,7 +1240,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                             <ThemedText
                                                 style={{
                                                     fontWeight: "bold",
-                                                    color: Colors[theme].info + "80",
+                                                    color: Colors[theme].deckBar,
                                                     marginBottom: 5,
                                                     position: "relative",
                                                     fontSize: 20,
@@ -1331,8 +1357,8 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                 alignSelf: isMine ? "flex-end" : "flex-start",
                                                 borderRightWidth: isMine ? 4 : 0,
                                                 borderLeftWidth: !isMine ? 4 : 0,
-                                                borderRightColor: isMine ? Colors[theme].success + "80" : undefined,
-                                                borderLeftColor: !isMine ? Colors[theme].success + "80" : undefined,
+                                                borderRightColor: isMine ? Colors[theme].cardBar : undefined,
+                                                borderLeftColor: !isMine ? Colors[theme].cardBar : undefined,
                                             },
                                         ]}
                                     >
@@ -1355,7 +1381,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                             <ThemedText
                                                 style={{
                                                     fontWeight: "bold",
-                                                    color: Colors[theme].success + "80",
+                                                    color: Colors[theme].cardBar,
                                                     marginBottom: 5,
                                                     position: "relative",
                                                     fontSize: 20,
@@ -1449,6 +1475,101 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                 {item.content}
                                             </ThemedText>
                                         )}
+                                    </View>
+                                );
+                            }
+                            if (item.type === "collection" && item.collection) {
+                                const isMine = item.sender_id === session?.user.id;
+                                const iconName = item.collection.type === "collection" ? "bookmark" : "heart";
+                                const iconColor =
+                                    item.collection.type === "collection" ? Colors[theme].info : Colors[theme].success;
+                                return (
+                                    <View
+                                        style={[
+                                            styles.messageRow,
+                                            {
+                                                backgroundColor: isMine
+                                                    ? Colors[theme].ownMessageBackground
+                                                    : Colors[theme].receivedMessageBackground,
+                                                alignSelf: isMine ? "flex-end" : "flex-start",
+                                                minWidth: 220,
+                                                maxWidth: 320,
+                                                borderRightWidth: isMine ? 4 : 0,
+                                                borderLeftWidth: !isMine ? 4 : 0,
+                                                borderRightColor: isMine ? iconColor + "80" : undefined,
+                                                borderLeftColor: !isMine ? iconColor + "80" : undefined,
+                                            },
+                                        ]}
+                                    >
+                                        <TouchableOpacity
+                                            activeOpacity={0.8}
+                                            onPress={() => {
+                                                const modalRefObj = getModalizeRef(modalizeRef);
+                                                if (modalRefObj && modalRefObj.close) {
+                                                    modalRefObj.close();
+                                                }
+                                                setTimeout(() => {
+                                                    router.push({
+                                                        pathname: "/(tabs)/collection/[collectionId]",
+                                                        params: {
+                                                            collectionId: item.collection.id,
+                                                            collectionName: item.collection.name,
+                                                        },
+                                                    });
+                                                }, 200);
+                                            }}
+                                            style={{ flexDirection: "column", gap: 0 }}
+                                        >
+                                            <View
+                                                style={{
+                                                    flexDirection: "row",
+                                                    alignItems: "center",
+                                                    gap: 5,
+                                                    marginBottom: 2,
+                                                }}
+                                            >
+                                                <Ionicons name={iconName} size={22} color={iconColor} />
+                                                <ThemedText
+                                                    style={{
+                                                        fontWeight: "bold",
+                                                        color: Colors[theme].text,
+                                                        fontSize: 17,
+                                                    }}
+                                                >
+                                                    {item.collection.name}
+                                                </ThemedText>
+                                            </View>
+                                            <ThemedText
+                                                style={{
+                                                    color: Colors[theme].tabIconDefault + "BB",
+                                                    fontSize: 15,
+                                                    marginBottom: 2,
+                                                    alignSelf: "flex-end",
+                                                }}
+                                            >
+                                                {item.collection.description}
+                                            </ThemedText>
+                                            <ThemedText
+                                                style={{
+                                                    color: Colors[theme].tint,
+                                                    fontSize: 14,
+                                                    fontWeight: "bold",
+                                                    alignSelf: "flex-end",
+                                                }}
+                                            >
+                                                {t("cards")}:{" "}
+                                                {Array.isArray(item.collection.cards)
+                                                    ? item.collection.cards.length
+                                                    : 0}
+                                            </ThemedText>
+                                            {item.content && (
+                                                <ThemedText
+                                                    style={{ marginTop: 8, color: Colors[theme].text, fontSize: 15 }}
+                                                >
+                                                    {item.content}
+                                                </ThemedText>
+                                            )}
+                                        </TouchableOpacity>
                                     </View>
                                 );
                             }
@@ -1669,7 +1790,7 @@ const styles = StyleSheet.create({
     },
     lastMessage: {
         fontSize: 16,
-        color: "#333",
+        marginLeft: 4,
     },
     userCard: {
         flexDirection: "row",
