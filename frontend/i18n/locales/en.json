@@ -242,5 +242,8 @@
     "cards_count": "Cards: {{count}}",
     "no_collections_available": "No collections available",
     "select_collection": "Select Collection",
-    "send_collection": "Send Collection"
+    "send_collection": "Send Collection",
+    "deleted_message": "Deleted message",
+    "send_to": "Send to",
+    "forwarded": "Forwarded"
 }

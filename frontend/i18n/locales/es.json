@@ -246,5 +246,8 @@
     "cards_count": "Cartas: {{count}}",
     "no_collections_available": "No hay colecciones disponibles",
     "select_collection": "Selecciona una Colección",
-    "send_collection": "Enviar Colección"
+    "send_collection": "Enviar Colección",
+    "deleted_message": "Mensaje eliminado",
+    "send_to": "Enviar a",
+    "forwarded": "Reenviado"
 }

@@ -950,6 +950,7 @@ router.get("/chats/:userId", chatController.getUserChats); // Obtener chats del 
 router.post("/chats", chatController.createOrGetChat); // Crear chat (o devolver si ya existe)
 router.get("/chats/:chatId/messages", chatController.getChatMessages); // Obtener mensajes de un chat
 router.post("/chats/:chatId/messages", chatController.sendMessage); // Enviar mensaje
+router.post("/chats/:chatId/messages/bulk", chatController.sendBulkMessages);
 router.post("/chats/:chatId/read", chatController.markChatAsRead); // Marcar chat como leído
 
 // Buscar usuarios (priorizando amigos)
@@ -962,5 +963,72 @@ router.post(
     authorizeAdmin,
     scriptsController.importCardsFromHtml
 );
+
+/**
+ * @swagger
+ * /chats/messages/delete:
+ *   put:
+ *     summary: Marcar mensajes como eliminados (soft delete)
+ *     tags: [Chats]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               messageIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: IDs de los mensajes a eliminar
+ *               userId:
+ *                 type: string
+ *                 description: ID del usuario que solicita la eliminación
+ *     responses:
+ *       200:
+ *         description: Mensajes marcados como eliminados
+ *       400:
+ *         description: Parámetros incorrectos
+ *       403:
+ *         description: No tienes permiso para eliminar estos mensajes
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.put("/chats/messages/delete", chatController.softDeleteMessages);
+
+/**
+ * @swagger
+ * /chats/messages/edit:
+ *   put:
+ *     summary: Editar el contenido de un mensaje propio
+ *     tags: [Chats]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               messageId:
+ *                 type: string
+ *                 description: ID del mensaje a editar
+ *               userId:
+ *                 type: string
+ *                 description: ID del usuario que solicita la edición
+ *               newContent:
+ *                 type: string
+ *                 description: Nuevo contenido del mensaje
+ *     responses:
+ *       200:
+ *         description: Mensaje editado correctamente
+ *       400:
+ *         description: Parámetros incorrectos
+ *       403:
+ *         description: No tienes permiso para editar este mensaje
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.put("/chats/messages/edit", chatController.editMessage);
 
 module.exports = router;

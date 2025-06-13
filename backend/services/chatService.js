@@ -192,6 +192,21 @@ const sendMessage = async (chatId, senderId, content, type = "text", ref_id = nu
     return message;
 };
 
+const sendBulkMessages = async (chatId, sender_id, messages) => {
+    // messages: [{ content, type, ref_id }]
+    const inserts = messages.map((msg) => ({
+        chat_id: chatId,
+        sender_id,
+        content: msg.content,
+        type: msg.type || null,
+        ref_id: msg.ref_id || null,
+        created_at: new Date().toISOString(),
+    }));
+    const { data, error } = await supabase.from("messages").insert(inserts);
+    if (error) throw new Error(error.message);
+    return data;
+};
+
 const markChatAsRead = async (chatId, userId) => {
     const { data: chat, error } = await supabase.from("chats").select("user1_id, user2_id").eq("id", chatId).single();
     if (error) throw error;
@@ -210,10 +225,72 @@ const markChatAsRead = async (chatId, userId) => {
     return true;
 };
 
+const softDeleteMessages = async (messageIds, userId) => {
+    // Traer los mensajes para verificar propiedad y chat_id
+    const { data: messages, error } = await supabase
+        .from("messages")
+        .select("id,sender_id,chat_id,created_at,content")
+        .in("id", messageIds);
+    if (error) throw error;
+    // Verifica que todos sean del usuario
+    const forbidden = messages.some((m) => m.sender_id !== userId);
+    if (forbidden) return { forbidden: true };
+
+    // Actualiza los mensajes: cambia content a "//**Eliminado**//"
+    const { data: updated, error: updateError } = await supabase
+        .from("messages")
+        .update({ content: "//**Eliminado**//" })
+        .in("id", messageIds);
+    if (updateError) throw updateError;
+
+    // Para cada chat afectado, revisa si el last_message es uno de los eliminados
+    const affectedChatIds = [...new Set(messages.map((m) => m.chat_id))];
+    for (const chatId of affectedChatIds) {
+        // Trae el chat
+        const { data: chat, error: chatError } = await supabase
+            .from("chats")
+            .select("id,last_message")
+            .eq("id", chatId)
+            .single();
+        if (chatError) continue;
+        // Si el last_message es uno de los eliminados, busca el mensaje anterior válido
+        const deletedContents = messages.filter((m) => m.chat_id === chatId).map((m) => m.content);
+        if (deletedContents.includes(chat.last_message)) {
+            // Si el last_message es uno de los eliminados, simplemente ponlo como "//**Eliminado**//"
+            await supabase.from("chats").update({ last_message: "//**Eliminado**//" }).eq("id", chatId);
+        }
+    }
+
+    return { updated };
+};
+const editMessage = async (messageId, userId, newContent) => {
+    // Fetch the message to verify ownership
+    const { data: message, error } = await supabase
+        .from("messages")
+        .select("id,sender_id,content")
+        .eq("id", messageId)
+        .single();
+    if (error) throw error;
+    if (!message) throw new Error("Message not found");
+    if (message.sender_id !== userId) return { forbidden: true };
+    // Update the message content and set edited=true
+    const { data: updated, error: updateError } = await supabase
+        .from("messages")
+        .update({ content: newContent, edited: true })
+        .eq("id", messageId)
+        .select()
+        .single();
+    if (updateError) throw updateError;
+    return { updated };
+};
+
 module.exports = {
     getUserChats,
     createOrGetChat,
     getChatMessages,
     sendMessage,
+    sendBulkMessages,
     markChatAsRead,
+    softDeleteMessages,
+    editMessage,
 };
