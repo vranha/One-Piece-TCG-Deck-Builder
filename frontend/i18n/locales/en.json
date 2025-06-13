@@ -245,5 +245,6 @@
     "send_collection": "Send Collection",
     "deleted_message": "Deleted message",
     "send_to": "Send to",
-    "forwarded": "Forwarded"
+    "forwarded": "Forwarded",
+    "share_with": "Share with:"
 }

@@ -249,5 +249,6 @@
     "send_collection": "Enviar Colección",
     "deleted_message": "Mensaje eliminado",
     "send_to": "Enviar a",
-    "forwarded": "Reenviado"
+    "forwarded": "Reenviado",
+    "share_with": "Compartir por:"
 }

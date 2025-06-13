@@ -1,5 +1,16 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
-import { View, StyleSheet, TouchableOpacity, Text, ScrollView, Platform, TextInput, Alert, Modal } from "react-native";
+import {
+    View,
+    StyleSheet,
+    TouchableOpacity,
+    Text,
+    ScrollView,
+    Platform,
+    TextInput,
+    Alert,
+    Modal,
+    Linking,
+} from "react-native";
 import { Image as ExpoImage } from "expo-image";
 import { useNavigation, useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { Colors } from "@/constants/Colors";
@@ -33,6 +44,8 @@ import useStore from "@/store/useStore";
 import Tags from "@/components/Tags"; // Import the new Tags component
 import { useAuth } from "@/contexts/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage"; // Import AsyncStorage
+import ViewShot from "react-native-view-shot";
+import * as Sharing from "expo-sharing"; // Si usas Expo, para compartir imágenes
 
 interface DeckDetail {
     id: string;
@@ -136,6 +149,31 @@ export default function DeckDetailScreen() {
     const isOwner = useMemo(() => {
         return session?.user?.id === deckDetail?.user_id; // Suponiendo que `ownerId` está en los datos del deck
     }, [session, deckDetail]);
+
+    const viewShotRef = useRef(null);
+
+    const handleShareDeckImage = async () => {
+        try {
+            // Captura la imagen del grid solo si viewShotRef.current no es null
+            if (viewShotRef.current) {
+                const uri = await (viewShotRef as any).current.capture();
+
+                // WhatsApp solo acepta imágenes locales, no data-uri
+                if (Platform.OS === "android" || Platform.OS === "ios") {
+                    await Sharing.shareAsync(uri, {
+                        dialogTitle: "Compartir deck",
+                        mimeType: "image/png",
+                    });
+                } else {
+                    Alert.alert("Solo disponible en móvil");
+                }
+            } else {
+                Alert.alert("No se pudo capturar la imagen.");
+            }
+        } catch (error) {
+            Alert.alert("Error al compartir", (error as any).message);
+        }
+    };
 
     useEffect(() => {
         // const fetchSetNames = async () => {
@@ -1098,12 +1136,12 @@ export default function DeckDetailScreen() {
         }
     };
 
-        const [isAtTop, setIsAtTop] = useState(true); // Estado para saber si estás en la parte superior
-    
-        const handleScroll = (event: any) => {
-            const offsetY = event.nativeEvent.contentOffset.y;
-            setIsAtTop(offsetY <= 0); // Si el desplazamiento es 0 o menor, estás en la parte superior
-        };
+    const [isAtTop, setIsAtTop] = useState(true); // Estado para saber si estás en la parte superior
+
+    const handleScroll = (event: any) => {
+        const offsetY = event.nativeEvent.contentOffset.y;
+        setIsAtTop(offsetY <= 0); // Si el desplazamiento es 0 o menor, estás en la parte superior
+    };
 
     // const [headerOptions, setHeaderOptions] = useState<any>({}); // Estado inicial vacío para las opciones del encabezado
 
@@ -1130,6 +1168,18 @@ export default function DeckDetailScreen() {
                           headerTitle: () => null,
                           headerRight: () => (
                               <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                  <TouchableOpacity
+                                      onPress={handleShareDeckImage}
+                                      style={{
+                                          backgroundColor: Colors[theme].info,
+                                          paddingVertical: 5,
+                                          paddingHorizontal: 10,
+                                          borderRadius: 5,
+                                          marginRight: 10,
+                                      }}
+                                  >
+                                      <Ionicons name="share-social" size={22} color={Colors[theme].background} />
+                                  </TouchableOpacity>
                                   <TouchableOpacity
                                       onPress={openModal}
                                       style={{
@@ -1208,6 +1258,18 @@ export default function DeckDetailScreen() {
                               <View style={{ flexDirection: "row", alignItems: "center" }}>
                                   {" "}
                                   <TouchableOpacity
+                                      onPress={handleShareDeckImage}
+                                      style={{
+                                          backgroundColor: Colors[theme].info,
+                                          paddingVertical: 5,
+                                          paddingHorizontal: 10,
+                                          borderRadius: 5,
+                                          marginRight: 10,
+                                      }}
+                                  >
+                                      <Ionicons name="share-social" size={22} color={Colors[theme].background} />
+                                  </TouchableOpacity>
+                                  <TouchableOpacity
                                       onPress={() => router.push(`/user/${deckDetail?.user_id}`)} // Navegar al perfil del usuario
                                       style={{
                                           backgroundColor: Colors[theme].success,
@@ -1216,7 +1278,7 @@ export default function DeckDetailScreen() {
                                           borderRadius: 5,
                                           marginRight: 10,
                                           flexDirection: "row",
-                                          gap:3,
+                                          gap: 3,
                                       }}
                                   >
                                       <MaterialIcons name="person" size={24} color={Colors[theme].background} />
@@ -1469,13 +1531,13 @@ export default function DeckDetailScreen() {
                                     >
                                         <ExpoImage
                                             source={{ uri: item.images_small }}
-                                            style={styles.cardImage} 
+                                            style={styles.cardImage}
                                             placeholder={require("../../../assets/images/card_placeholder.webp")}
                                             contentFit="contain"
                                             transition={300}
                                             cachePolicy="memory-disk"
-                                            />
-                                            
+                                        />
+
                                         {!item.is_leader ? (
                                             <View
                                                 style={[
@@ -1951,10 +2013,151 @@ export default function DeckDetailScreen() {
                     </View>
                 </TouchableOpacity>
             </Modal>
+            <View style={{ position: "absolute", left: -9999, top: -9999 }}>
+                <ViewShot
+                    ref={viewShotRef}
+                    options={{
+                        format: "png",
+                        quality: 1,
+                    }}
+                >
+                    <DeckGridPreview
+                        cards={deckDetail.cards
+                            .sort((a, b) => (a.is_leader ? -1 : b.is_leader ? 1 : 0))
+                            .map((card) => ({
+                                image: card.images_small,
+                                quantity: card.quantity ?? 1,
+                            }))}
+                        leaderName={deckDetail.cards.find((c) => c.is_leader)?.name}
+                    />
+                </ViewShot>
+            </View>
         </>
     );
 }
 
+interface DeckGridPreviewCard {
+    image: string;
+    quantity: number;
+}
+
+const DeckGridPreview: React.FC<{ cards: DeckGridPreviewCard[]; leaderName?: string }> = ({ cards, leaderName }) => {
+    if (!cards.length) return null;
+
+    // Suponemos que la primera carta es el líder
+    const leader = cards[0];
+    const rest = cards.slice(1);
+
+    // Divide las cartas en filas de 4
+    const rows = [];
+    for (let i = 0; i < rest.length; i += 4) {
+        rows.push(rest.slice(i, i + 4));
+    }
+
+    return (
+        <View
+            style={{
+                paddingTop: 28,
+                paddingBottom: 28,
+                paddingHorizontal: 14,
+                borderRadius: 18,
+                minWidth: 260,
+                maxWidth: 340,
+                alignItems: "center",
+                backgroundColor: "#2e2e2e", // Fondo fijo
+                shadowColor: "#a84848", // Sombra roja OP
+                shadowOpacity: 0.25,
+                shadowRadius: 12,
+                elevation: 8,
+            }}
+        >
+            {/* Leader y logo en fila */}
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
+                <ExpoImage
+                    source={require("@/assets/images/OPLAB-logo.png")}
+                    style={{ width: 48, height: 48, marginRight: 10 }}
+                    contentFit="contain"
+                />
+                <View style={{ alignItems: "center" }}>
+                    <ExpoImage
+                        source={{ uri: leader.image }}
+                        style={{
+                            width: 84,
+                            height: 116,
+                            borderRadius: 10,
+                            borderWidth: 3,
+                            borderColor: "#a84848",
+                            backgroundColor: "#fff",
+                            marginBottom: 2,
+                            shadowColor: "#a84848",
+                            shadowOpacity: 0.4,
+                            shadowRadius: 8,
+                        }}
+                        contentFit="contain"
+                    />
+                </View>
+            </View>
+            {/* Nombre del líder */}
+            {leaderName && (
+                <Text
+                    style={{
+                        fontSize: 17,
+                        color: "#a84848",
+                        fontWeight: "bold",
+                        letterSpacing: 1,
+                        marginBottom: 10,
+                        textShadowColor: "#fff",
+                        textShadowOffset: { width: 1, height: 1 },
+                        textShadowRadius: 2,
+                        fontFamily: "serif",
+                    }}
+                >
+                    {leaderName}
+                </Text>
+            )}
+            {/* Grid de cartas */}
+            <View style={{ gap: 3 }}>
+                {rows.map((row, rowIdx) => (
+                    <View key={rowIdx} style={{ flexDirection: "row", justifyContent: "center", marginBottom: 3 }}>
+                        {row.map((card, idx) => (
+                            <View key={idx} style={{ marginHorizontal: 2 }}>
+                                <ExpoImage
+                                    source={{ uri: card.image }}
+                                    style={{
+                                        width: 40,
+                                        height: 56,
+                                        borderRadius: 4,
+                                        borderWidth: 1.5,
+                                        borderColor: Colors.light.tabIconDefault,
+                                        backgroundColor: "#fff",
+                                    }}
+                                    contentFit="contain"
+                                />
+                                <View
+                                    style={{
+                                        position: "absolute",
+                                        bottom: 2,
+                                        right: 2,
+                                        backgroundColor: "#a84848",
+                                        borderRadius: 8,
+                                        paddingHorizontal: 5,
+                                        paddingVertical: 1,
+                                        borderWidth: 1,
+                                        borderColor: "#fff",
+                                    }}
+                                >
+                                    <Text style={{ color: "#222", fontWeight: "bold", fontSize: 12 }}>
+                                        {card.quantity}
+                                    </Text>
+                                </View>
+                            </View>
+                        ))}
+                    </View>
+                ))}
+            </View>
+        </View>
+    );
+};
 // Componente CardItem para modularizar el renderizado de las cartas
 const CardItem = React.memo(
     ({
@@ -1983,149 +2186,150 @@ const CardItem = React.memo(
         deckCardCount: number; // Added deckCardCount to the props
         loading: boolean;
         isAddDisabled: (card: Card) => boolean; // Added isAddDisabled to the props
-        
     }) => {
         const [imageLoaded, setImageLoaded] = useState(false);
-     return(
-        <View key={card.id}>
-            <View
-                style={[
-                    styles.cardContainerSearch,
-                    { height },
-                    cardSizeOption === 2 && [
-                        styles.detailedCardContainer,
-                        {
-                            backgroundColor: Colors[theme as keyof typeof Colors].TabBarBackground,
-                        },
-                    ],
-                ]}
-            >
-                <ExpoImage
-                    source={{ uri: card.images_small }}
-                    placeholder={require("@/assets/images/card_placeholder.webp")}
-                    style={[styles.cardImage, imageStyle, loading && { opacity: 0.3 }]}
-                    contentFit="contain"
-                    // transition={300}
-                    onLoadEnd={() => setImageLoaded(true)}
-                    cachePolicy="memory-disk"
-                />
-                                    {!imageLoaded && (
-                                        <View
-                                            style={{
-                                                position: "absolute",
-                                                top: 3,
-                                                justifyContent: "flex-end",
-                                                alignItems: "center",
-                                                // backgroundColor: "rgba(0,0,0,0.2)",
-                                                paddingHorizontal: 8,
-                                            }}
-                                        >
-                                            <Text
-                                                style={{
-                                                    color: Colors[theme as keyof typeof Colors].tabIconDefault,
-                                                    fontWeight: "bold",
-                                                    fontSize: 14,
-                                                    textAlign: "center",
-                                                }}
-                                            >
-                                                {card.code}
-                                            </Text>
-                                        </View>
-                                    )}
-                <View style={[styles.quantityControls, getQuantityControlsStyle()]}>
-                    <TouchableOpacity
-                        onPress={() => updateCardQuantity(card.id, -1)}
-                        disabled={selectedQuantity(card.id) <= 0} // Desactiva si la cantidad es 0 // Usar la prop aquí
-                    >
-                        <MaterialIcons
-                            name="remove-circle-outline"
-                            size={24}
-                            color={
-                                selectedQuantity(card.id) > 0
-                                    ? Colors[theme as keyof typeof Colors].icon
-                                    : Colors[theme as keyof typeof Colors].disabled
-                            }
-                        />
-                    </TouchableOpacity>
-                    <ThemedText style={[styles.quantityTextSearch, { color: "white" }]}>
-                        {selectedQuantity(card.id)}
-                    </ThemedText>
-                    <TouchableOpacity
-                        onPress={() => updateCardQuantity(card.id, 1)}
-                        disabled={
-                            isAddDisabled(card) || // Verifica si el total de cartas con el mismo code alcanza 4
-                            deckCardCount >= limitDeckNum || // Verifica si se alcanza el límite del deck
-                            selectedQuantity(card.id) >= 4 // Verifica si la cantidad de la carta seleccionada es 4
-                        }
-                    >
-                        <MaterialIcons
-                            name="add-circle-outline"
-                            size={24}
-                            color={
-                                !isAddDisabled(card) && deckCardCount < limitDeckNum && selectedQuantity(card.id) < 4
-                                    ? Colors[theme as keyof typeof Colors].icon
-                                    : Colors[theme as keyof typeof Colors].disabled
-                            }
-                        />
-                    </TouchableOpacity>
-                </View>
-                {cardSizeOption === 2 && (
-                    <View style={styles.cardDetails}>
+        return (
+            <View key={card.id}>
+                <View
+                    style={[
+                        styles.cardContainerSearch,
+                        { height },
+                        cardSizeOption === 2 && [
+                            styles.detailedCardContainer,
+                            {
+                                backgroundColor: Colors[theme as keyof typeof Colors].TabBarBackground,
+                            },
+                        ],
+                    ]}
+                >
+                    <ExpoImage
+                        source={{ uri: card.images_small }}
+                        placeholder={require("@/assets/images/card_placeholder.webp")}
+                        style={[styles.cardImage, imageStyle, loading && { opacity: 0.3 }]}
+                        contentFit="contain"
+                        // transition={300}
+                        onLoadEnd={() => setImageLoaded(true)}
+                        cachePolicy="memory-disk"
+                    />
+                    {!imageLoaded && (
                         <View
-                            style={[
-                                styles.cardRarityContainer,
-                                {
-                                    backgroundColor: Colors[theme as keyof typeof Colors].background,
-                                },
-                            ]}
+                            style={{
+                                position: "absolute",
+                                top: 3,
+                                justifyContent: "flex-end",
+                                alignItems: "center",
+                                // backgroundColor: "rgba(0,0,0,0.2)",
+                                paddingHorizontal: 8,
+                            }}
                         >
-                            <ThemedText
-                                style={[
-                                    styles.cardRarity,
-                                    {
-                                        color: Colors[theme as keyof typeof Colors].icon,
-                                    },
-                                ]}
+                            <Text
+                                style={{
+                                    color: Colors[theme as keyof typeof Colors].tabIconDefault,
+                                    fontWeight: "bold",
+                                    fontSize: 14,
+                                    textAlign: "center",
+                                }}
                             >
-                                {card.rarity}
-                            </ThemedText>
+                                {card.code}
+                            </Text>
                         </View>
-                        <View style={styles.cardHeader}>
-                            <ThemedText style={styles.cardName} numberOfLines={1} ellipsizeMode="tail">
-                                {card.name}
-                            </ThemedText>
-                            <ThemedText style={styles.cardCode}>{card.code}</ThemedText>
-                        </View>
-                        <View style={styles.cardFooter}>
-                            <ThemedText
-                                style={[
-                                    styles.cardType,
-                                    {
-                                        color: Colors[theme as keyof typeof Colors].tabIconDefault,
-                                    },
-                                ]}
-                                numberOfLines={1}
-                            >
-                                {card.type}
-                            </ThemedText>
-                            <ThemedText
-                                style={[
-                                    styles.cardSet,
-                                    {
-                                        color: Colors[theme as keyof typeof Colors].tabIconDefault,
-                                    },
-                                ]}
-                                numberOfLines={1}
-                            >
-                                {card.set_name}
-                            </ThemedText>
-                        </View>
+                    )}
+                    <View style={[styles.quantityControls, getQuantityControlsStyle()]}>
+                        <TouchableOpacity
+                            onPress={() => updateCardQuantity(card.id, -1)}
+                            disabled={selectedQuantity(card.id) <= 0} // Desactiva si la cantidad es 0 // Usar la prop aquí
+                        >
+                            <MaterialIcons
+                                name="remove-circle-outline"
+                                size={24}
+                                color={
+                                    selectedQuantity(card.id) > 0
+                                        ? Colors[theme as keyof typeof Colors].icon
+                                        : Colors[theme as keyof typeof Colors].disabled
+                                }
+                            />
+                        </TouchableOpacity>
+                        <ThemedText style={[styles.quantityTextSearch, { color: "white" }]}>
+                            {selectedQuantity(card.id)}
+                        </ThemedText>
+                        <TouchableOpacity
+                            onPress={() => updateCardQuantity(card.id, 1)}
+                            disabled={
+                                isAddDisabled(card) || // Verifica si el total de cartas con el mismo code alcanza 4
+                                deckCardCount >= limitDeckNum || // Verifica si se alcanza el límite del deck
+                                selectedQuantity(card.id) >= 4 // Verifica si la cantidad de la carta seleccionada es 4
+                            }
+                        >
+                            <MaterialIcons
+                                name="add-circle-outline"
+                                size={24}
+                                color={
+                                    !isAddDisabled(card) &&
+                                    deckCardCount < limitDeckNum &&
+                                    selectedQuantity(card.id) < 4
+                                        ? Colors[theme as keyof typeof Colors].icon
+                                        : Colors[theme as keyof typeof Colors].disabled
+                                }
+                            />
+                        </TouchableOpacity>
                     </View>
-                )}
+                    {cardSizeOption === 2 && (
+                        <View style={styles.cardDetails}>
+                            <View
+                                style={[
+                                    styles.cardRarityContainer,
+                                    {
+                                        backgroundColor: Colors[theme as keyof typeof Colors].background,
+                                    },
+                                ]}
+                            >
+                                <ThemedText
+                                    style={[
+                                        styles.cardRarity,
+                                        {
+                                            color: Colors[theme as keyof typeof Colors].icon,
+                                        },
+                                    ]}
+                                >
+                                    {card.rarity}
+                                </ThemedText>
+                            </View>
+                            <View style={styles.cardHeader}>
+                                <ThemedText style={styles.cardName} numberOfLines={1} ellipsizeMode="tail">
+                                    {card.name}
+                                </ThemedText>
+                                <ThemedText style={styles.cardCode}>{card.code}</ThemedText>
+                            </View>
+                            <View style={styles.cardFooter}>
+                                <ThemedText
+                                    style={[
+                                        styles.cardType,
+                                        {
+                                            color: Colors[theme as keyof typeof Colors].tabIconDefault,
+                                        },
+                                    ]}
+                                    numberOfLines={1}
+                                >
+                                    {card.type}
+                                </ThemedText>
+                                <ThemedText
+                                    style={[
+                                        styles.cardSet,
+                                        {
+                                            color: Colors[theme as keyof typeof Colors].tabIconDefault,
+                                        },
+                                    ]}
+                                    numberOfLines={1}
+                                >
+                                    {card.set_name}
+                                </ThemedText>
+                            </View>
+                        </View>
+                    )}
+                </View>
             </View>
-        </View>
-    )
-}
+        );
+    }
 );
 
 const styles = StyleSheet.create({
