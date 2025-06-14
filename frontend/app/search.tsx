@@ -45,6 +45,7 @@ interface Card {
     id: string;
     code: string;
     images_small: string;
+    images_thumb: string;
     name: string;
     set_name: string;
     type: string;

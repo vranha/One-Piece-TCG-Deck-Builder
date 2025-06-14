@@ -18,6 +18,7 @@ interface NewDeckModalProps {
 interface Card {
     id: string;
     images_small: string;
+    images_thumb: string;
     name: string;
     color: string;
 }
@@ -136,7 +137,7 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
             >
                 <View style={styles.overlay}>
                     <TouchableOpacity style={styles.overlayTouchable} activeOpacity={1} onPress={handleClose} />
-                    <View style={[styles.centeredView]}>
+                    <View style={[styles.centeredView]} pointerEvents="box-none">
                         <View style={[styles.modalView, { backgroundColor: Colors[theme].TabBarBackground }]}>
                             <TouchableOpacity
                                 onPress={() => setLeaderModalVisible(true)}
@@ -148,7 +149,7 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
                             >
                                 {leader ? (
                                     <View style={styles.leaderSelected}>
-                                        <Image source={{ uri: leader.images_small }} style={styles.leaderImage} />
+                                        <Image source={{ uri: leader.images_thumb }} style={styles.leaderImage} />
                                         <TouchableOpacity
                                             onPress={handleLeaderDeselect}
                                             style={[
@@ -254,7 +255,7 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
                                             renderItem={({ item }) => (
                                                 <TouchableOpacity onPress={() => handleLeaderSelect(item)}>
                                                     <Image
-                                                        source={item.images_small}
+                                                        source={item.images_thumb}
                                                         style={styles.leaderImage}
                                                         contentFit="contain"
                                                         cachePolicy="memory-disk"

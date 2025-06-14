@@ -20,6 +20,7 @@ export default function ImportDeckModal({ visible, onClose, onImport }: ImportDe
             quantity: number;
             code: string;
             images_small?: string | null;
+            images_thumb?: string | null;
             color?: string[] | null;
             name?: string | null;
         }[]
@@ -51,6 +52,7 @@ export default function ImportDeckModal({ visible, onClose, onImport }: ImportDe
             const fetchedCards: {
                 code: string;
                 images_small?: string | null;
+                images_thumb?: string | null;
                 color?: string[] | null;
                 name?: string;
             }[] = response.data;

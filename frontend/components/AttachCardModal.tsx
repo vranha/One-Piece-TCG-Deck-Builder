@@ -55,7 +55,7 @@ const AttachCardModal: React.FC<AttachCardModalProps> = ({
                     {card && (
                         <>
                             <Image
-                                source={card.images_small}
+                                source={card.images_thumb}
                                 style={{ width: 120, height: 170, borderRadius: 8, marginBottom: 16 }}
                                 contentFit="cover"
                                 cachePolicy="memory-disk"

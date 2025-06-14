@@ -1,4 +1,5 @@
 const scriptsService = require("../services/scriptsService");
+const runGenerateThumbnails = require("../scripts/generateThumbnails");
 
 const importCardsFromHtml = async (req, res) => {
     const { html, expansion } = req.body; // Extract expansion
@@ -16,6 +17,17 @@ const importCardsFromHtml = async (req, res) => {
     }
 };
 
+const generateThumbnails = async (req, res) => {
+    try {
+        const result = await runGenerateThumbnails.generateThumbnails();
+        res.status(200).json({ message: result });
+    } catch (error) {
+        console.error("Error generating thumbnails:", error.message);
+        res.status(500).json({ error: "Failed to generate thumbnails." });
+    }
+};
+
 module.exports = {
     importCardsFromHtml,
+    generateThumbnails,
 };

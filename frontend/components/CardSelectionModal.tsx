@@ -7,6 +7,7 @@ import { ThemedText } from "@/components/ThemedText";
 interface Card {
     id: string;
     images_small: string;
+    images_thumb: string;
     type: string; // Agregar las propiedades faltantes
     name: string;
     set_name: string;
@@ -50,7 +51,7 @@ const CardSelectionModal: React.FC<CardSelectionModalProps> = ({
                     <ScrollView contentContainerStyle={styles.cardList}>
                         {relatedCards.map((card) => (
                             <TouchableOpacity key={card.id} onPress={() => onCardSelect(card)} style={styles.card}>
-                                <ExpoImage source={{ uri: card.images_small }} style={styles.cardImage} />
+                                <ExpoImage source={{ uri: card.images_thumb }} style={styles.cardImage} />
                             </TouchableOpacity>
                         ))}
                     </ScrollView>

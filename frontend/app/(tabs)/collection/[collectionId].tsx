@@ -71,6 +71,7 @@ const CollectionDetails = () => {
             color: string[];
             rarity: string;
             images_small: string;
+            images_thumb: string;
             type: string;
             set_name: string;
         }[];
@@ -511,7 +512,7 @@ const CollectionDetails = () => {
     const renderCardItem = ({
         item,
     }: {
-        item: { code: string; name: string; color: string[]; rarity: string; images_small: string };
+        item: { code: string; name: string; color: string[]; rarity: string; images_small: string; images_thumb: string; };
     }) => (
         <TouchableOpacity onPress={() => handleCardPress(item.images_small)}>
             <View style={[styles.cardContainer, { backgroundColor: Colors[theme].backgroundSoft }]}>
@@ -709,6 +710,7 @@ const CollectionDetails = () => {
                                     color: item.color,
                                     rarity: item.rarity,
                                     images_small: item.images_small,
+                                    images_thumb: item.images_thumb,
                                 },
                             })
                         }
@@ -1168,6 +1170,7 @@ const CardItem = ({
         set_name: string;
         type: string;
         images_small: string;
+        images_thumb: string;
         name: string;
     };
     height: number;
@@ -1199,7 +1202,7 @@ const CardItem = ({
             >
                 <View style={{ position: "relative" }}>
                     <ExpoImage
-                        source={{ uri: card.images_small }}
+                        source={{ uri: card.images_thumb }}
                         placeholder={require("@/assets/images/card_placeholder.webp")}
                         style={[styles.cardImage, imageStyle]}
                         contentFit="contain"

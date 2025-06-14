@@ -304,6 +304,33 @@ export default function SettingsScreen() {
         }
     };
 
+    // --- ADMIN: GENERAR THUMBNAILS ---
+    const handleGenerateThumbnails = async () => {
+        try {
+            setIsLoading(true);
+            const response = await api.post("/image/generate-thumbnails");
+            Toast.show({
+                type: "success",
+                text1: t("thumbnails_success_title", "Thumbnails generados"),
+                text2: response.data.message,
+                position: "bottom",
+                visibilityTime: 4000,
+                autoHide: true,
+            });
+        } catch (error: any) {
+            Toast.show({
+                type: "error",
+                text1: t("thumbnails_error_title", "Error generando thumbnails"),
+                text2: t("thumbnails_error_message", "Ocurrió un error al generar los thumbnails."),
+                position: "bottom",
+                visibilityTime: 4000,
+                autoHide: true,
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <>
             <ScrollView contentContainerStyle={{ flexGrow: 1, backgroundColor: Colors[theme].background }}>
@@ -427,13 +454,25 @@ export default function SettingsScreen() {
                         showToast={handleFeedbackToast} // Pass the Toast handler to the modal
                     />
                     {isAdmin === "admin" && (
-                        <TouchableOpacity
-                            style={[styles.importButton, { backgroundColor: Colors[theme].info }]}
-                            onPress={() => setIsImportModalVisible(true)}
-                        >
-                            <Ionicons name="cloud-upload-outline" size={20} color="#FFF" />
-                            <ThemedText style={styles.importText}>{t("import_cards")}</ThemedText>
-                        </TouchableOpacity>
+                        <>
+                            <TouchableOpacity
+                                style={[styles.importButton, { backgroundColor: Colors[theme].info }]}
+                                onPress={() => setIsImportModalVisible(true)}
+                            >
+                                <Ionicons name="cloud-upload-outline" size={20} color="#FFF" />
+                                <ThemedText style={styles.importText}>{t("import_cards")}</ThemedText>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.importButton, { backgroundColor: Colors[theme].info, marginTop: 10 }]}
+                                onPress={handleGenerateThumbnails}
+                                disabled={isLoading}
+                            >
+                                <Ionicons name="images-outline" size={20} color="#FFF" />
+                                <ThemedText style={styles.importText}>
+                                    {t("generate_thumbnails", "Generar Thumbnails")}
+                                </ThemedText>
+                            </TouchableOpacity>
+                        </>
                     )}
 
                     <Modal
@@ -452,7 +491,13 @@ export default function SettingsScreen() {
                                 ) : (
                                     <>
                                         <TextInput
-                                            style={[styles.textArea, { borderColor: Colors[theme].tabIconDefault, color:Colors[theme].text }]}
+                                            style={[
+                                                styles.textArea,
+                                                {
+                                                    borderColor: Colors[theme].tabIconDefault,
+                                                    color: Colors[theme].text,
+                                                },
+                                            ]}
                                             multiline
                                             value={htmlContent}
                                             onChangeText={setHtmlContent}
@@ -460,7 +505,13 @@ export default function SettingsScreen() {
                                             placeholderTextColor={Colors[theme].tabIconDefault}
                                         />
                                         <TextInput
-                                            style={[styles.textInput, { borderColor: Colors[theme].tabIconDefault, color:Colors[theme].text }]} // New TextInput for expansion
+                                            style={[
+                                                styles.textInput,
+                                                {
+                                                    borderColor: Colors[theme].tabIconDefault,
+                                                    color: Colors[theme].text,
+                                                },
+                                            ]} // New TextInput for expansion
                                             value={expansion}
                                             onChangeText={setExpansion}
                                             placeholder={t("expansion_placeholder")}
@@ -690,5 +741,19 @@ const styles = StyleSheet.create({
     },
     progressText: {
         fontSize: 16,
+    },
+    generateThumbnailsButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "100%",
+        padding: 15,
+        borderRadius: 12,
+        marginTop: 10,
+    },
+    generateThumbnailsText: {
+        color: "#FFF",
+        fontSize: 16,
+        marginLeft: 10,
     },
 });

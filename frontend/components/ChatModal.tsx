@@ -1102,8 +1102,8 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                 gap: 8,
                                 position: "relative",
                             }}
+                            
                         >
-                            {/* Botón para adjuntar carta o mazo */}
                             <TouchableOpacity
                                 onPress={() => {
                                     if (!showAttachMenu) openAttachMenu();
@@ -1148,6 +1148,9 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                     onChangeText={setNewMessage}
                                     onSubmitEditing={handleSendMessage}
                                     returnKeyType="send"
+                                            contextMenuHidden={false}
+        selectTextOnFocus={false}
+        editable={true}
                                 />
                                 {editingMessageId && (
                                     <View
@@ -1158,6 +1161,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                             bottom: 0,
                                             flexDirection: "row",
                                             alignItems: "center",
+                                            pointerEvents: "box-none",
                                         }}
                                     >
                                         <Ionicons
@@ -1417,6 +1421,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                     borderLeftWidth: !isMine ? 4 : 0,
                                                     borderRightColor: isMine ? Colors[theme].deckBar : undefined,
                                                     borderLeftColor: !isMine ? Colors[theme].deckBar : undefined,
+                                                    paddingTop: 18,
                                                 },
                                             ]}
                                         >
@@ -1450,7 +1455,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                 </ThemedText>
                                                 <View style={{ flexDirection: "row", gap: 4 }}>
                                                     <Image
-                                                        source={leader.images_small || item.deck.cards[0]?.images_small}
+                                                        source={leader.images_thumb || item.deck.cards[0]?.images_thumb}
                                                         style={{
                                                             width: 60,
                                                             height: 80,
@@ -1533,7 +1538,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                     <ThemedText
                                                         style={{
                                                             position: "absolute",
-                                                            top: 6,
+                                                            top: -2,
                                                             left: 10,
                                                             fontSize: 12,
                                                             color: Colors[theme].tabIconDefault,
@@ -1635,6 +1640,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                     borderLeftWidth: !isMine ? 4 : 0,
                                                     borderRightColor: isMine ? Colors[theme].cardBar : undefined,
                                                     borderLeftColor: !isMine ? Colors[theme].cardBar : undefined,
+                                                    paddingTop:18,
                                                 },
                                             ]}
                                         >
@@ -1668,7 +1674,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                 </ThemedText>
                                                 <View style={{ flexDirection: "row", gap: 4 }}>
                                                     <Image
-                                                        source={item.card.images_small}
+                                                        source={item.card.images_thumb}
                                                         style={{
                                                             width: 60,
                                                             height: 80,
@@ -1742,7 +1748,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                     <ThemedText
                                                         style={{
                                                             position: "absolute",
-                                                            top: 6,
+                                                            top: -2,
                                                             left: 10,
                                                             fontSize: 12,
                                                             color: Colors[theme].tabIconDefault,

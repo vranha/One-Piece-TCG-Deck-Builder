@@ -8,6 +8,7 @@ interface Card {
     id: string;
     code: string;
     images_small: string;
+    images_thumb: string;
     name: string;
     set_name: string;
     type: string;
@@ -99,7 +100,7 @@ export default function CardItem({
                         </View>
                     )} */}
                     <ExpoImage
-                        source={{ uri: item.images_small }}
+                        source={{ uri: item.images_thumb || item.images_small }}
                         placeholder={require("../assets/images/card_placeholder.webp")}
                         style={[styles.cardImage, imageStyle]}
                         contentFit="contain"

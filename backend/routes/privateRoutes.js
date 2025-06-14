@@ -1031,4 +1031,7 @@ router.put("/chats/messages/delete", chatController.softDeleteMessages);
  */
 router.put("/chats/messages/edit", chatController.editMessage);
 
+// Endpoint para generar thumbnails de cartas (solo admin)
+router.post("/image/generate-thumbnails", authorizeAdmin, scriptsController.generateThumbnails);
+
 module.exports = router;

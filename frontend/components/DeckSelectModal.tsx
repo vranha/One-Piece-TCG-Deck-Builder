@@ -161,7 +161,7 @@ React.useEffect(() => {
                                         }}
                                     >
                                         <Image
-                                            source={leader?.cards?.images_small}
+                                            source={leader?.cards?.images_thumb}
                                             style={{ width: 60, height: 85, borderRadius: 8, marginRight: 12 }}
                                             contentFit="cover"
                                             cachePolicy="memory-disk"
@@ -201,9 +201,9 @@ React.useEffect(() => {
                                 <Image
                                     source={
                                         (
-                                            selectedDeck.leader?.cards?.images_small ||
+                                            selectedDeck.leader?.cards?.images_thumb ||
                                             selectedDeck.deck_cards?.find((c: any) => c.is_leader === true)
-                                        )?.cards?.images_small
+                                        )?.cards?.images_thumb
                                     }
                                     style={{ width: 70, height: 100, borderRadius: 8, marginRight: 16 }}
                                     contentFit="cover"

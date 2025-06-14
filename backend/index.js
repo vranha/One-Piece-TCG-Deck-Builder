@@ -4,6 +4,7 @@ const express = require("express");
 const publicRoutes = require("./routes/publicRoutes");
 const privateRoutes = require("./routes/privateRoutes");
 const { swaggerUi, swaggerSpec } = require("./config/swagger"); // Importar Swagger
+const deckImageRoute = require("./routes/deckImage");
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ app.get("/swagger.json", (req, res) => {
 
 // Usar las rutas
 app.use("/private", privateRoutes);
+app.use("/private/image", deckImageRoute);
 app.use("/public", publicRoutes);
 
 app.listen(port, () => {

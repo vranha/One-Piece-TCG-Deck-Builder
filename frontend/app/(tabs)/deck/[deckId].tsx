@@ -46,6 +46,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage"; // Import AsyncStorage
 import ViewShot from "react-native-view-shot";
 import * as Sharing from "expo-sharing"; // Si usas Expo, para compartir imágenes
+import * as FileSystem from "expo-file-system";
+import { Buffer } from "buffer";
 
 interface DeckDetail {
     id: string;
@@ -60,6 +62,7 @@ interface DeckDetail {
 interface Card {
     id: string;
     images_small: string;
+    images_thumb: string;
     type: string; // Add the 'type' property to match the usage
     name: string; // Add the 'name' property to fix the error
     set_name: string;
@@ -120,6 +123,7 @@ export default function DeckDetailScreen() {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1); // Total number of pages
     const [hasMoreCards, setHasMoreCards] = useState(true);
+    const [isSharing, setIsSharing] = useState(false);
 
     const fetchRelatedCards = async (code: string) => {
         try {
@@ -153,25 +157,34 @@ export default function DeckDetailScreen() {
     const viewShotRef = useRef(null);
 
     const handleShareDeckImage = async () => {
+        setIsSharing(true);
         try {
-            // Captura la imagen del grid solo si viewShotRef.current no es null
-            if (viewShotRef.current) {
-                const uri = await (viewShotRef as any).current.capture();
+            const response = await api.post(
+                "/image/deck-image",
+                {
+                    cards: deckDetail?.cards
+                        .sort((a, b) => (a.is_leader ? -1 : b.is_leader ? 1 : 0))
+                        .map((card) => ({
+                            image: card?.images_thumb,
+                            quantity: card.quantity ?? 1,
+                        })),
+                    leaderName: deckDetail?.cards.find((c) => c.is_leader)?.name,
+                },
+                { responseType: "arraybuffer" }
+            );
 
-                // WhatsApp solo acepta imágenes locales, no data-uri
-                if (Platform.OS === "android" || Platform.OS === "ios") {
-                    await Sharing.shareAsync(uri, {
-                        dialogTitle: "Compartir deck",
-                        mimeType: "image/png",
-                    });
-                } else {
-                    Alert.alert("Solo disponible en móvil");
-                }
-            } else {
-                Alert.alert("No se pudo capturar la imagen.");
-            }
+            const fileUri = FileSystem.cacheDirectory + "deck.png";
+            await FileSystem.writeAsStringAsync(fileUri, Buffer.from(response.data, "binary").toString("base64"), {
+                encoding: FileSystem.EncodingType.Base64,
+            });
+            await Sharing.shareAsync(fileUri, {
+                dialogTitle: "Compartir deck",
+                mimeType: "image/png",
+            });
         } catch (error) {
             Alert.alert("Error al compartir", (error as any).message);
+        } finally {
+            setIsSharing(false);
         }
     };
 
@@ -330,6 +343,7 @@ export default function DeckDetailScreen() {
     interface Card {
         id: string;
         images_small: string;
+        images_thumb: string;
         type: string; // Add the 'type' property to match the usage
         name: string; // Add the 'name' property to fix the error
         set_name: string;
@@ -654,6 +668,7 @@ export default function DeckDetailScreen() {
         id: string;
         name: string;
         images_small: string;
+        images_thumb: string;
         ability?: string;
         x?: number;
     } | null => {
@@ -1466,6 +1481,57 @@ export default function DeckDetailScreen() {
 
     return (
         <>
+{isSharing && (
+    <Modal transparent visible animationType="fade">
+<View
+    style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(0,0,0,0.45)",
+        zIndex: 1000,
+    }}
+>
+            <View
+                style={{
+                    backgroundColor: Colors[theme].background,
+                    padding: 32,
+                    borderRadius: 20,
+                    alignItems: "center",
+                    minWidth: 220,
+                    height: 220,
+                }}
+            >
+                <Ionicons
+                    name="skull"
+                    size={48}
+                    color={Colors[theme].tint}
+                    style={{
+                        marginBottom: 18,
+                    }}
+                />
+                <LoadingIndicator />
+                <Text
+                    style={{
+                        marginTop: 18,
+                        fontSize: 18,
+                        textAlign: "center",
+                        color: Colors[theme].tint,
+                        fontWeight: "bold",
+                        letterSpacing: 1,
+                    }}
+                >
+                    {t("generating_deck_image") || "¡Generando imagen del mazo pirata!"}
+                </Text>
+            </View>
+        </View>
+    </Modal>
+)}
+
             <ScrollView
                 style={[styles.container, { backgroundColor: Colors[theme].background }]}
                 contentContainerStyle={{ paddingBottom: 150 }}
@@ -1530,7 +1596,7 @@ export default function DeckDetailScreen() {
                                         ]}
                                     >
                                         <ExpoImage
-                                            source={{ uri: item.images_small }}
+                                            source={{ uri: item.images_thumb }}
                                             style={styles.cardImage}
                                             placeholder={require("../../../assets/images/card_placeholder.webp")}
                                             contentFit="contain"
@@ -1624,7 +1690,7 @@ export default function DeckDetailScreen() {
                         />
                         {cardWithHighestX ? (
                             <Searcher
-                                cardImage={cardWithHighestX.images_small}
+                                cardImage={cardWithHighestX.images_thumb}
                                 x={probabilityForCardWithHighestX?.x!}
                                 probability={probabilityForCardWithHighestX?.probability!}
                             />
@@ -2013,25 +2079,6 @@ export default function DeckDetailScreen() {
                     </View>
                 </TouchableOpacity>
             </Modal>
-            <View style={{ position: "absolute", left: -9999, top: -9999 }}>
-                <ViewShot
-                    ref={viewShotRef}
-                    options={{
-                        format: "png",
-                        quality: 1,
-                    }}
-                >
-                    <DeckGridPreview
-                        cards={deckDetail.cards
-                            .sort((a, b) => (a.is_leader ? -1 : b.is_leader ? 1 : 0))
-                            .map((card) => ({
-                                image: card.images_small,
-                                quantity: card.quantity ?? 1,
-                            }))}
-                        leaderName={deckDetail.cards.find((c) => c.is_leader)?.name}
-                    />
-                </ViewShot>
-            </View>
         </>
     );
 }
@@ -2203,7 +2250,7 @@ const CardItem = React.memo(
                     ]}
                 >
                     <ExpoImage
-                        source={{ uri: card.images_small }}
+                        source={{ uri: card.images_thumb }}
                         placeholder={require("@/assets/images/card_placeholder.webp")}
                         style={[styles.cardImage, imageStyle, loading && { opacity: 0.3 }]}
                         contentFit="contain"
