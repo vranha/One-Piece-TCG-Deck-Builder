@@ -250,5 +250,6 @@
     "deleted_message": "Mensaje eliminado",
     "send_to": "Enviar a",
     "forwarded": "Reenviado",
-    "share_with": "Compartir por:"
+    "share_with": "Compartir por:",
+    "generating_deck_image": "Generando imagen del mazo..."
 }

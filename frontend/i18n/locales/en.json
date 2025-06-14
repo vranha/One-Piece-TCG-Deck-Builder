@@ -246,5 +246,6 @@
     "deleted_message": "Deleted message",
     "send_to": "Send to",
     "forwarded": "Forwarded",
-    "share_with": "Share with:"
+    "share_with": "Share with:",
+    "generating_deck_image": "Generating deck image..."
 }
