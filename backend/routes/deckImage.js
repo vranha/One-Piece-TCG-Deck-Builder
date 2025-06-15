@@ -3,7 +3,7 @@ const { createCanvas, loadImage } = require("canvas");
 const router = express.Router();
 
 router.post("/deck-image", async (req, res) => {
-    const { cards, leaderName } = req.body;
+    const { cards, leaderName, deckId } = req.body;
 
     // Parámetros de layout
     const scale = 2;
@@ -17,20 +17,10 @@ router.post("/deck-image", async (req, res) => {
     const width = gap + leaderW + gap + (cardW + gap) * cardsPerRow;
     const height = gap + Math.max(leaderH, (cardH + gap) * rows) + 60 * scale;
 
-    const canvas = createCanvas(width, height);
-    const ctx = canvas.getContext("2d");
-
-    // Fondo
-    ctx.fillStyle = "#2e2e2e";
-    ctx.fillRect(0, 0, width, height);
-
     // --- DESCARGA TODAS LAS IMÁGENES EN PARALELO ---
     let images = [];
     try {
-        console.time("descarga");
         images = await Promise.all(cards.map((card) => loadImage(card.image)));
-        console.timeEnd("descarga");
-        console.time("canvas");
     } catch (err) {
         return res.status(400).json({ error: "Error cargando imágenes" });
     }
@@ -39,39 +29,34 @@ router.post("/deck-image", async (req, res) => {
     const path = require("path");
     let logoImg;
     try {
-        // Usa el logo original de alta resolución
         logoImg = await loadImage(path.join(__dirname, "../OPLAB-logo.png"));
     } catch (e) {
         logoImg = null;
     }
 
     // --- Ajustes para cartas más grandes y menos gap ---
-    const newScale = 4; // Escala más baja para que la imagen sea más pequeña y los textos más grandes
+    const newScale = 4;
     const newCardsPerRow = 5;
-    const newGap = 5 * newScale; // gap más pequeño
-    const newCardW = 90 * newScale; // cartas más grandes
+    const newGap = 5 * newScale;
+    const newCardW = 90 * newScale;
     const newCardH = 126 * newScale;
     const newLeaderW = 110 * newScale;
-    const newLeaderH = 70 * newScale; // un poco más alto para el recorte
+    const newLeaderH = 70 * newScale;
     const logoW = 54 * newScale;
     const logoH = 54 * newScale;
-    const newRows = 4; // Forzar 4 filas
-    // Calcula el ancho para que las 5 cartas y los gaps ocupen todo el ancho con padding
+    const newRows = 4;
     const cardsWidth = (newCardW + newGap) * newCardsPerRow - newGap;
     const contentWidth = Math.max(cardsWidth, newLeaderW + logoW + newGap);
     const newWidth = newGap * 2 + contentWidth;
-    // Calcula la altura para 4 filas de cartas + leader + más espacio arriba (más alto)
-    const extraTopSpace = 60 * newScale; // Espacio extra arriba para el líder y posibles elementos
+    const extraTopSpace = 60 * newScale;
     const newHeight = extraTopSpace + newLeaderH + newGap + (newCardH + newGap) * newRows + newGap * 2;
-    // No cuadrada, más vertical
+    // Usar solo un canvas (squareCanvas)
     const squareCanvas = createCanvas(newWidth, newHeight);
     const squareCtx = squareCanvas.getContext("2d");
     squareCtx.fillStyle = "#232323";
     squareCtx.fillRect(0, 0, newWidth, newHeight);
-    // Centrar el contenido horizontalmente
     const offsetX = (newWidth - contentWidth) / 2;
-    // Subir el leader más arriba en el header y separarlo más de las cartas
-    const leaderY = extraTopSpace * 0.15; // Más cerca del borde superior
+    const leaderY = extraTopSpace * 0.15;
     const offsetY = extraTopSpace;
 
     // Mejorar la calidad de escalado de imágenes
@@ -93,23 +78,23 @@ router.post("/deck-image", async (req, res) => {
     const logoMarginLeft = newGap * 2.5; // margen extra a la izquierda
     const logoMarginRight = newGap * 1.5; // margen extra a la derecha del logo
     const headerBlockX = logoMarginLeft;
-    // Logo a la izquierda
+    // Subir el logo y el nombre de la app para dejar espacio al QR
+    const logoYOffset = -10 * newScale; // sube solo un poco el logo y el nombre
+    // Logo a la izquierda (ajustado)
     if (logoImg) {
-        // Si el logo es más grande que el área de destino, escálalo hacia abajo para mayor nitidez
-        // Dibuja el logo usando drawImage con reducción de tamaño
         squareCtx.drawImage(
             logoImg,
             0,
             0,
             logoImg.width,
-            logoImg.height, // origen completo
+            logoImg.height,
             headerBlockX,
-            leaderY + (displayH - logoH) / 2,
+            leaderY + (displayH - logoH) / 2 + logoYOffset,
             logoW,
-            logoH // destino reducido
+            logoH
         );
     }
-    // Leader a la derecha del logo, con bordes redondeados
+    // Leader a la derecha del logo (NO subir el leader)
     squareCtx.save();
     squareCtx.beginPath();
     // Bordes redondeados para el leader (cuadrado)
@@ -148,7 +133,7 @@ router.post("/deck-image", async (req, res) => {
     squareCtx.quadraticCurveTo(x, y, x + radius, y);
     squareCtx.closePath();
     squareCtx.lineWidth = 8;
-    squareCtx.strokeStyle = "#FFFFFF"; // dorado claro
+    squareCtx.strokeStyle = "#FFFFFF";
     squareCtx.shadowColor = "#000";
     squareCtx.shadowBlur = 8;
     squareCtx.stroke();
@@ -190,20 +175,17 @@ router.post("/deck-image", async (req, res) => {
         squareCtx.fillText(card.quantity, x + newCardW - 28, y + newCardH - 24); // más abajo
         squareCtx.restore();
     }
-    // Escribe el nombre de la app centrado respecto al logo
+    // Escribe el nombre de la app centrado respecto al logo (ajustado)
     const pFontSize = (54 * newScale) / 4;
     const oFontSize = pFontSize * 0.65;
     const logoCenterX = headerBlockX + logoW / 2;
-    // Medir anchos de cada parte
     squareCtx.font = `bold ${oFontSize}px sans-serif`;
     const oWidth = squareCtx.measureText("O").width;
     squareCtx.font = `bold ${pFontSize}px sans-serif`;
     const pWidth = squareCtx.measureText("P").width;
     const labWidth = squareCtx.measureText("lab").width;
-    const totalTextWidth = Math.max(oWidth, pWidth) + labWidth; // la O va encima, pero cuenta para centrar
-    const textX = logoCenterX - (pWidth + labWidth) / 2 + (8 * newScale) / 4; // desplazamos un poco a la derecha
-    const textY = leaderY + (displayH - logoH) / 2 - pFontSize - 24;
-    // Dibuja la "O" azul, un poco a la izquierda y más abajo en Y
+    const textX = logoCenterX - (pWidth + labWidth) / 2 + (8 * newScale) / 4;
+    const textY = leaderY + (displayH - logoH) / 2 - pFontSize - 24 + logoYOffset;
     const oXOffset = textX - (22 * newScale) / 4;
     const oYOffset = textY - (pFontSize - oFontSize) + (24 * newScale) / 4;
     squareCtx.font = `bold ${oFontSize}px sans-serif`;
@@ -211,13 +193,41 @@ router.post("/deck-image", async (req, res) => {
     squareCtx.textAlign = "left";
     squareCtx.fillStyle = "#4DB3FF";
     squareCtx.fillText("O", oXOffset, oYOffset);
-    // Dibuja la "P" marrón
     squareCtx.font = `bold ${pFontSize}px sans-serif`;
     squareCtx.fillStyle = "#A05A5A";
     squareCtx.fillText("P", textX, textY);
-    // Dibuja "lab" naranja claro
     squareCtx.fillStyle = "#F7C58A";
     squareCtx.fillText("lab", textX + pWidth, textY);
+
+    // --- Generar y dibujar el QR debajo del logo ---
+    if (deckId) {
+        try {
+            const QRCode = require("qrcode");
+            const qrUrl = `https://oplab.app/deck/${deckId}`;
+            const qrSize = 44 * newScale;
+            const qrDataUrl = await QRCode.toDataURL(qrUrl, {
+                margin: 2,
+                width: qrSize,
+                color: { dark: "#232323", light: "#fff" },
+            });
+            const qrImg = await loadImage(qrDataUrl);
+            const qrX = headerBlockX + (logoW - qrSize) / 2;
+            // SUBIMOS el QR: restamos más al Y
+            const qrY = leaderY + (displayH - logoH) / 2 + logoH + 4 * newScale + logoYOffset; // subimos un poco más el QR
+            squareCtx.save();
+            squareCtx.beginPath();
+            squareCtx.arc(qrX + qrSize / 2, qrY + qrSize / 2, qrSize / 2 + 8, 0, 2 * Math.PI);
+            squareCtx.closePath();
+            squareCtx.fillStyle = "#fff";
+            squareCtx.shadowColor = "#000";
+            squareCtx.shadowBlur = 6;
+            squareCtx.fill();
+            squareCtx.restore();
+            squareCtx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+        } catch (e) {
+            console.error("Error generando QR:", e);
+        }
+    }
 
     // --- Estadísticas para mostrar a la derecha del líder ---
     // Excluye el líder
@@ -267,7 +277,7 @@ router.post("/deck-image", async (req, res) => {
     squareCtx.fillText("Av.Power:", statsX, statsY + statsLineH * 1.1);
     squareCtx.font = statsValueFont;
     squareCtx.fillStyle = "#fff";
-    squareCtx.fillText(averagePower.toFixed(1), statsX + (220 * newScale) / 4, statsY + statsLineH * 1.1);
+    squareCtx.fillText(Math.round(averagePower), statsX + (220 * newScale) / 4, statsY + statsLineH * 1.1);
     // Top Family: Familia (%)
     squareCtx.font = statsLabelFont;
     squareCtx.fillStyle = "#4DB3FF";
@@ -394,16 +404,16 @@ router.post("/deck-image", async (req, res) => {
         const maxLabelBoxW = Math.max(...labelBoxWidths);
         drawStatBox("Blockers", blockers, extraStatsX, extraStatsY, maxLabelBoxW);
         extraStatsY += extraStatsLineH;
-        drawStatBox(">5k Power", plus5kCards, extraStatsX, extraStatsY, maxLabelBoxW);
+        drawStatBox("+5k Power", plus5kCards, extraStatsX, extraStatsY, maxLabelBoxW);
         extraStatsY += extraStatsLineH;
         drawStatBox("Events", events, extraStatsX, extraStatsY, maxLabelBoxW);
         extraStatsY += extraStatsLineH;
     }
 
-    // Devuelve la imagen como PNG
+    // Devuelve la imagen como PNG (usa buffer si es pequeño, es más rápido)
     res.set("Content-Type", "image/png");
-    squareCanvas.pngStream().pipe(res);
-    console.timeEnd("canvas");
+    const outBuffer = squareCanvas.toBuffer();
+    res.end(outBuffer);
     return;
 });
 

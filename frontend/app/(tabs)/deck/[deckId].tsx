@@ -48,6 +48,7 @@ import ViewShot from "react-native-view-shot";
 import * as Sharing from "expo-sharing"; // Si usas Expo, para compartir imágenes
 import * as FileSystem from "expo-file-system";
 import { Buffer } from "buffer";
+import * as Progress from "react-native-progress";
 
 interface DeckDetail {
     id: string;
@@ -124,6 +125,7 @@ export default function DeckDetailScreen() {
     const [totalPages, setTotalPages] = useState(1); // Total number of pages
     const [hasMoreCards, setHasMoreCards] = useState(true);
     const [isSharing, setIsSharing] = useState(false);
+    const [progress, setProgress] = useState(0); // Progreso de la barra
 
     const fetchRelatedCards = async (code: string) => {
         try {
@@ -158,7 +160,20 @@ export default function DeckDetailScreen() {
 
     const handleShareDeckImage = async () => {
         setIsSharing(true);
+        setProgress(0);
+        let progressInterval: NodeJS.Timeout | null = null;
         try {
+            // Simula el progreso de 0 a 0.8 en ~3.2 segundos (más rápido)
+            progressInterval = setInterval(() => {
+                setProgress((prev) => {
+                    if (prev < 0.9) {
+                        return prev + 0.02;
+                    } else {
+                        clearInterval(progressInterval!);
+                        return prev;
+                    }
+                });
+            }, 40);
             // Calcula la distribución de counters para enviar al backend
             const counterDist = [
                 counterDistribution.noCounter || 0,
@@ -198,10 +213,12 @@ export default function DeckDetailScreen() {
                     blockers,
                     plus5kCards,
                     events,
+                    deckId, // <-- Añadimos el deckId para el QR
                 },
                 { responseType: "arraybuffer" }
             );
-
+            // Completa el progreso al 100% antes de compartir
+            setProgress(1);
             const fileUri = FileSystem.cacheDirectory + "deck.png";
             await FileSystem.writeAsStringAsync(fileUri, Buffer.from(response.data, "binary").toString("base64"), {
                 encoding: FileSystem.EncodingType.Base64,
@@ -213,7 +230,11 @@ export default function DeckDetailScreen() {
         } catch (error) {
             Alert.alert("Error al compartir", (error as any).message);
         } finally {
-            setIsSharing(false);
+            if (progressInterval) clearInterval(progressInterval);
+            setTimeout(() => {
+                setIsSharing(false);
+                setProgress(0);
+            }, 500); // Pequeño delay para que se vea el 100%
         }
     };
 
@@ -1213,18 +1234,6 @@ export default function DeckDetailScreen() {
                           headerRight: () => (
                               <View style={{ flexDirection: "row", alignItems: "center" }}>
                                   <TouchableOpacity
-                                      onPress={handleShareDeckImage}
-                                      style={{
-                                          backgroundColor: Colors[theme].info,
-                                          paddingVertical: 5,
-                                          paddingHorizontal: 10,
-                                          borderRadius: 5,
-                                          marginRight: 10,
-                                      }}
-                                  >
-                                      <Ionicons name="share-social" size={22} color={Colors[theme].background} />
-                                  </TouchableOpacity>
-                                  <TouchableOpacity
                                       onPress={openModal}
                                       style={{
                                           backgroundColor: isModalOpen ? Colors[theme].disabled : Colors[theme].success,
@@ -1240,6 +1249,18 @@ export default function DeckDetailScreen() {
                                       </ThemedText>
                                   </TouchableOpacity>
                                   <TouchableOpacity
+                                      onPress={handleShareDeckImage}
+                                      style={{
+                                          backgroundColor: Colors[theme].info,
+                                          paddingVertical: 5,
+                                          paddingHorizontal: 10,
+                                          borderRadius: 5,
+                                          marginRight: 10,
+                                      }}
+                                  >
+                                      <Ionicons name="share-social" size={22} color={Colors[theme].background} />
+                                  </TouchableOpacity>
+                                  <TouchableOpacity
                                       onPress={copyDeckToClipboard}
                                       style={{
                                           backgroundColor: Colors[theme].info,
@@ -1250,7 +1271,7 @@ export default function DeckDetailScreen() {
                                       }}
                                   >
                                       <ThemedText style={{ color: Colors[theme].background, fontWeight: "bold" }}>
-                                          {t("copy_deck")}
+                                          <Ionicons name="copy" size={22} color={Colors[theme].background} />
                                       </ThemedText>
                                   </TouchableOpacity>
                                   <TouchableOpacity
@@ -1314,6 +1335,20 @@ export default function DeckDetailScreen() {
                                       <Ionicons name="share-social" size={22} color={Colors[theme].background} />
                                   </TouchableOpacity>
                                   <TouchableOpacity
+                                      onPress={copyDeckToClipboard}
+                                      style={{
+                                          backgroundColor: Colors[theme].info,
+                                          paddingVertical: 5,
+                                          paddingHorizontal: 10,
+                                          borderRadius: 5,
+                                          marginRight: 10,
+                                      }}
+                                  >
+                                      <ThemedText style={{ color: Colors[theme].background, fontWeight: "bold" }}>
+                                          <Ionicons name="copy" size={22} color={Colors[theme].background} />
+                                      </ThemedText>
+                                  </TouchableOpacity>
+                                  <TouchableOpacity
                                       onPress={() => router.push(`/user/${deckDetail?.user_id}`)} // Navegar al perfil del usuario
                                       style={{
                                           backgroundColor: Colors[theme].success,
@@ -1330,20 +1365,6 @@ export default function DeckDetailScreen() {
                                           {t("User Profile")}
                                       </ThemedText>
                                   </TouchableOpacity>{" "}
-                                  <TouchableOpacity
-                                      onPress={copyDeckToClipboard}
-                                      style={{
-                                          backgroundColor: Colors[theme].info,
-                                          paddingVertical: 5,
-                                          paddingHorizontal: 10,
-                                          borderRadius: 5,
-                                          marginRight: 10,
-                                      }}
-                                  >
-                                      <ThemedText style={{ color: Colors[theme].background, fontWeight: "bold" }}>
-                                          {t("copy_deck")}
-                                      </ThemedText>
-                                  </TouchableOpacity>
                               </View>
                           ),
                       }
@@ -1543,7 +1564,16 @@ export default function DeckDetailScreen() {
                                     marginBottom: 18,
                                 }}
                             />
-                            <LoadingIndicator />
+                            <Progress.Bar
+                                progress={progress}
+                                width={220}
+                                color={Colors[theme].tint}
+                                borderRadius={8}
+                                height={16}
+                                borderWidth={0}
+                                unfilledColor={Colors[theme].backgroundSoft}
+                                animated
+                            />
                             <Text
                                 style={{
                                     marginTop: 18,
