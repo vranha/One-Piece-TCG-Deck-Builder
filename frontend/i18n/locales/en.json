@@ -247,5 +247,6 @@
     "send_to": "Send to",
     "forwarded": "Forwarded",
     "share_with": "Share with:",
-    "generating_deck_image": "Generating deck image..."
+    "generating_deck_image": "Generating deck image...",
+    "may_take": "This may take a few seconds"
 }

@@ -159,16 +159,45 @@ export default function DeckDetailScreen() {
     const handleShareDeckImage = async () => {
         setIsSharing(true);
         try {
+            // Calcula la distribución de counters para enviar al backend
+            const counterDist = [
+                counterDistribution.noCounter || 0,
+                counterDistribution.counter1000 || 0,
+                counterDistribution.counter2000 || 0,
+                counterDistribution.eventCounter || 0,
+            ];
+            // Calcula los nuevos stats (con null check)
+            const blockers =
+                deckDetail?.cards.reduce(
+                    (total, card) => total + (card.ability?.includes("[Blocker]") ? card.quantity ?? 1 : 0),
+                    0
+                ) ?? 0;
+            const plus5kCards =
+                deckDetail?.cards.reduce(
+                    (total, card) => total + (card.power && Number(card.power) >= 5000 ? card.quantity ?? 1 : 0),
+                    0
+                ) ?? 0;
+            const events =
+                deckDetail?.cards.reduce(
+                    (total, card) => total + (card.type === "EVENT" ? card.quantity ?? 1 : 0),
+                    0
+                ) ?? 0;
             const response = await api.post(
                 "/image/deck-image",
                 {
                     cards: deckDetail?.cards
                         .sort((a, b) => (a.is_leader ? -1 : b.is_leader ? 1 : 0))
                         .map((card) => ({
-                            image: card?.images_thumb,
+                            image: card?.images_small,
                             quantity: card.quantity ?? 1,
+                            cost: card.cost ?? 0,
+                            power: card.power ?? 0,
+                            family: card.family ?? "",
                         })),
-                    leaderName: deckDetail?.cards.find((c) => c.is_leader)?.name,
+                    counterDistribution: counterDist,
+                    blockers,
+                    plus5kCards,
+                    events,
                 },
                 { responseType: "arraybuffer" }
             );
@@ -1481,56 +1510,68 @@ export default function DeckDetailScreen() {
 
     return (
         <>
-{isSharing && (
-    <Modal transparent visible animationType="fade">
-<View
-    style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "rgba(0,0,0,0.45)",
-        zIndex: 1000,
-    }}
->
-            <View
-                style={{
-                    backgroundColor: Colors[theme].background,
-                    padding: 32,
-                    borderRadius: 20,
-                    alignItems: "center",
-                    minWidth: 220,
-                    height: 220,
-                }}
-            >
-                <Ionicons
-                    name="skull"
-                    size={48}
-                    color={Colors[theme].tint}
-                    style={{
-                        marginBottom: 18,
-                    }}
-                />
-                <LoadingIndicator />
-                <Text
-                    style={{
-                        marginTop: 18,
-                        fontSize: 18,
-                        textAlign: "center",
-                        color: Colors[theme].tint,
-                        fontWeight: "bold",
-                        letterSpacing: 1,
-                    }}
-                >
-                    {t("generating_deck_image") || "¡Generando imagen del mazo pirata!"}
-                </Text>
-            </View>
-        </View>
-    </Modal>
-)}
+            {isSharing && (
+                <Modal transparent visible animationType="fade">
+                    <View
+                        style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            justifyContent: "center",
+                            alignItems: "center",
+                            backgroundColor: "rgba(0,0,0,0.45)",
+                            zIndex: 1000,
+                        }}
+                    >
+                        <View
+                            style={{
+                                backgroundColor: Colors[theme].background,
+                                padding: 32,
+                                borderRadius: 20,
+                                alignItems: "center",
+                                minWidth: 220,
+                                height: 270,
+                            }}
+                        >
+                            <Ionicons
+                                name="skull"
+                                size={48}
+                                color={Colors[theme].tint}
+                                style={{
+                                    marginBottom: 18,
+                                }}
+                            />
+                            <LoadingIndicator />
+                            <Text
+                                style={{
+                                    marginTop: 18,
+                                    fontSize: 18,
+                                    textAlign: "center",
+                                    color: Colors[theme].text,
+                                    fontWeight: "bold",
+                                    letterSpacing: 1,
+                                }}
+                            >
+                                {t("generating_deck_image") || "¡Generando imagen del mazo pirata!"}
+                            </Text>
+                            <Text
+                                style={{
+                                    marginTop: 18,
+                                    fontSize: 18,
+                                    textAlign: "center",
+                                    color: Colors[theme].tabIconDefault,
+                                    fontWeight: "bold",
+                                    letterSpacing: 1,
+                                }}
+                            >
+                                {t("may_take") || "¡Generando imagen del mazo pirata!"}
+                            </Text>
+                        </View>
+                    </View>
+                </Modal>
+            )}
 
             <ScrollView
                 style={[styles.container, { backgroundColor: Colors[theme].background }]}
@@ -1673,7 +1714,7 @@ export default function DeckDetailScreen() {
                             )}
                             plus5kCards={deckDetail.cards.reduce(
                                 (total, card) =>
-                                    total + (card.power && Number(card.power) > 5000 ? card.quantity ?? 1 : 0),
+                                    total + (card.power && Number(card.power) >= 5000 ? card.quantity ?? 1 : 0),
                                 0
                             )}
                             events={deckDetail.cards.reduce(
@@ -2003,7 +2044,7 @@ export default function DeckDetailScreen() {
                     // cualquier otro estilo específico para la FlatList
                 }}
                 flatListProps={{
-                    data: filteredCards, // Remove slicing as pagination is now handled by buttons
+                    data: filteredCards, // Remove slicing as pagination is now handled
                     keyExtractor: (card) => card.id,
                     renderItem: ({ item: card }) => (
                         <CardItem
