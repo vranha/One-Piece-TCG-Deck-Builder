@@ -33,11 +33,17 @@ interface CollectionCarouselProps {
     collections: Collection[];
     userId: string | null; // Add userId as a prop
     onCollectionPress: (collectionId: string) => void;
+    isOwnProfile?: boolean; // Add isOwnProfile prop
 }
 
 const screenWidth = Dimensions.get("window").width; // Get the screen width
 
-const CollectionCarousel: React.FC<CollectionCarouselProps> = ({ collections, userId, onCollectionPress }) => {
+const CollectionCarousel: React.FC<CollectionCarouselProps> = ({
+    collections,
+    userId,
+    onCollectionPress,
+    isOwnProfile = true,
+}) => {
     const { theme } = useTheme();
     const api = useApi(); // Initialize useApi hook
     const [selectedTab, setSelectedTab] = useState<"collection" | "wishlist">("collection");
@@ -93,7 +99,7 @@ const CollectionCarousel: React.FC<CollectionCarouselProps> = ({ collections, us
                             size={24}
                             color={selectedTab === "collection" ? Colors[theme].info : Colors[theme].tabIconDefault}
                         />
-                    <Text style={[styles.tabText, { color: Colors[theme].text }]}>{t("collections")}</Text>
+                        <Text style={[styles.tabText, { color: Colors[theme].text }]}>{t("collections")}</Text>
                     </View>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -104,13 +110,13 @@ const CollectionCarousel: React.FC<CollectionCarouselProps> = ({ collections, us
                     ]}
                     onPress={() => setSelectedTab("wishlist")}
                 >
-                                        <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
                         <Ionicons
                             name="heart"
                             size={24}
                             color={selectedTab === "wishlist" ? Colors[theme].success : Colors[theme].tabIconDefault}
                         />
-                    <Text style={[styles.tabText, { color: Colors[theme].text }]}>{t("wishlists")}</Text>
+                        <Text style={[styles.tabText, { color: Colors[theme].text }]}>{t("wishlists")}</Text>
                     </View>
                 </TouchableOpacity>
             </View>
@@ -147,7 +153,7 @@ const CollectionCarousel: React.FC<CollectionCarouselProps> = ({ collections, us
                             </TouchableOpacity>
                         ))}
                     </ScrollView>
-                ) : (
+                ) : isOwnProfile ? (
                     <View style={styles.emptyState}>
                         <View style={styles.emptyStateContent}>
                             <Text style={[styles.placeholder, { color: Colors[theme].text }]}>
@@ -156,8 +162,20 @@ const CollectionCarousel: React.FC<CollectionCarouselProps> = ({ collections, us
                                     : t("create_your_first_wishlist")}
                             </Text>
                             <TouchableOpacity onPress={() => setIsModalVisible(true)}>
-                                <Ionicons name="add-circle" size={30} color={Colors[theme].info} />
+                                <Ionicons
+                                    name="add-circle"
+                                    size={30}
+                                    color={selectedTab === "collection" ? Colors[theme].info : Colors[theme].success}
+                                />
                             </TouchableOpacity>
+                        </View>
+                    </View>
+                ) : (
+                    <View style={styles.emptyState}>
+                        <View style={styles.emptyStateContent}>
+                            <Text style={[styles.placeholder, { color: Colors[theme].text }]}>
+                                {selectedTab === "collection" ? t("no_collections_other") : t("no_wishlists_other")}
+                            </Text>
                         </View>
                     </View>
                 )}

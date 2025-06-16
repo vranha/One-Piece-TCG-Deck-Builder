@@ -20,6 +20,8 @@ interface UserDetailsAccordionProps {
     theme: "light" | "dark";
     t: (key: string) => string;
     openAvatarModal: () => void; // New prop to open the avatar modal
+    isOpen?: boolean;
+    setIsOpen?: (open: boolean) => void;
 }
 
 export default function UserDetailsAccordion({
@@ -37,13 +39,15 @@ export default function UserDetailsAccordion({
     theme,
     t,
     openAvatarModal,
+    isOpen,
+    setIsOpen,
 }: UserDetailsAccordionProps) {
     const selectAvatar = (url: string) => {
         setAvatar(url);
     };
 
     return (
-        <Accordion title={t("user_details")}>
+        <Accordion title={t("user_details")} isOpen={isOpen} setIsOpen={setIsOpen}>
             <View
                 style={{
                     flexDirection: "row",

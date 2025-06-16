@@ -29,11 +29,13 @@ import FeedbackModal from "@/components/FeedbackModal"; // Import the new modal 
 import Toast from "react-native-toast-message";
 import UserDetailsAccordion from "@/components/UserDetailsAccordion"; // Import the new component
 import { Modalize } from "react-native-modalize";
+import { useLocalSearchParams } from "expo-router";
 
 export default function SettingsScreen() {
     const navigation = useNavigation();
     const { t, i18n } = useTranslation();
     const api = useApi();
+    const params = useLocalSearchParams();
     const [isLoading, setIsLoading] = useState(false);
     const [isEmailEnabled, setIsEmailEnabled] = useState(true);
     const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(true); // Estado para notificaciones
@@ -331,6 +333,13 @@ export default function SettingsScreen() {
         }
     };
 
+    useEffect(() => {
+        // Si viene el param openAccordion, abrir el acordeón
+        if (params?.openAccordion === "true") {
+            setIsAccordionOpen(true);
+        }
+    }, [params?.openAccordion]);
+
     return (
         <>
             <ScrollView contentContainerStyle={{ flexGrow: 1, backgroundColor: Colors[theme].background }}>
@@ -350,7 +359,9 @@ export default function SettingsScreen() {
                         handleUpdateUserDetails={handleUpdateUserDetails}
                         theme={theme}
                         t={t}
-                        openAvatarModal={openAvatarModal} // Pass the new prop
+                        openAvatarModal={openAvatarModal}
+                        isOpen={isAccordionOpen}
+                        setIsOpen={setIsAccordionOpen}
                     />
 
                     <View style={[styles.card, { backgroundColor: Colors[theme].TabBarBackground }]}>

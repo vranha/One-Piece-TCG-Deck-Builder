@@ -17,12 +17,13 @@ import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
 import { Ionicons } from "@expo/vector-icons"; // Add this import for icons
 import { useTranslation } from "react-i18next";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import Toast from "react-native-toast-message"; // Import Toast
 import { Modalize } from "react-native-modalize";
 
 export default function DeckSearcher() {
     const router = useRouter();
+    const params = useLocalSearchParams();
     const [isDeckSearch, setIsDeckSearch] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [data, setData] = useState<
@@ -612,6 +613,12 @@ export default function DeckSearcher() {
             </View>
         </Modalize>
     );
+
+    useEffect(() => {
+        if (params?.showUsers === "true") {
+            setIsDeckSearch(false);
+        }
+    }, [params?.showUsers]);
 
     return (
         <View style={[styles.container, { backgroundColor: Colors[theme].background }]}>

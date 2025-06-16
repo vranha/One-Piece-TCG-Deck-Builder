@@ -146,6 +146,7 @@ export default function HomeScreen() {
                         },
                     });
                     setUserName(user.username || user.email); // Use name from API
+                    setAvatarUrl(user.avatar_url || "");
                     fetchDecks(userId, token);
                     fetchFriends(userId, token);
                     fetchCollections(userId, token);
@@ -271,11 +272,76 @@ export default function HomeScreen() {
                 </View>
             ) : (
                 <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-                    <View style={styles.welcomeContainer}>
-                        {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatar} /> : null}
-                        <ThemedText type="title" style={[styles.title, { color: Colors[theme].text }]}>
-                            {t("welcome", { name: userName })}
-                        </ThemedText>
+                    <View
+                        style={{
+                            width: "100%",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            marginBottom: 20,
+                            gap: 20,
+                        }}
+                    >
+                        <View style={{ alignItems: "center", justifyContent: "center" }}>
+                            <ThemedText style={[styles.title, { color: Colors[theme].text }]}>
+                                {t("welcome")}
+                            </ThemedText>
+                            <ThemedText
+                                key="userName"
+                                style={[styles.title, { color: Colors[theme].tint, fontWeight: "bold" }]}
+                            >
+                                {userName}
+                            </ThemedText>
+                        </View>
+                        {userId && (
+                            <TouchableOpacity
+                                style={{
+                                    flexDirection: "row",
+                                    gap: 30,
+                                    marginLeft: 15,
+                                    alignItems: "center",
+                                    backgroundColor: Colors[theme].TabBarBackground,
+                                    paddingVertical: 10,
+                                    paddingHorizontal: 20,
+                                    borderRadius: 10,
+                                }}
+                                onPress={() => router.push({ pathname: "/(tabs)/user/[userId]", params: { userId } })}
+                            >
+                                <View style={{ alignItems: "center", justifyContent: "center" }}>
+                                    {avatarUrl ? (
+                                        <Image source={{ uri: avatarUrl }} style={styles.profileAvatar} />
+                                    ) : (
+                                        <Ionicons name="person-circle" size={54} color={Colors[theme].tabIconDefault} />
+                                    )}
+                                    <ThemedText style={[styles.profileLabel, {color: Colors[theme].tint}]}>{t('profile')}</ThemedText>
+                                </View>
+                                <View style={{ alignItems: "flex-start" }}>
+                                    <View style={{ alignItems: "center", justifyContent: "center", flexDirection: "row" }}>
+                                        <ThemedText style={{ color: Colors[theme].success, fontSize: 16, fontWeight: "bold" }}>
+                                            {t("decks") + ": "} 
+                                        </ThemedText>
+                                        <ThemedText style={{ color: Colors[theme].tabIconDefault, fontSize: 16, fontWeight: "bold" }}>
+                                            {decks.length - 1} {/* Exclude the "new deck" entry */}
+                                        </ThemedText>
+                                    </View>
+                                    <View style={{ alignItems: "center", justifyContent: "center", flexDirection: "row" }}>
+                                        <ThemedText style={{ color: Colors[theme].success, fontSize: 16, fontWeight: "bold" }}>
+                                            {t("friends") + ": "} 
+                                        </ThemedText>
+                                        <ThemedText style={{ color: Colors[theme].tabIconDefault, fontSize: 16, fontWeight: "bold" }}>
+                                            {friends.length}
+                                        </ThemedText>
+                                    </View>
+                                    <View style={{ alignItems: "center", justifyContent: "center", flexDirection: "row" }}>
+                                        <ThemedText style={{ color: Colors[theme].success, fontSize: 16, fontWeight: "bold" }}>
+                                            {t("collections") + ": "} 
+                                        </ThemedText>
+                                        <ThemedText style={{ color: Colors[theme].tabIconDefault, fontSize: 16, fontWeight: "bold" }}>
+                                            {collections.length}
+                                        </ThemedText>
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+                        )}
                     </View>
                     <View style={{ gap: 30, width: "100%" }}>
                         <View>
@@ -393,19 +459,22 @@ const styles = StyleSheet.create({
         paddingBottom: 50,
         marginTop: 30,
     },
-    welcomeContainer: {
-        alignItems: "center",
-        marginBottom: 20,
-    },
-    avatar: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        marginBottom: 20,
-    },
     title: {
         fontSize: 24,
+        fontWeight: "bold",
         textAlign: "center",
         marginBottom: 10,
+    },
+    profileAvatar: {
+        width: 54,
+        height: 54,
+        borderRadius: 27,
+        marginBottom: 2,
+    },
+    profileLabel: {
+        fontSize: 18,
+        fontWeight: "bold",
+        textAlign: "center",
+        marginTop: 0,
     },
 });

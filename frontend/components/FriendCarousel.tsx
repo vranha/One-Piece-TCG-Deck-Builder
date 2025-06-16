@@ -17,11 +17,12 @@ interface Friend {
 }
 
 interface FriendCarouselProps {
-    friends: Friend[]; // Updated to match the new structure
+    friends: Friend[];
     onFriendPress: (friendId: string) => void;
+    isOwnProfile?: boolean;
 }
 
-const FriendCarousel: React.FC<FriendCarouselProps> = ({ friends, onFriendPress }) => {
+const FriendCarousel: React.FC<FriendCarouselProps> = ({ friends, onFriendPress, isOwnProfile = true }) => {
     const { theme } = useTheme();
     const { width } = useWindowDimensions();
     const { t } = useTranslation();
@@ -87,14 +88,27 @@ const FriendCarousel: React.FC<FriendCarouselProps> = ({ friends, onFriendPress 
         >
             {friends.length === 0 ? (
                 <View style={styles.noFriendsContainer}>
-                    <View style={styles.noFriendsRow}>
-                        <ThemedText style={[styles.noFriendsText, { color: Colors[theme].text }]}>
-                            {t("no_friends_message")}
-                        </ThemedText>
-                        <TouchableOpacity onPress={() => router.push("/deckSearcher")}>
-                            <Ionicons name="search" size={20} color={Colors[theme].tint} style={styles.searchIcon} />
-                        </TouchableOpacity>
-                    </View>
+                    {isOwnProfile ? (
+                        <View style={styles.noFriendsRow}>
+                            <ThemedText style={[styles.noFriendsText, { color: Colors[theme].text }]}>
+                                {t("no_friends_message")}
+                            </ThemedText>
+                            <TouchableOpacity onPress={() => router.push("/deckSearcher")}>
+                                <Ionicons
+                                    name="search"
+                                    size={20}
+                                    color={Colors[theme].tint}
+                                    style={styles.searchIcon}
+                                />
+                            </TouchableOpacity>
+                        </View>
+                    ) : (
+                        <View style={styles.noFriendsRow}>
+                            <ThemedText style={[styles.noFriendsText, { color: Colors[theme].text }]}>
+                                {t("no_users")}
+                            </ThemedText>
+                        </View>
+                    )}
                 </View>
             ) : (
                 <FlatList

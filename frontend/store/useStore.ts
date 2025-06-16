@@ -44,6 +44,8 @@ interface StoreState {
     setRefreshCollections: (refresh: boolean) => void;
     hasUnreadChats?: boolean;
     setHasUnreadChats?: (hasUnread: boolean) => void;
+    openChatUser: null | { id: string; username: string; avatar_url?: string };
+    setOpenChatUser: (user: { id: string; username: string; avatar_url?: string } | null) => void;
 }
 
 const useStore = create<StoreState>((set) => ({
@@ -179,6 +181,8 @@ const useStore = create<StoreState>((set) => ({
     setRefreshCollections: (refresh) => set({ refreshCollections: refresh }),
     hasUnreadChats: false,
     setHasUnreadChats: (hasUnread) => set({ hasUnreadChats: hasUnread }),
+    openChatUser: null,
+    setOpenChatUser: (user) => set({ openChatUser: user }),
 }));
 
 export default useStore;

@@ -144,7 +144,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
     }
 
     // Ref para Modalize (asegura acceso correcto)
-    const modalizeRef = ref || useRef(null);
+    const modalizeRef = (ref as React.RefObject<Modalize>) || useRef<Modalize>(null);
 
     // Oculta el warning de SyntheticEvent/NOBRIDGE si aparece
     useEffect(() => {
@@ -941,6 +941,29 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
         }
     };
 
+    // --- Abrir chat con usuario desde el store global (Zustand) ---
+    const openChatUser = useStore((state) => state.openChatUser);
+    const setOpenChatUser = useStore((state) => state.setOpenChatUser);
+    useEffect(() => {
+        if (openChatUser) {
+            // Abre el modal y el chat con ese usuario
+            if (
+                typeof modalizeRef !== "function" &&
+                modalizeRef &&
+                "current" in modalizeRef &&
+                modalizeRef.current &&
+                modalizeRef.current.open
+            ) {
+                modalizeRef.current.open();
+            }
+            // Llama a openChat con el usuario
+            openChat(openChatUser);
+            // Limpia el estado para evitar reaperturas
+            setTimeout(() => setOpenChatUser(null), 500);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [openChatUser]);
+
     if (view === "messages") {
         return (
             <>
@@ -1102,7 +1125,6 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                 gap: 8,
                                 position: "relative",
                             }}
-                            
                         >
                             <TouchableOpacity
                                 onPress={() => {
@@ -1148,9 +1170,9 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                     onChangeText={setNewMessage}
                                     onSubmitEditing={handleSendMessage}
                                     returnKeyType="send"
-                                            contextMenuHidden={false}
-        selectTextOnFocus={false}
-        editable={true}
+                                    contextMenuHidden={false}
+                                    selectTextOnFocus={false}
+                                    editable={true}
                                 />
                                 {editingMessageId && (
                                     <View
@@ -1640,7 +1662,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                     borderLeftWidth: !isMine ? 4 : 0,
                                                     borderRightColor: isMine ? Colors[theme].cardBar : undefined,
                                                     borderLeftColor: !isMine ? Colors[theme].cardBar : undefined,
-                                                    paddingTop:18,
+                                                    paddingTop: 18,
                                                 },
                                             ]}
                                         >

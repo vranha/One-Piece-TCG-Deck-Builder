@@ -8,15 +8,25 @@ import { useTheme } from "@/hooks/ThemeContext";
 interface AccordionProps {
     title: string;
     children: React.ReactNode;
+    isOpen?: boolean;
+    setIsOpen?: (open: boolean) => void;
 }
 
-export const Accordion: React.FC<AccordionProps> = ({ title, children }) => {
-    const [isOpen, setIsOpen] = useState(false);
+export const Accordion: React.FC<AccordionProps> = ({
+    title,
+    children,
+    isOpen: isOpenProp,
+    setIsOpen: setIsOpenProp,
+}) => {
+    const [internalOpen, setInternalOpen] = useState(false);
+    const isOpen = typeof isOpenProp === "boolean" ? isOpenProp : internalOpen;
+    const setIsOpen = setIsOpenProp || setInternalOpen;
     const { theme } = useTheme();
     const animation = useRef(new Animated.Value(0)).current;
     const contentRef = useRef<View>(null);
     const [contentHeight, setContentHeight] = useState(0);
 
+    // Medir la altura del contenido cuando cambia el contenido
     useEffect(() => {
         if (contentRef.current) {
             contentRef.current.measure((x, y, width, height) => {
@@ -25,13 +35,18 @@ export const Accordion: React.FC<AccordionProps> = ({ title, children }) => {
         }
     }, [children]);
 
-    const toggleAccordion = () => {
-        setIsOpen((prev) => !prev);
+    // Sincronizar la animación cuando isOpen cambia por prop externa
+    useEffect(() => {
         Animated.timing(animation, {
-            toValue: isOpen ? 0 : 1,
+            toValue: isOpen ? 1 : 0,
             duration: 300,
             useNativeDriver: false,
         }).start();
+    }, [isOpen, contentHeight]);
+
+    const toggleAccordion = () => {
+        setIsOpen(!isOpen);
+        // La animación ahora se gestiona por el useEffect
     };
 
     const heightInterpolation = animation.interpolate({
