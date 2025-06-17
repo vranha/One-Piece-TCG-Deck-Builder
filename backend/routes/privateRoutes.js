@@ -883,6 +883,9 @@ router.post("/send-feedback", async (req, res) => {
 
 router.put("/users/update-details", userController.updateUserDetails);
 
+// Actualizar visibilidad del usuario (requiere autenticación)
+router.put("/users/update-visibility", userController.updateUserVisibility);
+
 /**
  * @swagger
  * /decks:

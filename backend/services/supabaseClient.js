@@ -225,6 +225,16 @@ const searchUsersWithFriendsFirst = async (userId, query) => {
     return users;
 };
 
+// Actualizar visibilidad del usuario
+const updateUserVisibility = async (userId, { decks_visibility, friends_visibility, collections_visibility }) => {
+    if (!userId) throw new Error("userId is required for updateUserVisibility");
+    const { error } = await supabase
+        .from("users")
+        .update({ decks_visibility, friends_visibility, collections_visibility })
+        .eq("id", userId);
+    if (error) throw new Error(error.message);
+};
+
 // Otras funciones necesarias (como mazos, cartas, etc.)
 
 module.exports = {
@@ -238,5 +248,6 @@ module.exports = {
     updateUserDetails,
     getUserById,
     searchUsersWithFriendsFirst,
+    updateUserVisibility,
     supabase,
 };

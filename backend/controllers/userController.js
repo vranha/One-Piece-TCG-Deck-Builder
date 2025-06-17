@@ -8,6 +8,7 @@ const {
     getCurrentUser,
     updateUserDetails,
     getUserById,
+    updateUserVisibility,
 } = require("../services/supabaseClient");
 const friendService = require("../services/friendService");
 
@@ -183,6 +184,29 @@ const searchUsersWithFriendsFirst = async (req, res) => {
     }
 };
 
+const updateUserVisibilityController = async (req, res) => {
+    // Permitir userId en el body (para compatibilidad con frontend)
+    const userId = req.body.userId || req.user?.id;
+    const { decks_visibility, friends_visibility, collections_visibility } = req.body;
+    const allowed = ["public", "private", "friends"];
+    if (
+        (decks_visibility && !allowed.includes(decks_visibility)) ||
+        (friends_visibility && !allowed.includes(friends_visibility)) ||
+        (collections_visibility && !allowed.includes(collections_visibility))
+    ) {
+        return res.status(400).json({ error: "Invalid visibility value" });
+    }
+    if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+    }
+    try {
+        await updateUserVisibility(userId, { decks_visibility, friends_visibility, collections_visibility });
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getAllUsers,
     registerUserController,
@@ -193,4 +217,5 @@ module.exports = {
     updateUserDetails: updateUserDetailsController,
     getUserByIdController,
     searchUsersWithFriendsFirst,
+    updateUserVisibility: updateUserVisibilityController,
 };

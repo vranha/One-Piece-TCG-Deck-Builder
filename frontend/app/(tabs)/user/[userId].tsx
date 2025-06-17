@@ -20,6 +20,7 @@ import useStore from "@/store/useStore";
 import NewDeckModal from "@/components/NewDeckModal"; // Import NewDeckModal
 import es from "@/i18n/locales/es.json";
 import en from "@/i18n/locales/en.json";
+import VisibilityBottomSheet from "@/components/VisibilityBottomSheet";
 
 interface UserProfile {
     id: string;
@@ -29,6 +30,9 @@ interface UserProfile {
     location: string | null;
     region: string | null;
     lang?: string | null;
+    decks_visibility?: string | null;
+    friends_visibility?: string | null;
+    collections_visibility?: string | null;
 }
 
 interface FriendStatus {
@@ -51,6 +55,12 @@ export default function UserProfileScreen() {
     const [friends, setFriends] = useState([]); // State for user's friends
     const [collections, setCollections] = useState([]); // State for user's collections
     const [isNewDeckModalVisible, setIsNewDeckModalVisible] = useState(false); // State for new deck modal
+    const [visibilitySheetType, setVisibilitySheetType] = useState<null | "decks" | "friends" | "collections">(null);
+    const [currentVisibility, setCurrentVisibility] = useState({
+        decks: userProfile?.decks_visibility || "public",
+        friends: userProfile?.friends_visibility || "public",
+        collections: userProfile?.collections_visibility || "public",
+    }); // State para la visibilidad
 
     const setOpenChatUser = useStore((state) => state.setOpenChatUser);
 
@@ -63,52 +73,57 @@ export default function UserProfileScreen() {
         fetchUserId();
     }, []);
 
-    useFocusEffect(
-        React.useCallback(() => {
-            const fetchData = async () => {
-                if (userId && currentUserId) {
-                    setLoading(true);
-                    await Promise.all([fetchUserProfile(), fetchFriendStatus()]);
-                    setLoading(false);
-                }
-            };
+    // Limpiar perfil y datos relacionados al cambiar userId, pero no poner loading a true si el componente no está montado
+    useEffect(() => {
+        setUserProfile(null);
+        setDecks([]);
+        setFriends([]);
+        setCollections([]);
+        // No tocar loading aquí
+    }, [userId]);
 
-            fetchData();
-        }, [userId, currentUserId])
-    );
-
-    async function fetchUserProfile() {
-        try {
-            const { data } = await api.get(`/users/${userId}`);
-            setUserProfile(data);
-        } catch (error) {
-            console.error("Error fetching user profile:", error);
-        }
-    }
-
-    async function fetchFriendStatus() {
-        if (!currentUserId) return;
-
-        try {
-            const { data: friends } = await api.get(`/friends`, { params: { userId: currentUserId } });
-
-            const friend = friends.find((friend: any) => friend.id === userId);
-
-            if (friend) {
-                if (friend.status === "accepted") {
-                    setFriendStatus({ status: "accepted" });
-                } else if (friend.isSender && friend.status === "pending") {
-                    setFriendStatus({ status: "sent" });
-                } else if (!friend.isSender && friend.status === "pending") {
-                    setFriendStatus({ status: "received" });
-                }
-            } else {
-                setFriendStatus({ status: "none" });
+    useEffect(() => {
+        let isMounted = true;
+        // Solo cargar datos si ambos IDs están definidos
+        if (!userId || !currentUserId) return;
+        const fetchAll = async () => {
+            if (!isMounted) return;
+            setLoading(true);
+            try {
+                const [{ data: userData }, { data: decksData }, { data: friendsData }, { data: collectionsData }] =
+                    await Promise.all([
+                        api.get(`/users/${userId}`),
+                        api.get(`/decks/${userId}`),
+                        api.get(`/friends/${userId}/accepted`),
+                        api.get(`/collections/${userId}`),
+                    ]);
+                if (!isMounted) return;
+                setUserProfile(userData);
+                setDecks(decksData?.data || []);
+                setFriends(friendsData || []);
+                setCollections(Array.isArray(collectionsData) ? collectionsData : collectionsData?.data || []);
+            } catch (error) {
+                if (isMounted) setUserProfile(null);
+            } finally {
+                if (isMounted) setLoading(false);
             }
-        } catch (error) {
-            console.error("Error fetching friend status:", error);
+        };
+        fetchAll();
+        return () => {
+            isMounted = false;
+        };
+    }, [userId, currentUserId]);
+
+    // Sincronizar currentVisibility con userProfile cuando cambie
+    useEffect(() => {
+        if (userProfile) {
+            setCurrentVisibility({
+                decks: userProfile.decks_visibility || "public",
+                friends: userProfile.friends_visibility || "public",
+                collections: userProfile.collections_visibility || "public",
+            });
         }
-    }
+    }, [userProfile]);
 
     const handleDeleteFriend = async () => {
         try {
@@ -167,6 +182,44 @@ export default function UserProfileScreen() {
         }
     };
 
+    // Cambiar visibilidad del usuario (decks, friends, collections)
+    const updateUserVisibility = async (changes: Partial<typeof currentVisibility>) => {
+        if (!currentUserId || !userProfile?.id) {
+            Toast.show({
+                type: "error",
+                text1: t("error"),
+                text2: t("user_id_null"),
+                position: "bottom",
+            });
+            return;
+        }
+        const prevVisibility = { ...currentVisibility };
+        const newVisibility = { ...currentVisibility, ...changes };
+        setCurrentVisibility(newVisibility); // Optimista
+        try {
+            await api.put("/users/update-visibility", {
+                userId: currentUserId,
+                decks_visibility: newVisibility.decks,
+                friends_visibility: newVisibility.friends,
+                collections_visibility: newVisibility.collections,
+            });
+            Toast.show({
+                type: "success",
+                text1: t("success"),
+                text2: t("user_details_update_success_message"),
+                position: "bottom",
+            });
+        } catch (error) {
+            setCurrentVisibility(prevVisibility); // Revertir si falla
+            Toast.show({
+                type: "error",
+                text1: t("error"),
+                text2: t("user_details_update_error_message"),
+                position: "bottom",
+            });
+        }
+    };
+
     const headerOptions = useMemo(
         () => ({
             headerShown: true,
@@ -175,12 +228,21 @@ export default function UserProfileScreen() {
                     <MaterialIcons name="arrow-back" size={24} color={Colors[theme].text} />
                 </TouchableOpacity>
             ),
-            headerTitle: () => null, // No title in the center
+            headerTitle: () =>
+                userProfile?.id && currentUserId && userProfile.id === currentUserId ? (
+                    <ThemedText style={{ fontWeight: "bold", fontSize: 20 }}>{t("your_profile")}</ThemedText>
+                ) : null,
             headerRight: () => {
                 if (userProfile?.id && currentUserId && userProfile.id === currentUserId) {
-                    // Header para el propio perfil: 3 botones
                     return (
                         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingRight: 10 }}>
+                            {/* Botón de visibilidad */}
+                            <TouchableOpacity
+                                onPress={() => setVisibilitySheetType("decks")}
+                                style={{ backgroundColor: Colors[theme].tint, padding: 6, borderRadius: 6 }}
+                            >
+                                <Ionicons name="eye" size={20} color={Colors[theme].background} />
+                            </TouchableOpacity>
                             {/* Botón de settings */}
                             <TouchableOpacity
                                 onPress={() =>
@@ -190,7 +252,6 @@ export default function UserProfileScreen() {
                                     backgroundColor: Colors[theme].info,
                                     padding: 6,
                                     borderRadius: 6,
-                                    marginRight: 2,
                                 }}
                             >
                                 <Ionicons name="pencil" size={20} color={Colors[theme].background} />
@@ -202,7 +263,6 @@ export default function UserProfileScreen() {
                                     backgroundColor: Colors[theme].highlight,
                                     padding: 6,
                                     borderRadius: 6,
-                                    marginRight: 2,
                                 }}
                             >
                                 <Ionicons name="share-social" size={20} color={Colors[theme].background} />
@@ -390,60 +450,48 @@ export default function UserProfileScreen() {
         navigation.setOptions(headerOptions);
     }, [navigation, headerOptions]);
 
-    useEffect(() => {
-        let isMounted = true;
-        const fetchDecks = async () => {
-            try {
-                const { data } = await api.get(`/decks/${userId}`);
-                if (isMounted) setDecks(data.data);
-            } catch (error) {
-                console.error("Error fetching user's decks:", error);
-            }
-        };
-        const fetchFriends = async () => {
-            try {
-                const { data } = await api.get(`/friends/${userId}/accepted`);
-                if (isMounted) setFriends(data);
-            } catch (error) {
-                console.error("Error fetching user's friends:", error);
-            }
-        };
-        const fetchCollections = async () => {
-            try {
-                const { data } = await api.get(`/collections/${userId}`);
-                if (isMounted) setCollections(Array.isArray(data) ? data : data?.data || []);
-            } catch (error) {
-                console.error("Error fetching user's collections:", error);
-                if (isMounted) setCollections([]);
-            }
-        };
-        if (userId) {
-            fetchDecks();
-            fetchFriends();
-            fetchCollections();
-        }
-        return () => {
-            isMounted = false;
-        };
-    }, [userId, api]);
-
     const themed = Colors[theme];
 
     if (loading) {
         return (
-            <ThemedView style={[styles.container, { backgroundColor: Colors[theme].background }]}>
+            <ThemedView
+                style={[
+                    styles.container,
+                    {
+                        backgroundColor: Colors[theme].background,
+                        flex: 1,
+                        justifyContent: "center",
+                        alignItems: "center",
+                    },
+                ]}
+            >
                 <ActivityIndicator size="large" color={Colors[theme].tint} />
             </ThemedView>
         );
     }
-
-    if (!userProfile) {
+    if (!userProfile && !loading) {
         return (
             <ThemedView style={[styles.container, { backgroundColor: Colors[theme].background }]}>
                 <ThemedText style={{ color: Colors[theme].text }}>User not found</ThemedText>
             </ThemedView>
         );
     }
+
+    const isOwnProfile = userProfile?.id === currentUserId; // Verificar si es el propio perfil
+
+    // Permisos de visibilidad
+    const canViewDecks =
+        userProfile?.decks_visibility === "public" ||
+        (userProfile?.decks_visibility === "friends" && friendStatus.status === "accepted") ||
+        userProfile?.id === currentUserId;
+    const canViewFriends =
+        userProfile?.friends_visibility === "public" ||
+        (userProfile?.friends_visibility === "friends" && friendStatus.status === "accepted") ||
+        userProfile?.id === currentUserId;
+    const canViewCollections =
+        userProfile?.collections_visibility === "public" ||
+        (userProfile?.collections_visibility === "friends" && friendStatus.status === "accepted") ||
+        userProfile?.id === currentUserId;
 
     return (
         <>
@@ -452,7 +500,7 @@ export default function UserProfileScreen() {
                     <View style={[styles.profileCard, { backgroundColor: themed.backgroundSoft, shadowColor: "#000" }]}>
                         <View style={{ alignItems: "center", flexDirection: "row" }}>
                             <View style={{ position: "relative", justifyContent: "center", alignItems: "center" }}>
-                                {userProfile.avatar_url ? (
+                                {userProfile && userProfile.avatar_url ? (
                                     <Image
                                         source={{ uri: userProfile.avatar_url }}
                                         style={[
@@ -488,9 +536,9 @@ export default function UserProfileScreen() {
                             >
                                 <View style={{ alignItems: "flex-start", justifyContent: "center" }}>
                                     <ThemedText style={[styles.profileName, { color: themed.tint }]}>
-                                        {userProfile.username}
+                                        {userProfile?.username}
                                     </ThemedText>
-                                    {userProfile.location ? (
+                                    {userProfile && userProfile.location ? (
                                         <ThemedText
                                             style={[
                                                 styles.profileLocation,
@@ -500,7 +548,7 @@ export default function UserProfileScreen() {
                                             {userProfile.location}
                                         </ThemedText>
                                     ) : null}
-                                    {userProfile.region ? (
+                                    {userProfile && userProfile.region ? (
                                         <View
                                             style={{
                                                 flexDirection: "row",
@@ -547,7 +595,7 @@ export default function UserProfileScreen() {
                                 </View>
                             </View>
                         </View>
-                        {userProfile.bio && (
+                        {userProfile && userProfile.bio && (
                             <ThemedText
                                 style={{
                                     fontWeight: "bold",
@@ -572,6 +620,32 @@ export default function UserProfileScreen() {
                         <Ionicons style={styles.dividerIcon} name="albums" size={34} color={themed.info} />
                         <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
                     </View>
+                    {!canViewDecks && (
+                        <View
+                            style={{
+                                alignItems: "center",
+                                justifyContent: "center",
+                                paddingVertical: 24,
+                                paddingHorizontal: 16,
+                                marginVertical: 8,
+                                backgroundColor: themed.TabBarBackground,
+                                borderRadius: 12,
+                                borderWidth: 1,
+                                borderColor: themed.info,
+                                shadowColor: "#000",
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: 0.08,
+                                shadowRadius: 8,
+                                elevation: 2,
+                                marginBottom: 26,
+                            }}
+                        >
+                            <Ionicons name="lock-closed" size={32} color={themed.info} style={{ marginBottom: 8 }} />
+                            <ThemedText style={{ textAlign: "center", marginVertical: 4, color: themed.info, fontWeight: "bold", fontSize: 16 }}>
+                                {t("decks_private_message")}
+                            </ThemedText>
+                        </View>
+                    )}
                     {decks.length > 0 ? (
                         <DeckCarousel
                             decks={decks}
@@ -620,6 +694,32 @@ export default function UserProfileScreen() {
                         <Ionicons style={styles.dividerIcon} name="people" size={34} color={themed.info} />
                         <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
                     </View>
+                    {!canViewFriends && (
+                        <View
+                            style={{
+                                alignItems: "center",
+                                justifyContent: "center",
+                                paddingVertical: 24,
+                                paddingHorizontal: 16,
+                                marginVertical: 8,
+                                backgroundColor: themed.TabBarBackground,
+                                borderRadius: 12,
+                                borderWidth: 1,
+                                borderColor: themed.info,
+                                shadowColor: "#000",
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: 0.08,
+                                shadowRadius: 8,
+                                elevation: 2,
+                                marginBottom: 26,
+                            }}
+                        >
+                            <Ionicons name="lock-closed" size={32} color={themed.info} style={{ marginBottom: 8 }} />
+                            <ThemedText style={{ textAlign: "center", marginVertical: 4, color: themed.info, fontWeight: "bold", fontSize: 16 }}>
+                                {t("friends_private_message")}
+                            </ThemedText>
+                        </View>
+                    )}
                     <FriendCarousel
                         friends={friends}
                         onFriendPress={(userId) =>
@@ -640,7 +740,32 @@ export default function UserProfileScreen() {
                         <Ionicons style={styles.dividerIcon} name="folder" size={34} color={themed.info} />
                         <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
                     </View>
-
+                    {!canViewCollections && (
+                        <View
+                            style={{
+                                alignItems: "center",
+                                justifyContent: "center",
+                                paddingVertical: 24,
+                                paddingHorizontal: 16,
+                                marginVertical: 8,
+                                backgroundColor: themed.TabBarBackground,
+                                borderRadius: 12,
+                                borderWidth: 1,
+                                borderColor: themed.info,
+                                shadowColor: "#000",
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: 0.08,
+                                shadowRadius: 8,
+                                elevation: 2,
+                                marginBottom: 26,
+                            }}
+                        >
+                            <Ionicons name="lock-closed" size={32} color={themed.info} style={{ marginBottom: 8 }} />
+                            <ThemedText style={{ textAlign: "center", marginVertical: 4, color: themed.info, fontWeight: "bold", fontSize: 16 }}>
+                                {t("collections_private_message")}
+                            </ThemedText>
+                        </View>
+                    )}
                     <CollectionCarousel
                         collections={collections}
                         userId={typeof userId === "string" ? userId : Array.isArray(userId) ? userId[0] : null}
@@ -701,6 +826,15 @@ export default function UserProfileScreen() {
                 onClose={() => setIsNewDeckModalVisible(false)}
                 onCreate={() => setIsNewDeckModalVisible(false)}
             />
+            {/* BottomSheet de visibilidad */}
+            {visibilitySheetType && (
+                <VisibilityBottomSheet
+                    visible={!!visibilitySheetType}
+                    currentVisibility={currentVisibility}
+                    onClose={() => setVisibilitySheetType(null)}
+                    onChange={updateUserVisibility}
+                />
+            )}
         </>
     );
 }

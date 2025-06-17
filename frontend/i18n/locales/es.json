@@ -214,14 +214,14 @@
     "default": "Ha ocurrido un error desconocido",
     "auth": {
         "errors": {
-            "Invalid login credentials": "Credenciales inválidas",
-            "Email not confirmed": "Tu correo electrónico no está confirmado",
-            "User already registered": "Este usuario ya está registrado",
-            "Password should be at least 6 characters": "La contraseña debe tener al menos 6 caracteres",
-            "Invalid email or password": "Correo o contraseña incorrectos",
-            "default": "Ha ocurrido un error desconocido"
+          "Invalid login credentials": "Credenciales inválidas",
+          "Email not confirmed": "Tu correo electrónico no está confirmado",
+          "User already registered": "Este usuario ya está registrado",
+          "Password should be at least 6 characters": "La contraseña debe tener al menos 6 caracteres",
+          "Invalid email or password": "Correo o contraseña incorrectos",
+          "default": "Ha ocurrido un error desconocido"
         }
-    },
+      },
     "paste_html_here": "Pega HTML aquí",
     "html_placeholder": "<!doctype html>...",
     "expansion_placeholder": "Nombre del set...",
@@ -255,12 +255,10 @@
     "may_take": "Puede tardar unos segundos",
     "your_profile": "Tu Perfil",
     "profile": "Perfil",
-    "add_friend": "Agregar amigo",
-    "request_sent": "Solicitud enviada",
-    "accept_friend": "Aceptar amigo",
-    "your_friend": "Amigos 😊",
-    "no_decks_own": "Aún no tienes mazos. ¡Zarpa y crea tu primer mazo!",
-    "create_first_deck": "Crear tu primer mazo",
-    "no_collections_other": "Este usuario no tiene colecciones todavía.",
-    "no_wishlists_other": "Este usuario no tiene listas de deseos todavía."
+    "decks_private_message": "Los mazos de este usuario son privados.",
+    "friends_private_message": "La lista de amigos de este usuario es privada.",
+    "collections_private_message": "Las colecciones de este usuario son privadas.",
+    "public": "Público",
+    "private": "Privado",
+    "edit_visibility": "Editar Visibilidad"
 }

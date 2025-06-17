@@ -43,6 +43,7 @@ export default function HomeScreen() {
     const [collections, setCollections] = useState([]);
     const [userId, setUserId] = useState<string | null>(null); // Store userId
     const [token, setToken] = useState<string | null>(null); // Store token
+    const [initialLoad, setInitialLoad] = useState(true);
     const router = useRouter();
 
     const refreshDecks = useStore((state) => state.refreshDecks);
@@ -110,10 +111,12 @@ export default function HomeScreen() {
         // El loading global solo se desactiva cuando todos los datos han sido cargados
         if (!decksLoading && !friendsLoading && !collectionsLoading) {
             setLoading(false);
-        } else {
+            setInitialLoad(false); // Ya no es la primera carga
+        } else if (initialLoad) {
             setLoading(true);
         }
-    }, [decksLoading, friendsLoading, collectionsLoading]);
+        // Si no es initialLoad, no volver a poner loading a true
+    }, [decksLoading, friendsLoading, collectionsLoading, initialLoad]);
 
     useEffect(() => {
         async function fetchSession() {
@@ -266,7 +269,7 @@ export default function HomeScreen() {
 
     return (
         <ThemedView style={[styles.container, { backgroundColor: Colors[theme].background }]}>
-            {loading ? (
+            {initialLoad && loading ? (
                 <View style={styles.loadingWrapper}>
                     <ActivityIndicator size="large" color={Colors[theme].tint} />
                 </View>
@@ -312,30 +315,62 @@ export default function HomeScreen() {
                                     ) : (
                                         <Ionicons name="person-circle" size={54} color={Colors[theme].tabIconDefault} />
                                     )}
-                                    <ThemedText style={[styles.profileLabel, {color: Colors[theme].tint}]}>{t('profile')}</ThemedText>
+                                    <ThemedText style={[styles.profileLabel, { color: Colors[theme].tint }]}>
+                                        {t("profile")}
+                                    </ThemedText>
                                 </View>
                                 <View style={{ alignItems: "flex-start" }}>
-                                    <View style={{ alignItems: "center", justifyContent: "center", flexDirection: "row" }}>
-                                        <ThemedText style={{ color: Colors[theme].success, fontSize: 16, fontWeight: "bold" }}>
-                                            {t("decks") + ": "} 
+                                    <View
+                                        style={{ alignItems: "center", justifyContent: "center", flexDirection: "row" }}
+                                    >
+                                        <ThemedText
+                                            style={{ color: Colors[theme].success, fontSize: 16, fontWeight: "bold" }}
+                                        >
+                                            {t("decks") + ": "}
                                         </ThemedText>
-                                        <ThemedText style={{ color: Colors[theme].tabIconDefault, fontSize: 16, fontWeight: "bold" }}>
+                                        <ThemedText
+                                            style={{
+                                                color: Colors[theme].tabIconDefault,
+                                                fontSize: 16,
+                                                fontWeight: "bold",
+                                            }}
+                                        >
                                             {decks.length - 1} {/* Exclude the "new deck" entry */}
                                         </ThemedText>
                                     </View>
-                                    <View style={{ alignItems: "center", justifyContent: "center", flexDirection: "row" }}>
-                                        <ThemedText style={{ color: Colors[theme].success, fontSize: 16, fontWeight: "bold" }}>
-                                            {t("friends") + ": "} 
+                                    <View
+                                        style={{ alignItems: "center", justifyContent: "center", flexDirection: "row" }}
+                                    >
+                                        <ThemedText
+                                            style={{ color: Colors[theme].success, fontSize: 16, fontWeight: "bold" }}
+                                        >
+                                            {t("friends") + ": "}
                                         </ThemedText>
-                                        <ThemedText style={{ color: Colors[theme].tabIconDefault, fontSize: 16, fontWeight: "bold" }}>
+                                        <ThemedText
+                                            style={{
+                                                color: Colors[theme].tabIconDefault,
+                                                fontSize: 16,
+                                                fontWeight: "bold",
+                                            }}
+                                        >
                                             {friends.length}
                                         </ThemedText>
                                     </View>
-                                    <View style={{ alignItems: "center", justifyContent: "center", flexDirection: "row" }}>
-                                        <ThemedText style={{ color: Colors[theme].success, fontSize: 16, fontWeight: "bold" }}>
-                                            {t("collections") + ": "} 
+                                    <View
+                                        style={{ alignItems: "center", justifyContent: "center", flexDirection: "row" }}
+                                    >
+                                        <ThemedText
+                                            style={{ color: Colors[theme].success, fontSize: 16, fontWeight: "bold" }}
+                                        >
+                                            {t("collections") + ": "}
                                         </ThemedText>
-                                        <ThemedText style={{ color: Colors[theme].tabIconDefault, fontSize: 16, fontWeight: "bold" }}>
+                                        <ThemedText
+                                            style={{
+                                                color: Colors[theme].tabIconDefault,
+                                                fontSize: 16,
+                                                fontWeight: "bold",
+                                            }}
+                                        >
                                             {collections.length}
                                         </ThemedText>
                                     </View>
