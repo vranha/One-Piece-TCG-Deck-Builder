@@ -39,20 +39,20 @@ export default function TabBarButton({
                 style={[
                     styles.button,
                     isChatButton
-                        ? [styles.chatButton, { backgroundColor: Colors[theme].backgroundSoft }]
-                        : { backgroundColor: Colors[theme].backgroundSoft },
+                        ? [styles.chatButton, { backgroundColor: Colors[theme].tint }]
+                        : { backgroundColor: Colors[theme].tint },
                 ]}
             >
                 <IconSymbol
                     size={isChatButton ? 42 : 32}
                     name={name}
-                    color={unread && isChatButton ? Colors[theme].tint : Colors[theme].text}
+                    color={unread && isChatButton ? Colors[theme].success : Colors[theme].background}
                 />
                 {unread && isChatButton && (
                     <View
                         style={[
                             styles.unreadDot,
-                            { backgroundColor: Colors[theme].tint, borderColor: Colors[theme].background },
+                            { backgroundColor: Colors[theme].success, borderColor: Colors[theme].tint },
                         ]}
                     />
                 )}
