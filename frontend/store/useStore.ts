@@ -46,6 +46,8 @@ interface StoreState {
     setHasUnreadChats?: (hasUnread: boolean) => void;
     openChatUser: null | { id: string; username: string; avatar_url?: string };
     setOpenChatUser: (user: { id: string; username: string; avatar_url?: string } | null) => void;
+    avatarUrl: string;
+    setAvatarUrl: (url: string) => void;
 }
 
 const useStore = create<StoreState>((set) => ({
@@ -183,6 +185,8 @@ const useStore = create<StoreState>((set) => ({
     setHasUnreadChats: (hasUnread) => set({ hasUnreadChats: hasUnread }),
     openChatUser: null,
     setOpenChatUser: (user) => set({ openChatUser: user }),
+    avatarUrl: "",
+    setAvatarUrl: (url) => set({ avatarUrl: url }),
 }));
 
 export default useStore;

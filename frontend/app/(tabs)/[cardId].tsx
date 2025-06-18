@@ -254,7 +254,6 @@ export default function CardDetailScreen() {
                 handleAddCardToDeck={handleAddCardToDeck}
                 hasTabBar={true}
             />
-            <Toast />
         </>
     );
 }

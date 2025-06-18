@@ -10,6 +10,7 @@ import {
     Platform,
     Animated,
     Easing,
+    ActivityIndicator,
 } from "react-native";
 import { useRoute, RouteProp } from "@react-navigation/native";
 import useApi from "@/hooks/useApi"; // Import the useApi hook
@@ -495,8 +496,8 @@ const CollectionDetails = () => {
 
     if (loading) {
         return (
-            <View style={styles.container}>
-                <Text>Loading...</Text>
+            <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+                <ActivityIndicator size="large" color={Colors[theme].info} />
             </View>
         );
     }
@@ -512,7 +513,14 @@ const CollectionDetails = () => {
     const renderCardItem = ({
         item,
     }: {
-        item: { code: string; name: string; color: string[]; rarity: string; images_small: string; images_thumb: string; };
+        item: {
+            code: string;
+            name: string;
+            color: string[];
+            rarity: string;
+            images_small: string;
+            images_thumb: string;
+        };
     }) => (
         <TouchableOpacity onPress={() => handleCardPress(item.images_small)}>
             <View style={[styles.cardContainer, { backgroundColor: Colors[theme].backgroundSoft }]}>
@@ -681,14 +689,14 @@ const CollectionDetails = () => {
                     </View>
                 ) : (
                     <>
-                    <View style={styles.collectionHeader}>
-                        <Ionicons
-                            name={collection.type === "collection" ? "bookmark" : "heart"}
-                            size={24}
-                            color={collection.type === "collection" ? Colors[theme].info : Colors[theme].success}
-                        />
-                        <Text style={[styles.title, { color: Colors[theme].text }]}>{collection.name}</Text>
-                    </View>
+                        <View style={styles.collectionHeader}>
+                            <Ionicons
+                                name={collection.type === "collection" ? "bookmark" : "heart"}
+                                size={24}
+                                color={collection.type === "collection" ? Colors[theme].info : Colors[theme].success}
+                            />
+                            <Text style={[styles.title, { color: Colors[theme].text }]}>{collection.name}</Text>
+                        </View>
                         <Text style={[styles.description, { color: Colors[theme].tabIconDefault }]}>
                             {collection.description}
                         </Text>

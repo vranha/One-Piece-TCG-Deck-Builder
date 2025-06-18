@@ -4,6 +4,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { Accordion } from "@/components/Accordion";
 import { Colors } from "@/constants/Colors";
 import { supabase } from "@/supabaseClient";
+import useStore from "@/store/useStore";
 
 interface UserDetailsAccordionProps {
     username: string;
@@ -20,8 +21,6 @@ interface UserDetailsAccordionProps {
     theme: "light" | "dark";
     t: (key: string) => string;
     openAvatarModal: () => void; // New prop to open the avatar modal
-    isOpen?: boolean;
-    setIsOpen?: (open: boolean) => void;
 }
 
 export default function UserDetailsAccordion({
@@ -39,15 +38,16 @@ export default function UserDetailsAccordion({
     theme,
     t,
     openAvatarModal,
-    isOpen,
-    setIsOpen,
 }: UserDetailsAccordionProps) {
+    const setAvatarUrl = useStore((state) => state.setAvatarUrl);
+
     const selectAvatar = (url: string) => {
         setAvatar(url);
+        setAvatarUrl(url); // Actualiza el avatar global en Zustand
     };
 
     return (
-        <Accordion title={t("user_details")} isOpen={isOpen} setIsOpen={setIsOpen}>
+        <Accordion title={t("user_details")}>
             <View
                 style={{
                     flexDirection: "row",

@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
         marginTop: 30,
     },
     backButton: {
-        paddingRight: 16,
+        paddingRight: 12,
     },
     tabContainer: {
         flexDirection: "row",

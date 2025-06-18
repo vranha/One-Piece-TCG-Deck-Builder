@@ -326,7 +326,6 @@ export default function NotificationsScreen() {
                     />
                 )}
             </View>
-            <Toast />
         </View>
     );
 }

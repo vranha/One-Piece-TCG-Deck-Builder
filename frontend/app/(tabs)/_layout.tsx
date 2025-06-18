@@ -218,8 +218,9 @@ export default function TabLayout() {
                             ),
                             headerRight: () => (
                                 <>
-                                    <Header.RightButtonDeckSearcher onPress={() => router.push("/deckSearcher")} />
-                                    <Header.RightButtonSearch onPress={() => router.push("/search")} />
+                                    <Header.RightButtonDeckSearcher
+                                        onPress={() => router.push("/(tabs)/searchers/searchMenu")}
+                                    />
                                     <Header.RightButton onPress={() => router.push("/settings")} />
                                 </>
                             ),
@@ -270,6 +271,12 @@ export default function TabLayout() {
                     />
                     <Tabs.Screen
                         name="collection"
+                        options={{
+                            href: null,
+                        }}
+                    />
+                    <Tabs.Screen
+                        name="searchers"
                         options={{
                             href: null,
                         }}

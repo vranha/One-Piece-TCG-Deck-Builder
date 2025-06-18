@@ -260,5 +260,12 @@
     "collections_private_message": "Las colecciones de este usuario son privadas.",
     "public": "Público",
     "private": "Privado",
-    "edit_visibility": "Editar Visibilidad"
+    "edit_visibility": "Editar Visibilidad",
+    "add_friend": "Añadir Amigo",
+    "request_sent": "Solicitud Enviada",
+    "no_collections_other": "Este usuario no tiene colecciones todavía.",
+    "no_wishlists_other": "Este usuario no tiene listas de deseos todavía.",
+    "user_not_found": "Usuario no encontrado",
+    "users": "Users",
+    "your_friend": "Amigos"
 }

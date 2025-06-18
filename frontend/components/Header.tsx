@@ -73,6 +73,15 @@ Header.RightButtonDeckSearcher = function RightButtonDeckSearcher({ onPress }: a
     );
 };
 
+Header.RightButtonSearchMenu = function RightButtonSearchMenu({ onPress }: any) {
+    const { theme } = useTheme();
+    return (
+        <TouchableOpacity onPress={onPress} style={{ marginRight: 16 }}>
+            <IconSymbol size={28} name="magnifyingglass" color={Colors[theme].text} />
+        </TouchableOpacity>
+    );
+};
+
 Header.LeftButtonNotifications = function RightButtonNotifications({ onPress }: any) {
     const { theme } = useTheme();
     const [hasNotifications, setHasNotifications] = useState(false);

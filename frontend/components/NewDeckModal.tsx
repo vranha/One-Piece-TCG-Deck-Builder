@@ -273,7 +273,6 @@ export default function NewDeckModal({ visible, onClose, onCreate }: NewDeckModa
                     </View>
                 </View>
             </Modal>
-            <Toast />
         </>
     );
 }

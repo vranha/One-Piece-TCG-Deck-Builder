@@ -245,7 +245,6 @@ export default function RegisterScreen() {
                 style={[styles.cardsLogo, { tintColor: Colors[theme].TabBarBackground }]}
             />
 
-            <Toast />
         </View>
     );
 }

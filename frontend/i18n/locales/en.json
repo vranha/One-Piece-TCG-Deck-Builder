@@ -256,5 +256,12 @@
     "collections_private_message": "Only the captain can see these collections.",
     "public": "Public",
     "private": "Private",
-    "edit_visibility": "Edit Visibility"
+    "edit_visibility": "Edit Visibility",
+    "add_friend": "Add Friend",
+    "request_sent": "Request Sent",
+    "no_collections_other": "This user has no collections yet.",
+    "no_wishlists_other": "This user has no wishlists yet.",
+    "user_not_found": "User not found",
+    "users": "Users",
+    "your_friend": "Friends"
 }

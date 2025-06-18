@@ -29,13 +29,12 @@ import FeedbackModal from "@/components/FeedbackModal"; // Import the new modal 
 import Toast from "react-native-toast-message";
 import UserDetailsAccordion from "@/components/UserDetailsAccordion"; // Import the new component
 import { Modalize } from "react-native-modalize";
-import { useLocalSearchParams } from "expo-router";
+import useStore from "@/store/useStore";
 
 export default function SettingsScreen() {
     const navigation = useNavigation();
     const { t, i18n } = useTranslation();
     const api = useApi();
-    const params = useLocalSearchParams();
     const [isLoading, setIsLoading] = useState(false);
     const [isEmailEnabled, setIsEmailEnabled] = useState(true);
     const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(true); // Estado para notificaciones
@@ -54,6 +53,8 @@ export default function SettingsScreen() {
     const [htmlContent, setHtmlContent] = useState("");
     const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
     const [expansion, setExpansion] = useState(""); // New state for expansion name
+
+    const setAvatarUrl = useStore((state) => state.setAvatarUrl);
 
     useEffect(() => {
         navigation.setOptions({ headerShown: true, title: t("settings") });
@@ -85,6 +86,7 @@ export default function SettingsScreen() {
                     setAvatar(avatar_url || "West");
                     setLang(lang || "en");
                     setIsAdmin(role || "user");
+                    setAvatarUrl(avatar_url || ""); // Sincroniza global Zustand
                 }
             } catch (error: any) {
                 Alert.alert("Error", error.response?.data?.error || "Failed to fetch user data.");
@@ -276,6 +278,7 @@ export default function SettingsScreen() {
 
     const selectAvatar = (url: string) => {
         setAvatar(url);
+        setAvatarUrl(url); // Sincroniza global Zustand
         modalizeRef.current?.close();
     };
 
@@ -306,40 +309,6 @@ export default function SettingsScreen() {
         }
     };
 
-    // --- ADMIN: GENERAR THUMBNAILS ---
-    const handleGenerateThumbnails = async () => {
-        try {
-            setIsLoading(true);
-            const response = await api.post("/image/generate-thumbnails");
-            Toast.show({
-                type: "success",
-                text1: t("thumbnails_success_title", "Thumbnails generados"),
-                text2: response.data.message,
-                position: "bottom",
-                visibilityTime: 4000,
-                autoHide: true,
-            });
-        } catch (error: any) {
-            Toast.show({
-                type: "error",
-                text1: t("thumbnails_error_title", "Error generando thumbnails"),
-                text2: t("thumbnails_error_message", "Ocurrió un error al generar los thumbnails."),
-                position: "bottom",
-                visibilityTime: 4000,
-                autoHide: true,
-            });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        // Si viene el param openAccordion, abrir el acordeón
-        if (params?.openAccordion === "true") {
-            setIsAccordionOpen(true);
-        }
-    }, [params?.openAccordion]);
-
     return (
         <>
             <ScrollView contentContainerStyle={{ flexGrow: 1, backgroundColor: Colors[theme].background }}>
@@ -359,9 +328,7 @@ export default function SettingsScreen() {
                         handleUpdateUserDetails={handleUpdateUserDetails}
                         theme={theme}
                         t={t}
-                        openAvatarModal={openAvatarModal}
-                        isOpen={isAccordionOpen}
-                        setIsOpen={setIsAccordionOpen}
+                        openAvatarModal={openAvatarModal} // Pass the new prop
                     />
 
                     <View style={[styles.card, { backgroundColor: Colors[theme].TabBarBackground }]}>
@@ -465,25 +432,13 @@ export default function SettingsScreen() {
                         showToast={handleFeedbackToast} // Pass the Toast handler to the modal
                     />
                     {isAdmin === "admin" && (
-                        <>
-                            <TouchableOpacity
-                                style={[styles.importButton, { backgroundColor: Colors[theme].info }]}
-                                onPress={() => setIsImportModalVisible(true)}
-                            >
-                                <Ionicons name="cloud-upload-outline" size={20} color="#FFF" />
-                                <ThemedText style={styles.importText}>{t("import_cards")}</ThemedText>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.importButton, { backgroundColor: Colors[theme].info, marginTop: 10 }]}
-                                onPress={handleGenerateThumbnails}
-                                disabled={isLoading}
-                            >
-                                <Ionicons name="images-outline" size={20} color="#FFF" />
-                                <ThemedText style={styles.importText}>
-                                    {t("generate_thumbnails", "Generar Thumbnails")}
-                                </ThemedText>
-                            </TouchableOpacity>
-                        </>
+                        <TouchableOpacity
+                            style={[styles.importButton, { backgroundColor: Colors[theme].info }]}
+                            onPress={() => setIsImportModalVisible(true)}
+                        >
+                            <Ionicons name="cloud-upload-outline" size={20} color="#FFF" />
+                            <ThemedText style={styles.importText}>{t("import_cards")}</ThemedText>
+                        </TouchableOpacity>
                     )}
 
                     <Modal
@@ -752,19 +707,5 @@ const styles = StyleSheet.create({
     },
     progressText: {
         fontSize: 16,
-    },
-    generateThumbnailsButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        width: "100%",
-        padding: 15,
-        borderRadius: 12,
-        marginTop: 10,
-    },
-    generateThumbnailsText: {
-        color: "#FFF",
-        fontSize: 16,
-        marginLeft: 10,
     },
 });

@@ -9,6 +9,7 @@ import {
     TouchableOpacity,
     ScrollView,
     ActivityIndicator,
+    RefreshControl,
 } from "react-native";
 import useApi from "@/hooks/useApi";
 import { supabase } from "@/supabaseClient";
@@ -45,6 +46,7 @@ export default function DeckSearcher() {
     const [userId, setUserId] = useState<string | null>(null); // Replace useMemo with useState
     const [isLoading, setIsLoading] = useState(false); // Add loading state
     const [selectedColors, setSelectedColors] = useState<string[]>([]); // State for selected colors
+    const [refreshing, setRefreshing] = useState(false); // State for pull-to-refresh
 
     const handleColorSelect = (color: string) => {
         setSelectedColors(
@@ -167,6 +169,36 @@ export default function DeckSearcher() {
 
         fetchFriends();
     }, [userId]);
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        try {
+            setData([]); // Opcional: limpiar antes de recargar
+            // Repetimos la lógica de fetchData del useEffect principal
+            if (userId === null) return;
+            const resolvedUserId = userId;
+            const colorQuery = selectedColors.length > 0 ? `&colors=${selectedColors.join(",")}` : "";
+            const isCompletedQuery = isCompleted ? `&isCompleted=${isCompleted}` : "";
+            const tagsQuery = selectedTags.length > 0 ? `&tags=${selectedTags.join(",")}` : "";
+            const regionQuery = regionFilter ? `&region=${regionFilter}` : "";
+            const deckCountQuery = deckCountFilter ? `&deckCount=${deckCountFilter}` : "";
+            const endpoint = isDeckSearch
+                ? `/decks?page=${page}&limit=10&search=${searchQuery}${colorQuery}${isCompletedQuery}${tagsQuery}`
+                : `/users?page=${page}&limit=10&search=${searchQuery}${regionQuery}${deckCountQuery}`;
+            const { data } = await api.get(endpoint, {
+                params: {
+                    excludeUserId: resolvedUserId,
+                    is_public: true,
+                },
+            });
+            setData(data.data);
+            setTotalPages(data.totalPages);
+        } catch (error) {
+            console.error("Error refreshing data:", error);
+        } finally {
+            setRefreshing(false);
+        }
+    };
 
     const handleSendFriendRequest = async (friendId: string) => {
         try {
@@ -647,7 +679,7 @@ export default function DeckSearcher() {
             />
             {renderFilters()}
             {isDeckSearch && renderColorFilters()}
-            {isLoading || userId === null ? (
+            {isLoading || refreshing || userId === null ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={Colors[theme].tint} />
                 </View>
@@ -669,6 +701,14 @@ export default function DeckSearcher() {
                     style={{ paddingTop: 20 }}
                     contentContainerStyle={{ gap: 20, paddingBottom: 40 }}
                     showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            colors={[Colors[theme].tint]}
+                            tintColor={Colors[theme].tint}
+                        />
+                    }
                 />
             )}
             <View style={styles.pagination}>
@@ -694,7 +734,6 @@ export default function DeckSearcher() {
                 />
             </View>
             {renderDropdown()}
-            <Toast />
         </View>
     );
 }

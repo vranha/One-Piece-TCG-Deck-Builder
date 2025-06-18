@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
         fontSize: 18,
     },
     backButton: {
-        paddingLeft: 10,
+        paddingLeft: 12,
     },
     rightContainer: {
         flexDirection: "row",

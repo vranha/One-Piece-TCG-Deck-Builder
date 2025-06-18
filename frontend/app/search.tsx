@@ -716,7 +716,6 @@ const handleSendAttachCard = async () => {
                 theme={theme}
             />
 
-            <Toast />
         </View>
     );
 }

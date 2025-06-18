@@ -43,7 +43,6 @@ export default function HomeScreen() {
     const [collections, setCollections] = useState([]);
     const [userId, setUserId] = useState<string | null>(null); // Store userId
     const [token, setToken] = useState<string | null>(null); // Store token
-    const [initialLoad, setInitialLoad] = useState(true);
     const router = useRouter();
 
     const refreshDecks = useStore((state) => state.refreshDecks);
@@ -111,12 +110,10 @@ export default function HomeScreen() {
         // El loading global solo se desactiva cuando todos los datos han sido cargados
         if (!decksLoading && !friendsLoading && !collectionsLoading) {
             setLoading(false);
-            setInitialLoad(false); // Ya no es la primera carga
-        } else if (initialLoad) {
+        } else {
             setLoading(true);
         }
-        // Si no es initialLoad, no volver a poner loading a true
-    }, [decksLoading, friendsLoading, collectionsLoading, initialLoad]);
+    }, [decksLoading, friendsLoading, collectionsLoading]);
 
     useEffect(() => {
         async function fetchSession() {
@@ -269,13 +266,13 @@ export default function HomeScreen() {
 
     return (
         <ThemedView style={[styles.container, { backgroundColor: Colors[theme].background }]}>
-            {initialLoad && loading ? (
+            {loading ? (
                 <View style={styles.loadingWrapper}>
                     <ActivityIndicator size="large" color={Colors[theme].tint} />
                 </View>
             ) : (
                 <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-                    <View
+                   <View
                         style={{
                             width: "100%",
                             alignItems: "center",
@@ -494,13 +491,22 @@ const styles = StyleSheet.create({
         paddingBottom: 50,
         marginTop: 30,
     },
+    welcomeContainer: {
+        alignItems: "center",
+        marginBottom: 20,
+    },
+    avatar: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        marginBottom: 20,
+    },
     title: {
         fontSize: 24,
-        fontWeight: "bold",
         textAlign: "center",
         marginBottom: 10,
     },
-    profileAvatar: {
+        profileAvatar: {
         width: 54,
         height: 54,
         borderRadius: 27,

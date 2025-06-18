@@ -36,7 +36,7 @@ interface UserProfile {
 }
 
 interface FriendStatus {
-    status: "none" | "sent" | "received" | "accepted";
+    status: "pending" | "accepted";
 }
 
 export default function UserProfileScreen() {
@@ -48,7 +48,7 @@ export default function UserProfileScreen() {
     const { userId } = useLocalSearchParams();
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
-    const [friendStatus, setFriendStatus] = useState<FriendStatus>({ status: "none" });
+    const [friendStatus, setFriendStatus] = useState<FriendStatus | undefined>({ status: "pending" }); // default to pending
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [isDeleteFriendModalVisible, setIsDeleteFriendModalVisible] = useState(false); // State for delete friend modal
     const [decks, setDecks] = useState([]); // State for user's decks
@@ -125,6 +125,32 @@ export default function UserProfileScreen() {
         }
     }, [userProfile]);
 
+    // Determinar estado de amistad real al cargar perfil ajeno
+    useEffect(() => {
+        if (!userId || !currentUserId || userId === currentUserId) return;
+        const fetchFriendStatus = async () => {
+            try {
+                const { data: friendsList } = await api.get("/friends", { params: { userId: currentUserId } });
+                // Buscar si el perfil es amigo (comparar con id del otro usuario)
+                const friend = Array.isArray(friendsList) ? friendsList.find((f) => f.id === userId) : null;
+                if (friend) {
+                    if (friend.status === "pending") {
+                        setFriendStatus({ status: "pending" });
+                    } else if (friend.status === "accepted") {
+                        setFriendStatus({ status: "accepted" });
+                    } else {
+                        setFriendStatus(undefined);
+                    }
+                } else {
+                    setFriendStatus(undefined); // No es amigo
+                }
+            } catch (error) {
+                setFriendStatus(undefined);
+            }
+        };
+        fetchFriendStatus();
+    }, [userId, currentUserId]);
+
     const handleDeleteFriend = async () => {
         try {
             console.log("Deleting friend with ID:", userId); // Verificar el ID del amigo
@@ -139,7 +165,7 @@ export default function UserProfileScreen() {
             });
             console.log("Delete response:", response); // Verificar la respuesta del servidor
 
-            setFriendStatus({ status: "none" });
+            setFriendStatus({ status: "pending" }); // Si se elimina, vuelve a estado pendiente
             Toast.show({
                 type: "success",
                 text1: "Friend Removed",
@@ -224,7 +250,7 @@ export default function UserProfileScreen() {
         () => ({
             headerShown: true,
             headerLeft: () => (
-                <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 12 }}>
+                <TouchableOpacity onPress={() => router.back()} style={{ marginHorizontal: 12 }}>
                     <MaterialIcons name="arrow-back" size={24} color={Colors[theme].text} />
                 </TouchableOpacity>
             ),
@@ -301,49 +327,49 @@ export default function UserProfileScreen() {
                             </TouchableOpacity>
                             {/* Botón de amistad como estaba */}
                             {(() => {
+                                if (!friendStatus) {
+                                    // No es amigo
+                                    return (
+                                        <TouchableOpacity
+                                            onPress={async () => {
+                                                try {
+                                                    await api.post("/friends/request", {
+                                                        userId: currentUserId,
+                                                        friendId: userProfile?.id,
+                                                    });
+                                                    setFriendStatus({ status: "pending" });
+                                                    Toast.show({
+                                                        type: "success",
+                                                        text1: "Friend Request Sent",
+                                                        text2: "Your friend request has been sent successfully.",
+                                                        position: "bottom",
+                                                    });
+                                                } catch (error) {
+                                                    console.error("Error sending friend request:", error);
+                                                    Toast.show({
+                                                        type: "error",
+                                                        text1: "Error",
+                                                        text2: "Failed to send friend request.",
+                                                        position: "bottom",
+                                                    });
+                                                }
+                                            }}
+                                            style={{
+                                                backgroundColor: Colors[theme].success,
+                                                paddingVertical: 5,
+                                                paddingHorizontal: 10,
+                                                borderRadius: 5,
+                                                marginRight: 12,
+                                            }}
+                                        >
+                                            <ThemedText style={{ color: Colors[theme].background, fontWeight: "bold" }}>
+                                                {t("add_friend")}
+                                            </ThemedText>
+                                        </TouchableOpacity>
+                                    );
+                                }
                                 switch (friendStatus.status) {
-                                    case "none":
-                                        return (
-                                            <TouchableOpacity
-                                                onPress={async () => {
-                                                    try {
-                                                        await api.post("/friends/request", {
-                                                            userId: userProfile?.id,
-                                                            friendId: userId,
-                                                        });
-                                                        setFriendStatus({ status: "sent" });
-                                                        Toast.show({
-                                                            type: "success",
-                                                            text1: "Friend Request Sent",
-                                                            text2: "Your friend request has been sent successfully.",
-                                                            position: "bottom",
-                                                        });
-                                                    } catch (error) {
-                                                        console.error("Error sending friend request:", error);
-                                                        Toast.show({
-                                                            type: "error",
-                                                            text1: "Error",
-                                                            text2: "Failed to send friend request.",
-                                                            position: "bottom",
-                                                        });
-                                                    }
-                                                }}
-                                                style={{
-                                                    backgroundColor: Colors[theme].success,
-                                                    paddingVertical: 5,
-                                                    paddingHorizontal: 10,
-                                                    borderRadius: 5,
-                                                    marginRight: 12,
-                                                }}
-                                            >
-                                                <ThemedText
-                                                    style={{ color: Colors[theme].background, fontWeight: "bold" }}
-                                                >
-                                                    {t("add_friend")}
-                                                </ThemedText>
-                                            </TouchableOpacity>
-                                        );
-                                    case "sent":
+                                    case "pending":
                                         return (
                                             <View
                                                 style={{
@@ -361,52 +387,12 @@ export default function UserProfileScreen() {
                                                 </ThemedText>
                                             </View>
                                         );
-                                    case "received":
-                                        return (
-                                            <TouchableOpacity
-                                                onPress={async () => {
-                                                    try {
-                                                        await api.put(`/friends/${userId}/accept`, {
-                                                            userId: userProfile?.id,
-                                                        });
-                                                        setFriendStatus({ status: "accepted" });
-                                                        Toast.show({
-                                                            type: "success",
-                                                            text1: "Friend Request Accepted",
-                                                            text2: "You are now friends.",
-                                                            position: "bottom",
-                                                        });
-                                                    } catch (error) {
-                                                        console.error("Error accepting friend request:", error);
-                                                        Toast.show({
-                                                            type: "error",
-                                                            text1: "Error",
-                                                            text2: "Failed to accept friend request.",
-                                                            position: "bottom",
-                                                        });
-                                                    }
-                                                }}
-                                                style={{
-                                                    backgroundColor: Colors[theme].info,
-                                                    paddingVertical: 5,
-                                                    paddingHorizontal: 10,
-                                                    borderRadius: 5,
-                                                    marginRight: 12,
-                                                }}
-                                            >
-                                                <ThemedText
-                                                    style={{ color: Colors[theme].background, fontWeight: "bold" }}
-                                                >
-                                                    {t("accept_friend")}
-                                                </ThemedText>
-                                            </TouchableOpacity>
-                                        );
                                     case "accepted":
                                         return (
                                             <View style={{ flexDirection: "row", alignItems: "center" }}>
                                                 <View
                                                     style={{
-                                                        backgroundColor: Colors[theme].backgroundSoft,
+                                                        backgroundColor: Colors[theme].success,
                                                         paddingVertical: 5,
                                                         paddingHorizontal: 10,
                                                         borderRadius: 5,
@@ -414,9 +400,9 @@ export default function UserProfileScreen() {
                                                     }}
                                                 >
                                                     <ThemedText
-                                                        style={{ color: Colors[theme].text, fontWeight: "bold" }}
+                                                        style={{ color: Colors[theme].background, fontWeight: "bold" }}
                                                     >
-                                                        {t("your_friend")}
+                                                        {t("your_friend")} 🤍
                                                     </ThemedText>
                                                 </View>
                                                 <TouchableOpacity
@@ -452,27 +438,40 @@ export default function UserProfileScreen() {
 
     const themed = Colors[theme];
 
+    // Antes de lanzar la petición, asegurarse de que userId está definido
+    useEffect(() => {
+        if (!userId) return; // No buscar hasta que userId esté definido
+        setLoading(true);
+        const fetchUser = async () => {
+            try {
+                const { data: userData } = await api.get(`/users/${userId}`);
+                setUserProfile(userData);
+            } catch (error) {
+                setUserProfile(null);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUser();
+    }, [userId]);
+
+    if (!userId) {
+        return <ThemedView style={{ flex: 1, justifyContent: "center", alignItems: "center" }} />;
+    }
+
     if (loading) {
         return (
-            <ThemedView
-                style={[
-                    styles.container,
-                    {
-                        backgroundColor: Colors[theme].background,
-                        flex: 1,
-                        justifyContent: "center",
-                        alignItems: "center",
-                    },
-                ]}
-            >
-                <ActivityIndicator size="large" color={Colors[theme].tint} />
+            <ThemedView style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+                <ActivityIndicator size="large" />
             </ThemedView>
         );
     }
-    if (!userProfile && !loading) {
+
+    if (!loading && !userProfile) {
         return (
-            <ThemedView style={[styles.container, { backgroundColor: Colors[theme].background }]}>
-                <ThemedText style={{ color: Colors[theme].text }}>User not found</ThemedText>
+            <ThemedView style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+                <ThemedText>{t("user_not_found")}</ThemedText>
             </ThemedView>
         );
     }
@@ -482,15 +481,15 @@ export default function UserProfileScreen() {
     // Permisos de visibilidad
     const canViewDecks =
         userProfile?.decks_visibility === "public" ||
-        (userProfile?.decks_visibility === "friends" && friendStatus.status === "accepted") ||
+        (userProfile?.decks_visibility === "friends" && friendStatus?.status === "accepted") ||
         userProfile?.id === currentUserId;
     const canViewFriends =
         userProfile?.friends_visibility === "public" ||
-        (userProfile?.friends_visibility === "friends" && friendStatus.status === "accepted") ||
+        (userProfile?.friends_visibility === "friends" && friendStatus?.status === "accepted") ||
         userProfile?.id === currentUserId;
     const canViewCollections =
         userProfile?.collections_visibility === "public" ||
-        (userProfile?.collections_visibility === "friends" && friendStatus.status === "accepted") ||
+        (userProfile?.collections_visibility === "friends" && friendStatus?.status === "accepted") ||
         userProfile?.id === currentUserId;
 
     return (
@@ -534,8 +533,13 @@ export default function UserProfileScreen() {
                                     gap: 20,
                                 }}
                             >
-                                <View style={{ alignItems: "flex-start", justifyContent: "center" }}>
-                                    <ThemedText style={[styles.profileName, { color: themed.tint }]}>
+                                <View style={{ alignItems: "flex-start", justifyContent: "center", paddingTop: 4 }}>
+                                    <ThemedText
+                                        style={[
+                                            styles.profileName,
+                                            { color: themed.tint, lineHeight: 32, marginTop: 2 },
+                                        ]}
+                                    >
                                         {userProfile?.username}
                                     </ThemedText>
                                     {userProfile && userProfile.location ? (
@@ -620,7 +624,7 @@ export default function UserProfileScreen() {
                         <Ionicons style={styles.dividerIcon} name="albums" size={34} color={themed.info} />
                         <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
                     </View>
-                    {!canViewDecks && (
+                    {!canViewDecks ? (
                         <View
                             style={{
                                 alignItems: "center",
@@ -641,12 +645,19 @@ export default function UserProfileScreen() {
                             }}
                         >
                             <Ionicons name="lock-closed" size={32} color={themed.info} style={{ marginBottom: 8 }} />
-                            <ThemedText style={{ textAlign: "center", marginVertical: 4, color: themed.info, fontWeight: "bold", fontSize: 16 }}>
+                            <ThemedText
+                                style={{
+                                    textAlign: "center",
+                                    marginVertical: 4,
+                                    color: themed.info,
+                                    fontWeight: "bold",
+                                    fontSize: 16,
+                                }}
+                            >
                                 {t("decks_private_message")}
                             </ThemedText>
                         </View>
-                    )}
-                    {decks.length > 0 ? (
+                    ) : decks.length > 0 ? (
                         <DeckCarousel
                             decks={decks}
                             onNewDeckPress={() => setIsNewDeckModalVisible(true)}
@@ -676,9 +687,35 @@ export default function UserProfileScreen() {
                         </View>
                     ) : (
                         <View style={[styles.noDecksContainer, { backgroundColor: themed.TabBarBackground }]}>
-                            <ThemedText style={[styles.noDecksText, { color: themed.text }]}>
-                                {t("no_decks")}
-                            </ThemedText>
+                            {(() => {
+                                const message = t("no_decks");
+                                const dotIndex = message.indexOf(".");
+                                let firstPart = message;
+                                let secondPart = "";
+                                if (dotIndex !== -1) {
+                                    firstPart = message.slice(0, dotIndex + 1);
+                                    secondPart = message.slice(dotIndex + 1).trim();
+                                }
+                                return (
+                                    <>
+                                        <ThemedText style={[styles.noDecksText, { color: themed.info, fontSize: 18 }]}>
+                                            {firstPart}
+                                        </ThemedText>
+                                        {secondPart ? (
+                                            <ThemedText
+                                                style={{
+                                                    color: themed.text,
+                                                    fontSize: 14,
+                                                    fontWeight: "bold",
+                                                    marginTop: 4,
+                                                }}
+                                            >
+                                                {secondPart}
+                                            </ThemedText>
+                                        ) : null}
+                                    </>
+                                );
+                            })()}
                         </View>
                     )}
                     {/* FriendCarousel debajo del DeckCarousel */}
@@ -694,7 +731,7 @@ export default function UserProfileScreen() {
                         <Ionicons style={styles.dividerIcon} name="people" size={34} color={themed.info} />
                         <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
                     </View>
-                    {!canViewFriends && (
+                    {!canViewFriends ? (
                         <View
                             style={{
                                 alignItems: "center",
@@ -715,18 +752,27 @@ export default function UserProfileScreen() {
                             }}
                         >
                             <Ionicons name="lock-closed" size={32} color={themed.info} style={{ marginBottom: 8 }} />
-                            <ThemedText style={{ textAlign: "center", marginVertical: 4, color: themed.info, fontWeight: "bold", fontSize: 16 }}>
+                            <ThemedText
+                                style={{
+                                    textAlign: "center",
+                                    marginVertical: 4,
+                                    color: themed.info,
+                                    fontWeight: "bold",
+                                    fontSize: 16,
+                                }}
+                            >
                                 {t("friends_private_message")}
                             </ThemedText>
                         </View>
+                    ) : (
+                        <FriendCarousel
+                            friends={friends}
+                            onFriendPress={(userId) =>
+                                router.push({ pathname: `/(tabs)/user/[userId]`, params: { userId } })
+                            }
+                            isOwnProfile={userProfile?.id === currentUserId}
+                        />
                     )}
-                    <FriendCarousel
-                        friends={friends}
-                        onFriendPress={(userId) =>
-                            router.push({ pathname: `/(tabs)/user/[userId]`, params: { userId } })
-                        }
-                        isOwnProfile={userProfile?.id === currentUserId}
-                    />
                     {/* CollectionCarousel debajo del FriendCarousel */}
                     <View
                         style={{
@@ -761,7 +807,15 @@ export default function UserProfileScreen() {
                             }}
                         >
                             <Ionicons name="lock-closed" size={32} color={themed.info} style={{ marginBottom: 8 }} />
-                            <ThemedText style={{ textAlign: "center", marginVertical: 4, color: themed.info, fontWeight: "bold", fontSize: 16 }}>
+                            <ThemedText
+                                style={{
+                                    textAlign: "center",
+                                    marginVertical: 4,
+                                    color: themed.info,
+                                    fontWeight: "bold",
+                                    fontSize: 16,
+                                }}
+                            >
                                 {t("collections_private_message")}
                             </ThemedText>
                         </View>

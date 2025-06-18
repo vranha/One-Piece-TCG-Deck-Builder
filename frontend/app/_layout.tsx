@@ -10,9 +10,9 @@ import { ThemeProvider, useTheme } from "@/hooks/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Provider as PaperProvider } from "react-native-paper";
 import "../i18n"; // Configuración de i18n
-import Toast from "react-native-toast-message";
-import toastConfig from "@/config/toastConfig";
 import * as Notifications from "expo-notifications";
+import Toast from "react-native-toast-message";
+import toastConfig from "../config/toastConfig";
 
 // Evitamos que el splash se oculte automáticamente
 SplashScreen.preventAutoHideAsync();
@@ -46,7 +46,7 @@ export default function RootLayout() {
                 <PaperProvider>
                     <GestureHandlerRootView style={{ flex: 1 }}>
                         <NavigationContainerWithTheme />
-                        <Toast config={toastConfig} />
+                        <Toast config={toastConfig} position="top" />
                     </GestureHandlerRootView>
                 </PaperProvider>
             </ThemeProvider>

@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     backButton: {
-        paddingLeft: 10,
+        paddingLeft: 12,
     },
     cardSizeToggle: {
         marginLeft: 10,

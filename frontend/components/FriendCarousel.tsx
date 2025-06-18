@@ -104,9 +104,27 @@ const FriendCarousel: React.FC<FriendCarouselProps> = ({ friends, onFriendPress,
                         </View>
                     ) : (
                         <View style={styles.noFriendsRow}>
-                            <ThemedText style={[styles.noFriendsText, { color: Colors[theme].text }]}>
-                                {t("no_users")}
-                            </ThemedText>
+                            {(() => {
+                                const fullText = t("no_users");
+                                const dotIndex = fullText.indexOf(".");
+                                const beforeDot = dotIndex !== -1 ? fullText.slice(0, dotIndex) : fullText;
+                                const afterDot = dotIndex !== -1 ? fullText.slice(dotIndex + 1).trim() : "";
+
+                                return (
+                                    <>
+                                    <View style={{ flexDirection: "column", alignItems: "center", gap: 4 }}>
+                                        <ThemedText style={[styles.noFriendsText, { color: Colors[theme].info, fontSize: 18 }]}>
+                                            {beforeDot}
+                                        </ThemedText>
+                                        {afterDot.length > 0 && (
+                                            <ThemedText style={[styles.noFriendsText, { color: Colors[theme].text, fontSize: 14, marginLeft: 4 }]}>
+                                                {afterDot}
+                                            </ThemedText>
+                                        )}
+                                    </View>
+                                    </>
+                                );
+                            })()}
                         </View>
                     )}
                 </View>
