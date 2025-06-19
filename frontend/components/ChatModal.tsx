@@ -35,6 +35,7 @@ import CollectionSelectModal from "./CollectionSelectModal";
 import IconCard from '@/assets/icons/IconCardFill.svg';
 import IconCards from '@/assets/icons/IconCards.svg';
 import IconPeople from '@/assets/icons/IconPeople.svg';
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 // Utilidad para obtener el ref real de Modalize
 function getModalizeRef(modalizeRef: any) {
@@ -2166,6 +2167,82 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                     theme={theme}
                     t={t}
                 />
+                <GestureHandlerRootView style={{ flex: 1 }}>
+                 <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: "#f5f5f5",
+          borderTopWidth: 1,
+          borderColor: "#ddd",
+          paddingBottom: 10,
+          paddingHorizontal: 12,
+          paddingTop: 8,
+          flexDirection: "row",
+          alignItems: "center",
+          zIndex: 9999999,
+        }}
+      >
+        {/* Botón de adjuntar */}
+        <TouchableOpacity
+          onPress={() => {
+            if (showAttachMenu) closeAttachMenu();
+            else openAttachMenu();
+          }}
+          style={{
+            marginRight: 8,
+            backgroundColor: showAttachMenu ? "#007AFF" : "#e5e5e5",
+            borderRadius: 20,
+            padding: 10,
+          }}
+        >
+          <Ionicons
+            name={showAttachMenu ? "close" : "add-circle-outline"}
+            size={22}
+            color={showAttachMenu ? "#fff" : "#007AFF"}
+          />
+        </TouchableOpacity>
+
+        {/* Input de texto */}
+        <TextInput
+          style={{
+            flex: 1,
+            backgroundColor: "#fff",
+            borderRadius: 20,
+            paddingVertical: 10,
+            paddingHorizontal: 16,
+            borderWidth: 1,
+            borderColor: "#ccc",
+            color: "#333",
+          }}
+          value={newMessage}
+          onChangeText={setNewMessage}
+          onSubmitEditing={handleSendMessage}
+          placeholder="Escribe un mensaje..."
+          returnKeyType="send"
+          multiline
+          selectTextOnFocus={false}
+contextMenuHidden={false} 
+        />
+
+        {/* Botón de enviar */}
+        <TouchableOpacity
+          onPress={handleSendMessage}
+          style={{
+            marginLeft: 8,
+            backgroundColor: "#007AFF",
+            padding: 10,
+            borderRadius: 20,
+          }}
+        >
+          <Ionicons name="send" size={20} color="#fff" />
+        </TouchableOpacity>
+      </KeyboardAvoidingView>
+      </GestureHandlerRootView>
             </>
         );
     }

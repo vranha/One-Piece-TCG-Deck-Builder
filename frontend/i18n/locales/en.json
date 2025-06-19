@@ -259,8 +259,8 @@
     "edit_visibility": "Edit Visibility",
     "add_friend": "Add Friend",
     "request_sent": "Request Sent",
-    "no_collections_other": "This user has no collections yet.",
-    "no_wishlists_other": "This user has no wishlists yet.",
+    "no_collections_other": "No bounty yet. This pirate’s vault is still empty.",
+    "no_wishlists_other": "No dreams marked on their log yet. The sea is wide, and the journey's just begun!",
     "user_not_found": "User not found",
     "users": "Users",
     "your_friend": "Friends"

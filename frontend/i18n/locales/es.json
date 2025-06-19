@@ -263,9 +263,10 @@
     "edit_visibility": "Editar Visibilidad",
     "add_friend": "Añadir Amigo",
     "request_sent": "Solicitud Enviada",
-    "no_collections_other": "Este usuario no tiene colecciones todavía.",
-    "no_wishlists_other": "Este usuario no tiene listas de deseos todavía.",
+    "no_collections_other": "¡Aún no hay tesoro! El cofre de este pirata sigue vacío.",
+    "no_wishlists_other": "Aún no hay sueños en su bitácora. ¡El mar es inmenso y la travesía apenas comienza!",
     "user_not_found": "Usuario no encontrado",
     "users": "Users",
     "your_friend": "Amigos"
+    
 }

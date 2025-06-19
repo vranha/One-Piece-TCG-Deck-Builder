@@ -173,9 +173,39 @@ const CollectionCarousel: React.FC<CollectionCarouselProps> = ({
                 ) : (
                     <View style={styles.emptyState}>
                         <View style={styles.emptyStateContent}>
-                            <Text style={[styles.placeholder, { color: Colors[theme].text }]}>
-                                {selectedTab === "collection" ? t("no_collections_other") : t("no_wishlists_other")}
-                            </Text>
+                            {(() => {
+                                const message =
+                                    selectedTab === "collection" ? t("no_collections_other") : t("no_wishlists_other");
+
+                                const dotIndex = message.indexOf(".");
+                                let firstPart = message;
+                                let secondPart = "";
+
+                                if (dotIndex !== -1) {
+                                    firstPart = message.slice(0, dotIndex + 1);
+                                    secondPart = message.slice(dotIndex + 1).trim();
+                                }
+
+                                return (
+                                    <View style={{ alignItems: "center" }}>
+                                        <Text style={{ color: Colors[theme].info, fontSize: 18, fontWeight: "bold" }}>
+                                            {firstPart}
+                                        </Text>
+                                        {secondPart ? (
+                                            <Text
+                                                style={{
+                                                    color: Colors[theme].text,
+                                                    fontSize: 14,
+                                                    marginTop: 5,
+                                                    fontWeight: "bold",
+                                                }}
+                                            >
+                                                {secondPart}
+                                            </Text>
+                                        ) : null}
+                                    </View>
+                                );
+                            })()}
                         </View>
                     </View>
                 )}

@@ -725,7 +725,8 @@ export default function UserProfileScreen() {
                         style={{
                             flexDirection: "row",
                             alignItems: "center",
-                            marginVertical: 12,
+                            marginTop: 40,
+                            marginBottom: 12,
                             marginHorizontal: 20,
                         }}
                     >
@@ -780,7 +781,8 @@ export default function UserProfileScreen() {
                         style={{
                             flexDirection: "row",
                             alignItems: "center",
-                            marginVertical: 12,
+                            marginTop: 40,
+                            marginBottom: 12,
                             marginHorizontal: 20,
                         }}
                     >
@@ -1009,6 +1011,5 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingBottom: 32,
         paddingHorizontal: 16,
-        alignItems: "center",
-    },
+        alignItems: "center",    },
 });

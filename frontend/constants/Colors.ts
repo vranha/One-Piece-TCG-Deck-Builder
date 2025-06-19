@@ -29,8 +29,8 @@ export const Colors = {
         error: "#F44336", // Rojo para error
         info: "#2196F3", // Azul para información
         modalHandle: "#CCCCCC", // Light gray for modal handle
-        ownMessageBackground: "#FFECE9A6", // Coral pálido (armoniza con `#D32F2F` sin chillar)
-        ownMessageText: "#2D2D2D",
+ownMessageBackground: "#E9F3FFA6", // azul pastel con opacidad
+ownMessageText: "#1F1F1F",         // texto oscuro
         receivedMessageBackground: "#EDEDED", // Gris medio claro (separa bien de `#F5F5F5`)
         receivedMessageText: "#2D2D2D",
         deckBar: "#FFD600", // Amarillo OP para barra lateral de mensajes de deck
@@ -58,8 +58,8 @@ export const Colors = {
         error: "#E57373", // Rojo más suave para error
         info: "#64B5F6", // Azul más suave para información
         modalHandle: "#555555", // Dark gray for modal handle
-        ownMessageBackground: "#5C2F2F66", // Rojo oscuro desaturado (derivado de `#a84848`)
-        ownMessageText: "#EAEAEA",
+ownMessageBackground: "#2F3F5C66", // azul marino desaturado con opacidad
+ownMessageText: "#F0F4FA",         // texto gris claro azuladito
         receivedMessageBackground: "#2B2B2B", // Ligeramente más claro que el fondo `#1E1E1E`
         receivedMessageText: "#D2D2D2",
         deckBar: "#FFD600", // Amarillo OP para barra lateral de mensajes de deck
