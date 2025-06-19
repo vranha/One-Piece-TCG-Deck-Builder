@@ -18,7 +18,15 @@ const CardDescription: React.FC<CardDescriptionProps> = ({ cardDetail, dividerSt
     const { theme } = useTheme();
 
     return (
-        <View style={styles.descriptionContainer}>
+        <View
+            style={[
+                styles.descriptionContainer,
+                {
+                    backgroundColor: Colors[theme].background,
+                    borderRadius: 14,
+                },
+            ]}
+        >
             {dividerStyle.type === "gradient" ? (
                 <LinearGradient
                     colors={dividerStyle.colors as [string, string, ...string[]]}
@@ -30,30 +38,25 @@ const CardDescription: React.FC<CardDescriptionProps> = ({ cardDetail, dividerSt
                 <View style={[styles.divider, { backgroundColor: dividerStyle.color }]} />
             )}
             {cardDetail.ability !== "-" ? (
-                <View
-                    style={{
-                        alignItems: "flex-start",
-                        backgroundColor: Colors[theme].backgroundSoft,
-                        borderRadius: 5,
-                        padding: 12,
-                    }}
-                >
+                <View style={[styles.abilityBlock, { backgroundColor: Colors[theme].background }]}>
                     <FormattedAbility text={cardDetail.ability} />
                 </View>
             ) : (
-                <ThemedText style={{ textAlign: "center", width: "100%" }} type="subtitle">
+                <ThemedText
+                    style={{
+                        textAlign: "center",
+                        width: "100%",
+                        color: Colors[theme].textSoft,
+                        fontStyle: "italic",
+                        fontSize: 15,
+                    }}
+                    type="subtitle"
+                >
                     --No Effect--
                 </ThemedText>
             )}
             {cardDetail.trigger ? (
-                <View
-                    style={{
-                        alignItems: "flex-start",
-                        backgroundColor: Colors[theme].icon,
-                        borderRadius: 5,
-                        padding: 12,
-                    }}
-                >
+                <View style={[styles.abilityBlock, { backgroundColor: Colors[theme].icon }]}>
                     <FormattedAbility trigger text={cardDetail.trigger} />
                 </View>
             ) : null}
@@ -74,15 +77,20 @@ const CardDescription: React.FC<CardDescriptionProps> = ({ cardDetail, dividerSt
 const styles = StyleSheet.create({
     descriptionContainer: {
         marginTop: 0,
-        paddingVertical: 10,
-        paddingHorizontal: 15,
-        gap: 10,
+        paddingVertical: 16,
+        paddingHorizontal: 18,
+        gap: 14,
     },
     divider: {
-        paddingHorizontal: 3,
-        paddingVertical: 1,
+        height: 4,
         borderRadius: 5,
-        marginVertical: 5,
+        marginVertical: 10,
+    },
+    abilityBlock: {
+        alignItems: "flex-start",
+        borderRadius: 8,
+        padding: 14,
+        marginBottom: 2,
     },
 });
 

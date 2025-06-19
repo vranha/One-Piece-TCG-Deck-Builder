@@ -25,52 +25,64 @@ const CardOptions: React.FC<CardOptionsProps> = ({
     const { theme } = useTheme();
     const { t } = useTranslation();
 
+    // Helper to get button style based on selection
+    const getButtonStyle = (button: string, isFirst = false, isLast = false) => [
+        styles.optionButton,
+        isFirst && styles.firstOptionButton,
+        isLast && styles.lastOptionButton,
+        {
+            backgroundColor: selectedButton === button ? Colors[theme].info : Colors[theme].info + "80", // Slightly transparent when not selected
+
+        },
+    ];
+
+    const getTextStyle = (button: string) => [
+        styles.optionButtonText,
+        {
+            color: selectedButton === button ? Colors[theme].background : Colors[theme].text + "80", // Text color changes based on selection
+        },
+    ];
+
     return (
-        <View style={[styles.buttonContainer, { backgroundColor: Colors[theme].backgroundSoft }]}>
+        <View style={[styles.buttonContainer, { backgroundColor: Colors[theme].background }]}>
             <TouchableOpacity
-                style={[
-                    styles.optionButton,
-                    styles.firstOptionButton,
-                    { backgroundColor: "#edc398" },
-                    selectedButton !== "Deck" && { backgroundColor: "#645140" },
-                ]}
+                style={getButtonStyle("Deck", true, false)}
                 onPress={() => setSelectedButton("Deck")}
+                activeOpacity={0.85}
             >
-                <ThemedText style={[styles.optionButtonText, { color: Colors[theme].background }]}>
-                    {t("deck")}
-                </ThemedText>
+                <ThemedText style={getTextStyle("Deck")}>{t("deck")}</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
-                style={[
-                    styles.optionButton,
-                    { backgroundColor: "#edc398" },
-                    selectedButton !== "Collection" && { backgroundColor: "#645140" },
-                ]}
+                style={getButtonStyle("Collection", false, false)}
                 onPress={() => setSelectedButton("Collection")}
+                activeOpacity={0.85}
             >
-                <ThemedText style={[styles.optionButtonText, { color: Colors[theme].background }]}>
-                    {t("collection")}
-                </ThemedText>
+                <ThemedText style={getTextStyle("Collection")}>{t("collection")}</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
-                style={[
-                    styles.optionButton,
-                    styles.lastOptionButton,
-                    { backgroundColor: "#edc398" },
-                    selectedButton !== "WishList" && { backgroundColor: "#645140" },
-                ]}
+                style={getButtonStyle("WishList", false, true)}
                 onPress={() => setSelectedButton("WishList")}
+                activeOpacity={0.85}
             >
-                <ThemedText style={[styles.optionButtonText, { color: Colors[theme].background }]}>
-                    {t("wish")}
-                </ThemedText>
+                <ThemedText style={getTextStyle("WishList")}>{t("wish")}</ThemedText>
             </TouchableOpacity>
             <CustomNumericInput value={quantity} onChange={onQuantityChange} />
             <TouchableOpacity
-                style={[styles.addButton, { backgroundColor: Colors[theme].success }]}
+                style={[
+                    styles.addButton,
+                    {
+                        backgroundColor: Colors[theme].success,
+                        shadowColor: Colors[theme].success,
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.18,
+                        shadowRadius: 4,
+                        elevation: 3,
+                    },
+                ]}
                 onPress={onAddButtonPress}
+                activeOpacity={0.85}
             >
-                <Ionicons name="checkmark" size={24} color={Colors[theme].text} />
+                <Ionicons name="checkmark" size={26} color={Colors[theme].background} />
             </TouchableOpacity>
         </View>
     );
@@ -81,25 +93,28 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        marginBottom: 10,
-        padding: 10,
-        borderRadius: 5,
+        marginVertical: 8,
+        padding: 6,
+        borderRadius: 10,
+        // gap: 4,
     },
     optionButton: {
-        paddingHorizontal: 10,
-        paddingVertical: 8,
-        borderRadius: 5,
+        paddingHorizontal: 12, // reducido
+        paddingVertical: 10, // reducido
+        borderRadius: 0,
         borderTopLeftRadius: 0,
         borderBottomLeftRadius: 0,
         borderTopRightRadius: 0,
         borderBottomRightRadius: 0,
-        transform: [{ skewX: "-20deg" }],
-        borderWidth: 2,
+        minWidth: 40, // reducido
+        alignItems: "center",
+        justifyContent: "center",
     },
     optionButtonText: {
-        fontSize: 16,
+        fontSize: 14, // reducido
         fontWeight: "bold",
-        transform: [{ skewX: "20deg" }],
+        transform: [{ skewX: "18deg" }],
+        letterSpacing: 0.2,
     },
     firstOptionButton: {
         borderTopLeftRadius: 10,
@@ -112,9 +127,12 @@ const styles = StyleSheet.create({
         borderBottomRightRadius: 10,
     },
     addButton: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 5,
+        paddingHorizontal: 7, // reducido
+        paddingVertical: 5, // reducido
+        borderRadius: 8,
+        marginLeft: 4, // reducido
+        alignItems: "center",
+        justifyContent: "center",
     },
 });
 

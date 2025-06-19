@@ -19,6 +19,7 @@ import { useFocusEffect } from "@react-navigation/native"; // Import useFocusEff
 import * as ExpoNotifications from "expo-notifications";
 import * as Device from "expo-device";
 import IconCards from "@/assets/icons/IconCards.svg";
+import IconPeople from "@/assets/icons/IconPeople.svg";
 
 interface Deck {
     id: string;
@@ -408,12 +409,7 @@ export default function HomeScreen() {
                                 }}
                             >
                                 <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
-                                <Ionicons
-                                    style={{ marginHorizontal: 20 }}
-                                    name="people"
-                                    size={34}
-                                    color={Colors[theme].info}
-                                />
+                                <IconPeople style={{ color: Colors[theme].info, width: 34, height: 34, marginLeft: 20, marginRight: 20 }} />
                                 <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
                             </View>
                             <FriendCarousel

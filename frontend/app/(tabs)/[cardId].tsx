@@ -226,17 +226,32 @@ export default function CardDetailScreen() {
                     )}
                 </View>
                 <View style={[styles.container, { backgroundColor: Colors[theme].background }]}>
+                    <View>
+
                     <CardStats
                         cardDetail={cardDetail}
                         hasPower={hasPower}
                         dividerStyle={{ color: dividerStyle.color || "#000" }}
                     />
+                                    <View style={styles.codeRarityContainer}>
+                                        <ThemedText style={[styles.codeText,  { backgroundColor: dividerStyle.color, shadowColor: dividerStyle.color, color:Colors[theme].background }]}>{cardDetail.code}</ThemedText>
+                                        <View
+                                            style={[
+                                                styles.rarityBadge,
+                                                { backgroundColor: dividerStyle.color, shadowColor: dividerStyle.color },
+                                            ]}
+                                        >
+                                            <ThemedText style={[styles.rarityText, {color: Colors[theme].background}]}>{cardDetail.rarity}</ThemedText>
+                                        </View>
+                                    </View>
+                    </View>
                     <ThemedText
                         type="title"
                         style={{
                             textAlign: "center",
                             width: "100%",
                             fontSize: familyFontSize,
+                            marginBottom: 15,
                         }}
                     >
                         {cardDetail.family}
@@ -274,5 +289,39 @@ const styles = StyleSheet.create({
     cardName: {
         fontSize: 24,
         fontWeight: "bold",
+    },
+       codeRarityContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "flex-end",
+        width: "100%",
+        gap:5,
+        marginTop: -10,
+        marginBottom: 10,
+        paddingRight: 10,
+    },
+    codeText: {
+        fontSize: 15,
+        fontWeight: "600",
+        textAlign: "center",
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 2,
+        // opacity: 0.7,
+    },
+    rarityBadge: {
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 2,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.18,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    rarityText: {
+        fontSize: 13,
+        fontWeight: "700",
+        color: "#FFFFFF",
+        letterSpacing: 1,
     },
 });

@@ -22,6 +22,7 @@ import es from "@/i18n/locales/es.json";
 import en from "@/i18n/locales/en.json";
 import VisibilityBottomSheet from "@/components/VisibilityBottomSheet";
 import IconCards from "@/assets/icons/IconCards.svg";
+import IconPeople from "@/assets/icons/IconPeople.svg";
 
 interface UserProfile {
     id: string;
@@ -301,7 +302,7 @@ export default function UserProfileScreen() {
                                 }
                                 style={{ backgroundColor: Colors[theme].success, padding: 6, borderRadius: 6 }}
                             >
-                                <Ionicons name="people" size={20} color={Colors[theme].background} />
+                                <IconPeople style={{ color: Colors[theme].background, width: 20, height: 20}} />
                             </TouchableOpacity>
                         </View>
                     );
@@ -586,7 +587,7 @@ export default function UserProfileScreen() {
                                         </ThemedText>
                                     </View>
                                     <View style={[styles.profileStatBox, { backgroundColor: themed.background }]}>
-                                        <Ionicons name="people" size={18} color={themed.tint} />
+                                        <IconPeople style={{ color: Colors[theme].tint, width: 18, height: 18 }} />
                                         <ThemedText style={[styles.profileStatText, { color: themed.text }]}>
                                             {friends.length} {t("friends")}
                                         </ThemedText>
@@ -729,7 +730,7 @@ export default function UserProfileScreen() {
                         }}
                     >
                         <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
-                        <Ionicons style={styles.dividerIcon} name="people" size={34} color={themed.info} />
+                        <IconPeople style={{ color: Colors[theme].info, width: 34, height: 34, marginLeft: 20, marginRight: 20 }} />
                         <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
                     </View>
                     {!canViewFriends ? (

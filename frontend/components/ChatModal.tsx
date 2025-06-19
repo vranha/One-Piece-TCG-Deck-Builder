@@ -34,6 +34,7 @@ import DeckSelectModal from "./DeckSelectModal";
 import CollectionSelectModal from "./CollectionSelectModal";
 import IconCard from '@/assets/icons/IconCardFill.svg';
 import IconCards from '@/assets/icons/IconCards.svg';
+import IconPeople from '@/assets/icons/IconPeople.svg';
 
 // Utilidad para obtener el ref real de Modalize
 function getModalizeRef(modalizeRef: any) {
@@ -700,7 +701,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                 </View>
                                 {item.isFriend && (
                                     <View style={[styles.friendBadge, { backgroundColor: Colors[theme].tint }]}>
-                                        <Ionicons name="people" size={16} color="#fff" />
+                                        <IconPeople style={{ color: Colors[theme].background, width: 20, height: 20 }} />
                                     </View>
                                 )}
                             </TouchableOpacity>
