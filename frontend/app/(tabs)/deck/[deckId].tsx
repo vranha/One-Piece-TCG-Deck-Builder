@@ -1361,7 +1361,7 @@ export default function DeckDetailScreen() {
                                           gap: 3,
                                       }}
                                   >
-                                      <IconUser style={{width:24, height: 24, color: Colors[theme].background }} />
+                                      <IconUser style={{width:20, height: 20, color: Colors[theme].background }} />
                                       <ThemedText style={{ color: Colors[theme].background, fontWeight: "bold" }}>
                                           {t("User Profile")}
                                       </ThemedText>
