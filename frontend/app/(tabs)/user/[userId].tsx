@@ -21,6 +21,7 @@ import NewDeckModal from "@/components/NewDeckModal"; // Import NewDeckModal
 import es from "@/i18n/locales/es.json";
 import en from "@/i18n/locales/en.json";
 import VisibilityBottomSheet from "@/components/VisibilityBottomSheet";
+import IconCards from "@/assets/icons/IconCards.svg";
 
 interface UserProfile {
     id: string;
@@ -579,7 +580,7 @@ export default function UserProfileScreen() {
                                 </View>
                                 <View style={styles.profileStatsRow}>
                                     <View style={[styles.profileStatBox, { backgroundColor: themed.background }]}>
-                                        <Ionicons name="albums" size={18} color={themed.tint} />
+                                        <IconCards style={{ color: Colors[theme].tint, width: 18, height: 18 }} />
                                         <ThemedText style={[styles.profileStatText, { color: themed.text }]}>
                                             {decks.length} {t("decks")}
                                         </ThemedText>
@@ -591,7 +592,7 @@ export default function UserProfileScreen() {
                                         </ThemedText>
                                     </View>
                                     <View style={[styles.profileStatBox, { backgroundColor: themed.background }]}>
-                                        <Ionicons name="folder" size={18} color={themed.tint} />
+                                        <Ionicons name="albums" size={18} color={themed.tint} />
                                         <ThemedText style={[styles.profileStatText, { color: themed.text }]}>
                                             {collections.length} {t("collections")}
                                         </ThemedText>
@@ -621,7 +622,7 @@ export default function UserProfileScreen() {
                         }}
                     >
                         <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
-                        <Ionicons style={styles.dividerIcon} name="albums" size={34} color={themed.info} />
+                        <IconCards style={{ color: Colors[theme].info, width: 40, height: 40, marginLeft: 20, marginRight:20 }} />
                         <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
                     </View>
                     {!canViewDecks ? (
@@ -783,7 +784,7 @@ export default function UserProfileScreen() {
                         }}
                     >
                         <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
-                        <Ionicons style={styles.dividerIcon} name="folder" size={34} color={themed.info} />
+                        <Ionicons style={styles.dividerIcon} name="albums" size={34} color={themed.info} />
                         <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
                     </View>
                     {!canViewCollections && (

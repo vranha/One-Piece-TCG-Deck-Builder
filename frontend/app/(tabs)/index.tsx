@@ -18,6 +18,7 @@ import { Ionicons } from "@expo/vector-icons"; // Importar iconos
 import { useFocusEffect } from "@react-navigation/native"; // Import useFocusEffect
 import * as ExpoNotifications from "expo-notifications";
 import * as Device from "expo-device";
+import IconCards from "@/assets/icons/IconCards.svg";
 
 interface Deck {
     id: string;
@@ -386,12 +387,7 @@ export default function HomeScreen() {
                                 }}
                             >
                                 <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
-                                <Ionicons
-                                    style={{ marginHorizontal: 20 }}
-                                    name="albums"
-                                    size={34}
-                                    color={Colors[theme].info}
-                                />
+<IconCards style={{ color: Colors[theme].info, width: 40, height: 40, marginLeft: 20, marginRight: 20 }} />
                                 <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
                             </View>
                             <DeckCarousel
@@ -439,7 +435,7 @@ export default function HomeScreen() {
                                 <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
                                 <Ionicons
                                     style={{ marginHorizontal: 20 }}
-                                    name="folder"
+                                    name="albums"
                                     size={34}
                                     color={Colors[theme].info}
                                 />

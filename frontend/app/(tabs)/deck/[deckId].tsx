@@ -49,6 +49,7 @@ import * as Sharing from "expo-sharing"; // Si usas Expo, para compartir imágen
 import * as FileSystem from "expo-file-system";
 import { Buffer } from "buffer";
 import * as Progress from "react-native-progress";
+import IconUser from "@/assets/icons/iconUser.svg";
 
 interface DeckDetail {
     id: string;
@@ -1360,7 +1361,7 @@ export default function DeckDetailScreen() {
                                           gap: 3,
                                       }}
                                   >
-                                      <MaterialIcons name="person" size={24} color={Colors[theme].background} />
+                                      <IconUser style={{width:24, height: 24, color: Colors[theme].background }} />
                                       <ThemedText style={{ color: Colors[theme].background, fontWeight: "bold" }}>
                                           {t("User Profile")}
                                       </ThemedText>

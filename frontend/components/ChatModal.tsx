@@ -32,6 +32,8 @@ import { FlashList } from "@shopify/flash-list";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import DeckSelectModal from "./DeckSelectModal";
 import CollectionSelectModal from "./CollectionSelectModal";
+import IconCard from '@/assets/icons/IconCardFill.svg';
+import IconCards from '@/assets/icons/IconCards.svg';
 
 // Utilidad para obtener el ref real de Modalize
 function getModalizeRef(modalizeRef: any) {
@@ -583,24 +585,20 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
 
                                     <View style={{ flexDirection: "row", alignItems: "center" }}>
                                         {item.last_message_type === "deck" && (
-                                            <Ionicons
-                                                name="albums"
-                                                size={18}
-                                                color={Colors[theme].deckBar}
-                                                styles={{ opacity: 0.2 }}
-                                            />
+<IconCards style={{ color: Colors[theme].deckBar, width: 18, height: 18, opacity: 0.2 }} />
                                         )}
                                         {item.last_message_type === "card" && (
-                                            <MaterialIcons
-                                                name="style"
-                                                size={18}
-                                                color={Colors[theme].cardBar}
-                                                styles={{ opacity: 0.2 }}
-                                            />
+                                            // <MaterialIcons
+                                            //     name="style"
+                                            //     size={18}
+                                            //     color={Colors[theme].cardBar}
+                                            //     styles={{ opacity: 0.2 }}
+                                            // />
+                                            <IconCard style={{ color: Colors[theme].cardBar, width: 18, height: 18, opacity: 0.2 }} />
                                         )}
                                         {item.last_message_type === "collection" && (
                                             <Ionicons
-                                                name="bookmark"
+                                                name="albums"
                                                 size={18}
                                                 color={Colors[theme].info}
                                                 styles={{ opacity: 0.2 }}
@@ -1289,7 +1287,8 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                 }}
                                                 activeOpacity={0.8}
                                             >
-                                                <MaterialIcons name="style" size={28} color={Colors[theme].tint} />
+                                                {/* <MaterialIcons name="style" size={28} color={Colors[theme].tint} /> */}
+                                                <IconCard style={{ color: Colors[theme].tint, width: 30, height: 30 }} />
                                             </TouchableOpacity>
                                             <ThemedText
                                                 style={{
@@ -1308,7 +1307,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                     borderWidth: 1,
                                                     flexDirection: "row",
                                                     alignItems: "center",
-                                                    padding: 14,
+                                                    padding: 9,
                                                     borderRadius: 12,
                                                     gap: 5,
                                                     backgroundColor: Colors[theme].background,
@@ -1320,7 +1319,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                 }}
                                                 activeOpacity={0.8}
                                             >
-                                                <Ionicons name="albums" size={28} color={Colors[theme].tint} />
+                                                <IconCards style={{ color: Colors[theme].tint, width: 40, height: 40 }} />
                                             </TouchableOpacity>
                                             <ThemedText
                                                 style={{
@@ -1332,7 +1331,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                 {t("deck")}
                                             </ThemedText>
                                         </View>
-                                        <View style={{ alignItems: "center" }}>
+                                        <View style={{ alignItems: "center", marginLeft:-9 }}>
                                             <TouchableOpacity
                                                 style={{
                                                     borderColor: Colors[theme].tint,
@@ -1351,7 +1350,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                 }}
                                                 activeOpacity={0.8}
                                             >
-                                                <Ionicons name="folder" size={28} color={Colors[theme].tint} />
+                                                <Ionicons name="albums" size={28} color={Colors[theme].tint} />
                                             </TouchableOpacity>
                                             <ThemedText
                                                 style={{

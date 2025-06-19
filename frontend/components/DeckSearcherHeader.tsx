@@ -5,6 +5,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
 import { router } from "expo-router";
+import IconCards from "@/assets/icons/IconCards.svg";
+import IconUser from "@/assets/icons/iconUser.svg";
 
 interface DeckSearcherHeaderProps {
     onSearchChange: (text: string) => void;
@@ -65,10 +67,11 @@ const DeckSearcherHeader: React.FC<DeckSearcherHeaderProps> = ({
                     style={[
                         styles.toggleButton,
                         isDeckSearch && styles.activeButton,
-                        { borderBottomColor: Colors[theme].info },
+                        { borderBottomColor: Colors[theme].info,marginBottom: 2 },
                     ]}
                 >
-                    <Ionicons name="albums" size={24} color={isDeckSearch ? Colors[theme].info : Colors[theme].text} />
+                    <IconCards style={{width:28, height: 28, marginBottom: -2, color: isDeckSearch ? Colors[theme].info : Colors[theme].text }} />
+
                 </TouchableOpacity>
                 <TouchableOpacity
                     onPress={() => toggleSearchMode(false)}
@@ -78,7 +81,7 @@ const DeckSearcherHeader: React.FC<DeckSearcherHeaderProps> = ({
                         { borderBottomColor: Colors[theme].info },
                     ]}
                 >
-                    <Ionicons name="person" size={24} color={!isDeckSearch ? Colors[theme].info : Colors[theme].text} />
+                    <IconUser style={{width:24, height: 24, color: !isDeckSearch ? Colors[theme].info : Colors[theme].text }} />
                 </TouchableOpacity>
             </View>
         </View>

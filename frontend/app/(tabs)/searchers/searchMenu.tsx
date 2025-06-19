@@ -7,6 +7,9 @@ import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { useTranslation } from "react-i18next";
 import { useNavigation } from "@react-navigation/native";
+import IconCard from '@/assets/icons/IconCardFill.svg';
+import IconCards from '@/assets/icons/IconCards.svg';
+import IconUser from '@/assets/icons/iconUser.svg';
 
 export default function SearchMenu() {
     const router = useRouter();
@@ -41,8 +44,8 @@ export default function SearchMenu() {
                     ]}
                     onPress={() => router.push("/deckSearcher")}
                 >
-                    <Ionicons name="albums" size={60} color={Colors[theme].info} />
-                    <ThemedText style={[styles.buttonText, { color: Colors[theme].text }]}>{t("decks")}</ThemedText>
+                    <IconCards style={{ color: Colors[theme].info, width: 80, height: 80, marginBottom:-10}} />
+                    <ThemedText style={[styles.buttonText, { color: Colors[theme].text, marginBottom:10 }]}>{t("decks")}</ThemedText>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -55,7 +58,7 @@ export default function SearchMenu() {
                     ]}
                     onPress={() => router.push({ pathname: "/deckSearcher", params: { showUsers: "true" } })}
                 >
-                    <Ionicons name="person" size={60} color={Colors[theme].success} />
+                    <IconUser style={{ color: Colors[theme].success, width: 60, height: 60}} />
                     <ThemedText style={[styles.buttonText, { color: Colors[theme].text }]}>{t("users")}</ThemedText>
                 </TouchableOpacity>
             </View>
@@ -71,7 +74,8 @@ export default function SearchMenu() {
                 ]}
                 onPress={() => router.push("/search")}
             >
-                <MaterialIcons name="style" size={100} color={Colors[theme].tint} />
+                {/* <MaterialIcons name="style" size={100} color={Colors[theme].tint} /> */}
+                <IconCard style={{ color: Colors[theme].tint, width: 100, height: 100 }} />
                 <ThemedText style={[styles.text, { color: Colors[theme].textSoft }]}>{t("cards")}</ThemedText>
             </TouchableOpacity>
         </View>
