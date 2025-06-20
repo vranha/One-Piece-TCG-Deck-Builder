@@ -30,6 +30,8 @@ import Toast from "react-native-toast-message";
 import UserDetailsAccordion from "@/components/UserDetailsAccordion"; // Import the new component
 import { Modalize } from "react-native-modalize";
 import useStore from "@/store/useStore";
+import { Accordion } from "@/components/Accordion";
+import { useLocalSearchParams } from "expo-router";
 
 export default function SettingsScreen() {
     const navigation = useNavigation();
@@ -46,15 +48,25 @@ export default function SettingsScreen() {
     const [region, setRegion] = useState("West");
     const [lang, setLang] = useState("en");
     const [isAdmin, setIsAdmin] = useState("user");
-    const [isAccordionOpen, setIsAccordionOpen] = useState(true); // State to control accordion visibility
     const [presetAvatars, setPresetAvatars] = useState<string[]>([]);
     const modalizeRef = React.useRef<Modalize>(null);
     const [isImportModalVisible, setIsImportModalVisible] = useState(false);
     const [htmlContent, setHtmlContent] = useState("");
     const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
     const [expansion, setExpansion] = useState(""); // New state for expansion name
+    const [currentPassword, setCurrentPassword] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+
+    // Estado para mostrar/ocultar contraseñas
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const setAvatarUrl = useStore((state) => state.setAvatarUrl);
+    const params = useLocalSearchParams();
+    // Inicializar el estado solo en el primer render según el parámetro
+    const [isAccordionOpen, setIsAccordionOpen] = useState(() => params?.openAccordion === "true");
 
     useEffect(() => {
         navigation.setOptions({ headerShown: true, title: t("settings") });
@@ -309,6 +321,74 @@ export default function SettingsScreen() {
         }
     };
 
+    // Cambiar contraseña con Supabase
+    const handleChangePassword = async () => {
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            Toast.show({
+                type: "error",
+                text1: t("password_change_error_title"),
+                text2: t("password_fields_required"),
+                position: "bottom",
+                visibilityTime: 4000,
+                autoHide: true,
+            });
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            Toast.show({
+                type: "error",
+                text1: t("password_change_error_title"),
+                text2: t("passwords_do_not_match"),
+                position: "bottom",
+                visibilityTime: 4000,
+                autoHide: true,
+            });
+            return;
+        }
+        try {
+            setIsLoading(true);
+            // Supabase no requiere la contraseña actual, pero puedes verificar sesión si lo deseas
+            const { error } = await supabase.auth.updateUser({ password: newPassword });
+            if (error) {
+                let errorMsg = error.message;
+                if (errorMsg && errorMsg.toLowerCase().includes("at least one character of each")) {
+                    errorMsg = t("password_policy_error");
+                }
+                Toast.show({
+                    type: "error",
+                    text1: t("password_change_error_title"),
+                    text2: errorMsg,
+                    position: "bottom",
+                    visibilityTime: 4000,
+                    autoHide: true,
+                });
+            } else {
+                Toast.show({
+                    type: "success",
+                    text1: t("password_change_success_title"),
+                    text2: t("password_change_success_message"),
+                    position: "bottom",
+                    visibilityTime: 4000,
+                    autoHide: true,
+                });
+                setCurrentPassword("");
+                setNewPassword("");
+                setConfirmPassword("");
+            }
+        } catch (e) {
+            Toast.show({
+                type: "error",
+                text1: t("password_change_error_title"),
+                text2: t("password_change_error_message"),
+                position: "bottom",
+                visibilityTime: 4000,
+                autoHide: true,
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <>
             <ScrollView contentContainerStyle={{ flexGrow: 1, backgroundColor: Colors[theme].background }}>
@@ -329,6 +409,8 @@ export default function SettingsScreen() {
                         theme={theme}
                         t={t}
                         openAvatarModal={openAvatarModal} // Pass the new prop
+                        isOpen={isAccordionOpen}
+                        setIsOpen={setIsAccordionOpen}
                     />
 
                     <View style={[styles.card, { backgroundColor: Colors[theme].TabBarBackground }]}>
@@ -404,6 +486,157 @@ export default function SettingsScreen() {
                             thumbColor={isNotificationsEnabled ? Colors[theme].info : Colors[theme].disabled}
                         />
                     </View>
+
+                    {/* Cambiar contraseña (Accordion) */}
+                    <Accordion
+                        title={
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                <Ionicons
+                                    name="lock-closed-outline"
+                                    size={24}
+                                    color={Colors[theme].icon}
+                                    style={{ marginRight: 10, marginLeft: 0 }}
+                                />
+                                <ThemedText style={{ color: Colors[theme].text }}>{t("change_password")}</ThemedText>
+                            </View>
+                        }
+                    >
+                        <View
+                            style={{
+                                flexGrow: 1,
+                                minHeight: 280,
+                                width: "100%",
+                                padding: 10,
+                                backgroundColor: Colors[theme].TabBarBackground,
+                                borderRadius: 12,
+                                justifyContent: "center",
+                            }}
+                        >
+                            {/* Input contraseña actual */}
+                            <View style={{ position: "relative", marginBottom: 30 }}>
+                                <TextInput
+                                    style={[
+                                        styles.input,
+                                        {
+                                            color: Colors[theme].text,
+                                            borderColor: Colors[theme].backgroundSoft,
+                                            backgroundColor: Colors[theme].background,
+                                            width: "100%",
+                                            minHeight: 44,
+                                            paddingRight: 40,
+                                        },
+                                    ]}
+                                    placeholder={t("current_password")}
+                                    placeholderTextColor={theme === "dark" ? "#aaa" : "#888"}
+                                    secureTextEntry={!showCurrentPassword}
+                                    value={currentPassword}
+                                    onChangeText={setCurrentPassword}
+                                    autoCapitalize="none"
+                                />
+                                <TouchableOpacity
+                                    style={{ position: "absolute", right: 10, top: 10 }}
+                                    onPress={() => setShowCurrentPassword((v) => !v)}
+                                >
+                                    <Ionicons
+                                        name={showCurrentPassword ? "eye-off" : "eye"}
+                                        size={22}
+                                        color={Colors[theme].icon}
+                                    />
+                                </TouchableOpacity>
+                            </View>
+                            {/* Input nueva contraseña */}
+                            <View style={{ position: "relative", marginBottom: 10 }}>
+                                <TextInput
+                                    style={[
+                                        styles.input,
+                                        {
+                                            color: Colors[theme].text,
+                                            borderColor: Colors[theme].backgroundSoft,
+                                            backgroundColor: Colors[theme].background,
+                                            width: "100%",
+                                            minHeight: 44,
+                                            paddingRight: 40,
+                                        },
+                                    ]}
+                                    placeholder={t("new_password")}
+                                    placeholderTextColor={theme === "dark" ? "#aaa" : "#888"}
+                                    secureTextEntry={!showNewPassword}
+                                    value={newPassword}
+                                    onChangeText={setNewPassword}
+                                    autoCapitalize="none"
+                                />
+                                <TouchableOpacity
+                                    style={{ position: "absolute", right: 10, top: 10 }}
+                                    onPress={() => setShowNewPassword((v) => !v)}
+                                >
+                                    <Ionicons
+                                        name={showNewPassword ? "eye-off" : "eye"}
+                                        size={22}
+                                        color={Colors[theme].icon}
+                                    />
+                                </TouchableOpacity>
+                            </View>
+                            {/* Input confirmar contraseña */}
+                            <View style={{ position: "absolute", right: 10, top: 10 }}>
+                                <TextInput
+                                    style={[
+                                        styles.input,
+                                        {
+                                            color: Colors[theme].text,
+                                            borderColor: Colors[theme].backgroundSoft,
+                                            backgroundColor: Colors[theme].background,
+                                            width: "100%",
+                                            minHeight: 44,
+                                            paddingRight: 40,
+                                        },
+                                    ]}
+                                    placeholder={t("confirm_new_password")}
+                                    placeholderTextColor={theme === "dark" ? "#aaa" : "#888"}
+                                    secureTextEntry={!showConfirmPassword}
+                                    value={confirmPassword}
+                                    onChangeText={setConfirmPassword}
+                                    autoCapitalize="none"
+                                />
+                                <TouchableOpacity
+                                    style={{ position: "absolute", right: 10, top: 10 }}
+                                    onPress={() => setShowConfirmPassword((v) => !v)}
+                                >
+                                    <Ionicons
+                                        name={showConfirmPassword ? "eye-off" : "eye"}
+                                        size={22}
+                                        color={Colors[theme].icon}
+                                    />
+                                </TouchableOpacity>
+                            </View>
+                            <TouchableOpacity
+                                style={[
+                                    styles.button,
+                                    {
+                                        backgroundColor: Colors[theme].info || "#007bff",
+                                        marginTop: 5,
+                                        shadowColor: theme === "dark" ? "#000" : "#888",
+                                        shadowOpacity: 0.15,
+                                        shadowRadius: 4,
+                                        elevation: 2,
+                                        width: "100%",
+                                        minHeight: 44,
+                                    },
+                                ]}
+                                onPress={handleChangePassword}
+                                disabled={isLoading}
+                            >
+                                {isLoading ? (
+                                    <ActivityIndicator color={Colors[theme].tint} />
+                                ) : (
+                                    <ThemedText
+                                        style={[styles.buttonText, { color: Colors[theme].text, fontWeight: "bold" }]}
+                                    >
+                                        {t("change_password")}
+                                    </ThemedText>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </Accordion>
 
                     {/* Botón de Soporte y Feedback */}
                     <TouchableOpacity
@@ -503,6 +736,46 @@ export default function SettingsScreen() {
                         </View>
                     </Modal>
                 </View>
+                {/* About Section */}
+                <View style={{ alignItems: "center", marginTop: 30, marginBottom: 20, width: "100%" }}>
+                    <Ionicons
+                        name="information-circle-outline"
+                        size={32}
+                        color={Colors[theme].info}
+                        style={{ marginBottom: 6 }}
+                    />
+                    <ThemedText
+                        style={{ fontWeight: "bold", fontSize: 18, color: Colors[theme].info, marginBottom: 2 }}
+                    >
+                        OP-DeckBuilder
+                    </ThemedText>
+                    <ThemedText style={{ color: Colors[theme].textSoft, fontSize: 14, marginBottom: 2 }}>
+                        v1.0.0
+                    </ThemedText>
+                    <ThemedText
+                        style={{ color: Colors[theme].text, fontSize: 14, textAlign: "center", marginBottom: 6 }}
+                    >
+                        {t(
+                            "about_description",
+                            "Una app para gestionar y compartir tus decks de One Piece Card Game. Desarrollada por Uri."
+                        )}
+                    </ThemedText>
+                    <TouchableOpacity
+                        onPress={() => {
+                            // Abre la web oficial
+                            if (typeof window !== "undefined") window.open("https://oplab.app", "_blank");
+                        }}
+                    >
+                        <ThemedText
+                            style={{ color: Colors[theme].info, textDecorationLine: "underline", fontSize: 14 }}
+                        >
+                            oplab.app
+                        </ThemedText>
+                    </TouchableOpacity>
+                    <ThemedText style={{ color: Colors[theme].textSoft, fontSize: 12, marginTop: 8 }}>
+                        © 2025 Uri. One Piece Card Game es propiedad de Bandai.
+                    </ThemedText>
+                </View>
             </ScrollView>
             <Modalize
                 ref={modalizeRef}
@@ -549,7 +822,7 @@ const styles = StyleSheet.create({
         padding: 20,
         alignItems: "center",
         justifyContent: "center",
-        marginBottom: 50,
+        marginBottom: 0,
     },
     card: {
         width: "100%",

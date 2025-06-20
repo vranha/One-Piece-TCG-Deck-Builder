@@ -29,11 +29,15 @@ export default function FeedbackModal({ visible, onClose, t, showToast }: Feedba
     const api = useApi();
 
     const handleSend = async () => {
+        // Fallbacks para nombre y email si no están definidos
+        console.log("Sending feedback:", session?.user);
+        let fallbackName = session?.user?.user_metadata?.name || session?.user?.email || "Anon";
+        let fallbackEmail = session?.user?.email || "no-email@oplab.app";
         try {
             await api.post("/send-feedback", {
                 feedback: emailContent,
-                userName: session?.user?.user_metadata?.name, // Replace with actual user name if available
-                userEmail: session?.user?.email, // Replace with actual user email if available
+                userName: fallbackName,
+                userEmail: fallbackEmail,
             });
 
             showToast(
@@ -78,7 +82,7 @@ export default function FeedbackModal({ visible, onClose, t, showToast }: Feedba
                                 style={[styles.sendButton, { backgroundColor: Colors[theme].success }]}
                                 onPress={handleSend}
                             >
-                                <Text style={styles.sendButtonText}>{t('send')}</Text>
+                                <Text style={styles.sendButtonText}>{t("send")}</Text>
                             </TouchableOpacity>
                         </View>
                     </TouchableWithoutFeedback>

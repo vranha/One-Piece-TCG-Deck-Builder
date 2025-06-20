@@ -214,14 +214,14 @@
     "default": "Ha ocurrido un error desconocido",
     "auth": {
         "errors": {
-          "Invalid login credentials": "Credenciales inválidas",
-          "Email not confirmed": "Tu correo electrónico no está confirmado",
-          "User already registered": "Este usuario ya está registrado",
-          "Password should be at least 6 characters": "La contraseña debe tener al menos 6 caracteres",
-          "Invalid email or password": "Correo o contraseña incorrectos",
-          "default": "Ha ocurrido un error desconocido"
+            "Invalid login credentials": "Credenciales inválidas",
+            "Email not confirmed": "Tu correo electrónico no está confirmado",
+            "User already registered": "Este usuario ya está registrado",
+            "Password should be at least 6 characters": "La contraseña debe tener al menos 6 caracteres",
+            "Invalid email or password": "Correo o contraseña incorrectos",
+            "default": "Ha ocurrido un error desconocido"
         }
-      },
+    },
     "paste_html_here": "Pega HTML aquí",
     "html_placeholder": "<!doctype html>...",
     "expansion_placeholder": "Nombre del set...",
@@ -267,6 +267,16 @@
     "no_wishlists_other": "Aún no hay sueños en su bitácora. ¡El mar es inmenso y la travesía apenas comienza!",
     "user_not_found": "Usuario no encontrado",
     "users": "Users",
-    "your_friend": "Amigos"
-    
+    "your_friend": "Amigos",
+    "current_password": "Contraseña Actual",
+    "new_password": "Nueva Contraseña",
+    "confirm_new_password": "Confirmar Nueva Contraseña",
+    "change_password": "Cambiar Contraseña",
+    "password_change_success_title": "Contraseña Cambiada",
+    "password_change_success_message": "Tu contraseña ha sido cambiada con éxito.",
+    "password_change_error_title": "Error al Cambiar Contraseña",
+    "password_change_error_message": "Error al cambiar la contraseña. Por favor, inténtalo de nuevo.",
+    "password_fields_required": "Todos los campos de contraseña son obligatorios.",
+    "password_policy_error": "La contraseña debe contener al menos una letra minúscula, una mayúscula y un número.",
+    "about_description": "Una app para gestionar y compartir tus decks de One Piece Card Game. Desarrollada por Uri."
 }

@@ -98,10 +98,8 @@ function getBubbleIconName(index: number): CustomIconNames {
         case 0:
             return "arrow.down.doc.fill";
         case 1:
-            return "note.text";
-        case 2:
             return "folder.fill";
-        case 3:
+        case 2:
             return "plus.square.fill";
         default:
             return "questionmark";
@@ -113,10 +111,8 @@ function getBubbleText(index: number): string {
         case 0:
             return "import_deck";
         case 1:
-            return "new_note";
-        case 2:
             return "new_collection";
-        case 3:
+        case 2:
             return "new_deck_bubble";
         default:
             return "unknown";

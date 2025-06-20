@@ -1,0 +1,2 @@
+about_description: "Una app para gestionar y compartir tus decks de One Piece Card Game. Desarrollada por Uriol."
+about_description (en): "An app to manage and share your One Piece Card Game decks. Developed by Uriol."

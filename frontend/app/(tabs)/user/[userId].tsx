@@ -1,5 +1,15 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { StyleSheet, View, Image, ActivityIndicator, TouchableOpacity, Modal, ScrollView, Share } from "react-native";
+import {
+    StyleSheet,
+    View,
+    Image,
+    ActivityIndicator,
+    TouchableOpacity,
+    Modal,
+    ScrollView,
+    Share,
+    RefreshControl,
+} from "react-native";
 import { useRouter, useLocalSearchParams, useNavigation } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -63,6 +73,7 @@ export default function UserProfileScreen() {
         friends: userProfile?.friends_visibility || "public",
         collections: userProfile?.collections_visibility || "public",
     }); // State para la visibilidad
+    const [refreshing, setRefreshing] = useState(false);
 
     const setOpenChatUser = useStore((state) => state.setOpenChatUser);
 
@@ -248,6 +259,28 @@ export default function UserProfileScreen() {
         }
     };
 
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        if (userId) {
+            try {
+                const [{ data: userData }, { data: decksData }, { data: friendsData }, { data: collectionsData }] =
+                    await Promise.all([
+                        api.get(`/users/${userId}`),
+                        api.get(`/decks/${userId}`),
+                        api.get(`/friends/${userId}/accepted`),
+                        api.get(`/collections/${userId}`),
+                    ]);
+                setUserProfile(userData);
+                setDecks(decksData?.data || []);
+                setFriends(friendsData || []);
+                setCollections(Array.isArray(collectionsData) ? collectionsData : collectionsData?.data || []);
+            } catch (error) {
+                // Puedes mostrar un Toast si quieres
+            }
+        }
+        setRefreshing(false);
+    };
+
     const headerOptions = useMemo(
         () => ({
             headerShown: true,
@@ -302,7 +335,7 @@ export default function UserProfileScreen() {
                                 }
                                 style={{ backgroundColor: Colors[theme].success, padding: 6, borderRadius: 6 }}
                             >
-                                <IconPeople style={{ color: Colors[theme].background, width: 20, height: 20}} />
+                                <IconPeople style={{ color: Colors[theme].background, width: 20, height: 20 }} />
                             </TouchableOpacity>
                         </View>
                     );
@@ -497,7 +530,18 @@ export default function UserProfileScreen() {
     return (
         <>
             <ThemedView style={{ flex: 1, backgroundColor: themed.background, paddingBottom: 80 }}>
-                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={handleRefresh}
+                            colors={[themed.tint]}
+                            progressBackgroundColor={themed.backgroundSoft}
+                        />
+                    }
+                >
                     <View style={[styles.profileCard, { backgroundColor: themed.backgroundSoft, shadowColor: "#000" }]}>
                         <View style={{ alignItems: "center", flexDirection: "row" }}>
                             <View style={{ position: "relative", justifyContent: "center", alignItems: "center" }}>
@@ -623,7 +667,15 @@ export default function UserProfileScreen() {
                         }}
                     >
                         <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
-                        <IconCards style={{ color: Colors[theme].info, width: 40, height: 40, marginLeft: 20, marginRight:20 }} />
+                        <IconCards
+                            style={{
+                                color: Colors[theme].info,
+                                width: 40,
+                                height: 40,
+                                marginLeft: 20,
+                                marginRight: 20,
+                            }}
+                        />
                         <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
                     </View>
                     {!canViewDecks ? (
@@ -731,7 +783,15 @@ export default function UserProfileScreen() {
                         }}
                     >
                         <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
-                        <IconPeople style={{ color: Colors[theme].info, width: 34, height: 34, marginLeft: 20, marginRight: 20 }} />
+                        <IconPeople
+                            style={{
+                                color: Colors[theme].info,
+                                width: 34,
+                                height: 34,
+                                marginLeft: 20,
+                                marginRight: 20,
+                            }}
+                        />
                         <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
                     </View>
                     {!canViewFriends ? (
@@ -1011,5 +1071,6 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingBottom: 32,
         paddingHorizontal: 16,
-        alignItems: "center",    },
+        alignItems: "center",
+    },
 });

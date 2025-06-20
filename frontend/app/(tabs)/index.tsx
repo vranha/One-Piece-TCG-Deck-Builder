@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, View, Image, ActivityIndicator, TouchableOpacity, ScrollView } from "react-native";
+import { StyleSheet, View, Image, ActivityIndicator, TouchableOpacity, ScrollView, RefreshControl } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useTheme } from "@/hooks/ThemeContext";
@@ -45,6 +45,7 @@ export default function HomeScreen() {
     const [collections, setCollections] = useState([]);
     const [userId, setUserId] = useState<string | null>(null); // Store userId
     const [token, setToken] = useState<string | null>(null); // Store token
+    const [refreshing, setRefreshing] = useState(false);
     const router = useRouter();
 
     const refreshDecks = useStore((state) => state.refreshDecks);
@@ -266,6 +267,18 @@ export default function HomeScreen() {
         registerForPushNotifications();
     }, [userId]); // Solo se ejecuta cuando userId está disponible
 
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        if (userId && token) {
+            await Promise.all([
+                fetchDecks(userId, token),
+                fetchFriends(userId, token),
+                fetchCollections(userId, token),
+            ]);
+        }
+        setRefreshing(false);
+    };
+
     return (
         <ThemedView style={[styles.container, { backgroundColor: Colors[theme].background }]}>
             {loading ? (
@@ -273,8 +286,19 @@ export default function HomeScreen() {
                     <ActivityIndicator size="large" color={Colors[theme].tint} />
                 </View>
             ) : (
-                <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-                   <View
+                <ScrollView
+                    contentContainerStyle={styles.scrollContainer}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={handleRefresh}
+                            colors={[Colors[theme].tint]}
+                            progressBackgroundColor={Colors[theme].backgroundSoft}
+                        />
+                    }
+                >
+                    <View
                         style={{
                             width: "100%",
                             alignItems: "center",
@@ -388,7 +412,15 @@ export default function HomeScreen() {
                                 }}
                             >
                                 <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
-<IconCards style={{ color: Colors[theme].info, width: 40, height: 40, marginLeft: 20, marginRight: 20 }} />
+                                <IconCards
+                                    style={{
+                                        color: Colors[theme].info,
+                                        width: 40,
+                                        height: 40,
+                                        marginLeft: 20,
+                                        marginRight: 20,
+                                    }}
+                                />
                                 <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
                             </View>
                             <DeckCarousel
@@ -409,7 +441,15 @@ export default function HomeScreen() {
                                 }}
                             >
                                 <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
-                                <IconPeople style={{ color: Colors[theme].info, width: 34, height: 34, marginLeft: 20, marginRight: 20 }} />
+                                <IconPeople
+                                    style={{
+                                        color: Colors[theme].info,
+                                        width: 34,
+                                        height: 34,
+                                        marginLeft: 20,
+                                        marginRight: 20,
+                                    }}
+                                />
                                 <View style={{ flex: 1, height: 1, backgroundColor: Colors[theme].tabIconDefault }} />
                             </View>
                             <FriendCarousel
@@ -498,7 +538,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
         marginBottom: 10,
     },
-        profileAvatar: {
+    profileAvatar: {
         width: 54,
         height: 54,
         borderRadius: 27,

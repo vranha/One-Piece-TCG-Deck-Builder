@@ -4,10 +4,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/hooks/ThemeContext";
-import IconUser from "@/assets/icons/iconUser.svg"; // Importa el icono de usuario
 
 interface AccordionProps {
-    title: string;
+    title: React.ReactNode; // Cambia a ReactNode para permitir iconos personalizados
     children: React.ReactNode;
     isOpen?: boolean;
     setIsOpen?: (open: boolean) => void;
@@ -58,10 +57,8 @@ export const Accordion: React.FC<AccordionProps> = ({
     return (
         <View style={[styles.container, { backgroundColor: Colors[theme].TabBarBackground }]}>
             <TouchableOpacity style={styles.header} onPress={toggleAccordion}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <IconUser style={{width:24, height: 24, color: Colors[theme].icon }} />
-                    <ThemedText style={styles.title}>{title}</ThemedText>
-                </View>
+                {/* Renderiza el título tal cual, sin icono por defecto */}
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>{title}</View>
                 <Ionicons name={isOpen ? "chevron-up" : "chevron-down"} size={20} color={Colors[theme].icon} />
             </TouchableOpacity>
             <Animated.View

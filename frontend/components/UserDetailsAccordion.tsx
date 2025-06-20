@@ -5,6 +5,8 @@ import { Accordion } from "@/components/Accordion";
 import { Colors } from "@/constants/Colors";
 import { supabase } from "@/supabaseClient";
 import useStore from "@/store/useStore";
+import IconUser from "@/assets/icons/iconUser.svg";
+import { Ionicons } from "@expo/vector-icons";
 
 interface UserDetailsAccordionProps {
     username: string;
@@ -21,6 +23,8 @@ interface UserDetailsAccordionProps {
     theme: "light" | "dark";
     t: (key: string) => string;
     openAvatarModal: () => void; // New prop to open the avatar modal
+    isOpen?: boolean;
+    setIsOpen?: (open: boolean) => void;
 }
 
 export default function UserDetailsAccordion({
@@ -38,6 +42,8 @@ export default function UserDetailsAccordion({
     theme,
     t,
     openAvatarModal,
+    isOpen,
+    setIsOpen,
 }: UserDetailsAccordionProps) {
     const setAvatarUrl = useStore((state) => state.setAvatarUrl);
 
@@ -47,7 +53,18 @@ export default function UserDetailsAccordion({
     };
 
     return (
-        <Accordion title={t("user_details")}>
+        <Accordion
+            title={
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <IconUser
+                        style={{ width: 20, height: 20, color: Colors[theme].icon, marginRight: 10, marginLeft: 3 }}
+                    />
+                    <ThemedText style={{ color: Colors[theme].text }}>{t("user_details")}</ThemedText>
+                </View>
+            }
+            isOpen={isOpen}
+            setIsOpen={setIsOpen}
+        >
             <View
                 style={{
                     flexDirection: "row",

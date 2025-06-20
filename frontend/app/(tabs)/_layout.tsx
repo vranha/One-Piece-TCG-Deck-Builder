@@ -33,12 +33,7 @@ export default function TabLayout() {
     const [showBubbles, setShowBubbles] = useState(false);
     const blurAnim = useRef(new Animated.Value(0)).current;
     const bubbleAnim = useRef(new Animated.Value(0)).current;
-    const bubbleRefs = useRef([
-        new Animated.Value(0),
-        new Animated.Value(0),
-        new Animated.Value(0),
-        new Animated.Value(0),
-    ]);
+    const bubbleRefs = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]);
     const modalizeRef = useRef<Modalize>(null);
     const [isNewDeckModalVisible, setIsNewDeckModalVisible] = useState(false);
     const [isImportDeckModalVisible, setIsImportDeckModalVisible] = useState(false);
@@ -80,12 +75,12 @@ export default function TabLayout() {
             setIsImportDeckModalVisible(true);
             toggleBubbles();
         }
-        if (index === 3) {
+        if (index === 2) {
             // Index for "Nuevo Mazo"
             setIsNewDeckModalVisible(true);
             toggleBubbles();
         }
-        if (index === 2) {
+        if (index === 1) {
             // Bubble para crear colección/wishlist
             setIsNewCollectionModalVisible(true);
             setCollectionType("collection");
