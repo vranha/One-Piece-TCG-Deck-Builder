@@ -91,7 +91,7 @@ export default function UserDetailsAccordion({
                         <TextInput
                             style={[
                                 styles.input,
-                                { color: Colors[theme].text, borderColor: Colors[theme].tabIconDefault },
+                                { color: Colors[theme].text, borderColor: Colors[theme].tabIconDefault, backgroundColor: Colors[theme].background},
                             ]}
                             value={username}
                             onChangeText={setUsername}
@@ -104,7 +104,7 @@ export default function UserDetailsAccordion({
                         <TextInput
                             style={[
                                 styles.input,
-                                { color: Colors[theme].text, borderColor: Colors[theme].tabIconDefault },
+                                { color: Colors[theme].text, borderColor: Colors[theme].tabIconDefault, backgroundColor: Colors[theme].background},
                             ]}
                             value={location}
                             onChangeText={setLocation}
@@ -115,7 +115,7 @@ export default function UserDetailsAccordion({
             <View style={styles.inputContainer}>
                 <ThemedText style={[styles.label, { color: Colors[theme].tabIconDefault }]}>{t("bio")}</ThemedText>
                 <TextInput
-                    style={[styles.textarea, { color: Colors[theme].text, borderColor: Colors[theme].tabIconDefault }]}
+                    style={[styles.textarea, { color: Colors[theme].text, borderColor: Colors[theme].tabIconDefault, backgroundColor: Colors[theme].background }]}
                     value={bio}
                     onChangeText={setBio}
                     multiline

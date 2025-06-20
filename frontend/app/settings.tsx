@@ -545,7 +545,7 @@ export default function SettingsScreen() {
                                 </TouchableOpacity>
                             </View>
                             {/* Input nueva contraseña */}
-                            <View style={{ position: "relative", marginBottom: 10 }}>
+                            <View style={{ marginBottom: 10 }}>
                                 <TextInput
                                     style={[
                                         styles.input,
@@ -577,7 +577,7 @@ export default function SettingsScreen() {
                                 </TouchableOpacity>
                             </View>
                             {/* Input confirmar contraseña */}
-                            <View style={{ position: "absolute", right: 10, top: 10 }}>
+                            <View style={{ marginBottom: 10 }}>
                                 <TextInput
                                     style={[
                                         styles.input,
@@ -612,12 +612,9 @@ export default function SettingsScreen() {
                                 style={[
                                     styles.button,
                                     {
-                                        backgroundColor: Colors[theme].info || "#007bff",
+                                        backgroundColor: Colors[theme].info,
                                         marginTop: 5,
-                                        shadowColor: theme === "dark" ? "#000" : "#888",
-                                        shadowOpacity: 0.15,
-                                        shadowRadius: 4,
-                                        elevation: 2,
+                                        marginBottom: 15,
                                         width: "100%",
                                         minHeight: 44,
                                     },
@@ -629,7 +626,7 @@ export default function SettingsScreen() {
                                     <ActivityIndicator color={Colors[theme].tint} />
                                 ) : (
                                     <ThemedText
-                                        style={[styles.buttonText, { color: Colors[theme].text, fontWeight: "bold" }]}
+                                        style={[styles.buttonText, { color: Colors[theme].background, fontWeight: "bold" }]}
                                     >
                                         {t("change_password")}
                                     </ThemedText>
