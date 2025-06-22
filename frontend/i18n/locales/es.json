@@ -278,5 +278,6 @@
     "password_change_error_message": "Error al cambiar la contraseña. Por favor, inténtalo de nuevo.",
     "password_fields_required": "Todos los campos de contraseña son obligatorios.",
     "password_policy_error": "La contraseña debe contener al menos una letra minúscula, una mayúscula y un número.",
-    "about_description": "Una app para gestionar y compartir tus decks de One Piece Card Game. Desarrollada por Uri."
+    "about_description": "Una app para gestionar y compartir tus decks de One Piece Card Game. Desarrollada por Uri.",
+    "processing_login": "Procesando login..."
 }
