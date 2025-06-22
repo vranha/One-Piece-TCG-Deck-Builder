@@ -73,7 +73,8 @@
     "react-native-webview": "13.12.5",
     "schema-utils": "^4.3.2",
     "zustand": "^5.0.3",
-    "expo-modules-core": "~2.2.3"
+    "expo-modules-core": "~2.2.3",
+    "expo-asset": "~11.0.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
