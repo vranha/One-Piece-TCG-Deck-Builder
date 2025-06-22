@@ -5,7 +5,7 @@ const useApi = () => {
     const { token } = useAuth();
 
     const api = axios.create({
-        baseURL: "http://192.168.1.180:5000/private", // Ensure this URL is correct and reachable
+        baseURL: "https://one-piece-tcg-deck-builder.onrender.com/private", // Ensure this URL is correct and reachable
         headers: {
             Authorization: token ? `Bearer ${token}` : "", // Ensure token is included
         },

@@ -1,7 +1,7 @@
 {
     "expo": {
         "name": "OP Lab",
-        "slug": "op_lab",
+        "slug": "frontend",
         "version": "1.0.0",
         "orientation": "portrait",
         "icon": "./assets/images/OPLAB-logo.png",
