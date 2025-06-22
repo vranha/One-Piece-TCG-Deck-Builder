@@ -1,22 +1,18 @@
 {
-  "name": "op-deckbuilder",
-  "version": "1.0.0",
-  "private": true,
-  "workspaces": [
-    "frontend",
-    "backend"
-  ],
-  "scripts": {
-    "start:frontend": "npm start --workspace frontend",
-    "start:backend": "npm start --workspace backend",
-    "start": "npm run start:frontend & npm run start:backend"
-  },
-  "dependencies": {
-    "expo": "52.0.35",
-    "expo-constants": "17.0.6",
-    "expo-splash-screen": "0.29.22",
-    "jest-expo": "52.0.4",
-    "node-fetch": "^3.3.2",
-    "sharp": "^0.34.2"
-  }
+    "name": "op-deckbuilder",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "start:frontend": "npm start frontend",
+        "start:backend": "npm start backend",
+        "start": "npm run start:frontend & npm run start:backend"
+    },
+    "dependencies": {
+        "expo": "52.0.35",
+        "expo-constants": "17.0.6",
+        "expo-splash-screen": "0.29.22",
+        "jest-expo": "52.0.4",
+        "node-fetch": "^3.3.2",
+        "sharp": "^0.34.2"
+    }
 }

@@ -14,9 +14,6 @@
   "jest": {
     "preset": "jest-expo"
   },
-  "overrides": {
-    "react-native-svg": "15.11.2"
-  },
   "dependencies": {
     "@expo/vector-icons": "^14.0.2",
     "@ptomasroos/react-native-multi-slider": "^2.2.2",
