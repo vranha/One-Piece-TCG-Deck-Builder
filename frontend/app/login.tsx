@@ -7,6 +7,8 @@ import { useTheme } from "@/hooks/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import * as WebBrowser from "expo-web-browser";
+import * as AuthSession from "expo-auth-session";
 
 export default function LoginScreen() {
     const [email, setEmail] = useState("");
@@ -18,6 +20,10 @@ export default function LoginScreen() {
     const { theme } = useTheme();
     const { t } = useTranslation();
 
+    // Usa un redirectUri dinámico que funciona tanto en desarrollo como en producción
+    const redirectUri = AuthSession.makeRedirectUri({ native: "oplab://auth/callback" });
+    console.log("[SUPABASE OAUTH] redirectUri:", redirectUri); // <--- Imprime el redirectUri en consola
+
     const handleLogin = async () => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
@@ -28,16 +34,22 @@ export default function LoginScreen() {
     };
 
     const handleGoogleLogin = async () => {
-        console.log("Intentando iniciar sesión con Google...");
-        const { data, error } = await supabase.auth.signInWithOAuth({
-            provider: "google",
-            options: {
-                redirectTo: "http://localhost:8081",
-            },
-        });
-
-        if (error) {
-            Alert.alert("Error", error.message);
+        try {
+            const { data, error } = await supabase.auth.signInWithOAuth({
+                provider: "google",
+                options: {
+                    redirectTo: redirectUri,
+                },
+            });
+            if (error) {
+                Alert.alert("Error", error.message);
+                return;
+            }
+            if (data?.url) {
+                await WebBrowser.openAuthSessionAsync(data.url, redirectUri);
+            }
+        } catch (err: any) {
+            Alert.alert("Error", err.message || "Google login failed");
         }
     };
 
