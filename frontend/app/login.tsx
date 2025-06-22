@@ -9,6 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import * as WebBrowser from "expo-web-browser";
 import * as AuthSession from "expo-auth-session";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function LoginScreen() {
     const [email, setEmail] = useState("");
@@ -23,6 +24,13 @@ export default function LoginScreen() {
     // Usa un redirectUri dinámico que funciona tanto en desarrollo como en producción
     const redirectUri = AuthSession.makeRedirectUri({ native: "oplab://auth/callback" });
     console.log("[SUPABASE OAUTH] redirectUri:", redirectUri); // <--- Imprime el redirectUri en consola
+
+    // Cierra la sesión automáticamente al entrar en la pantalla de login
+    useFocusEffect(
+        React.useCallback(() => {
+            supabase.auth.signOut();
+        }, [])
+    );
 
     const handleLogin = async () => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });

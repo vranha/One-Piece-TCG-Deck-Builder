@@ -4,7 +4,7 @@
     "slug": "frontend",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon_margen.png",
+    "icon": "./assets/images/icon_margin.png",
     "scheme": "oplab",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -36,7 +36,7 @@
       ],
       "package": "com.oplab.frontend",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon_margen.png",
+        "foregroundImage": "./assets/images/icon_margin.png",
         "backgroundColor": "#ffffff"
       }
     },

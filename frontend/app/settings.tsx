@@ -67,10 +67,38 @@ export default function SettingsScreen() {
     const params = useLocalSearchParams();
     // Inicializar el estado solo en el primer render según el parámetro
     const [isAccordionOpen, setIsAccordionOpen] = useState(() => params?.openAccordion === "true");
+    const { theme, toggleTheme } = useTheme();
 
     useEffect(() => {
-        navigation.setOptions({ headerShown: true, title: t("settings") });
-    }, [navigation, t]);
+        navigation.setOptions({
+            header: () => (
+                <View
+                    style={{
+                        backgroundColor: Colors[theme].background,
+                        height: 98,
+                        flexDirection: "row",
+                        alignItems: "flex-end",
+                        paddingBottom: 16,
+                        paddingHorizontal: 8,
+                        elevation: 4,
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.25,
+                        shadowRadius: 8,
+                        borderBottomWidth: 0.5,
+                        borderBottomColor: Colors[theme].TabBarBackground,
+                    }}
+                >
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingLeft: 10, paddingBottom: 2 }}>
+                        <Ionicons name="arrow-back" size={28} color={Colors[theme].text} />
+                    </TouchableOpacity>
+                    <ThemedText style={{ fontWeight: "bold", fontSize: 20, marginLeft: 16, color: Colors[theme].text }}>
+                        {t("settings")}
+                    </ThemedText>
+                </View>
+            ),
+        });
+    }, [navigation, theme, t]);
 
     useEffect(() => {
         const fetchEmailPreference = async () => {
@@ -149,7 +177,6 @@ export default function SettingsScreen() {
         };
     }, []);
 
-    const { theme, toggleTheme } = useTheme();
     const isDarkMode = theme === "dark";
     const router = useRouter();
 
@@ -391,6 +418,32 @@ export default function SettingsScreen() {
 
     return (
         <>
+            {/* Fake header para Settings, igual que SearchMenu */}
+            <View
+                style={{
+                    backgroundColor: Colors[theme].background,
+                    height: 98,
+                    flexDirection: "row",
+                    alignItems: "flex-end",
+                    paddingBottom: 16,
+                    paddingHorizontal: 8,
+                    elevation: 4,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 8,
+                    borderBottomWidth: 0.5,
+                    borderBottomColor: Colors[theme].TabBarBackground,
+                    zIndex: 10,
+                }}
+            >
+                <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingLeft: 10, paddingBottom: 2 }}>
+                    <Ionicons name="arrow-back" size={28} color={Colors[theme].text} />
+                </TouchableOpacity>
+                <ThemedText style={{ fontWeight: "bold", fontSize: 20, marginLeft: 16, color: Colors[theme].text }}>
+                    {t("settings")}
+                </ThemedText>
+            </View>
             <ScrollView contentContainerStyle={{ flexGrow: 1, backgroundColor: Colors[theme].background }}>
                 <View style={[styles.container, { backgroundColor: Colors[theme].background }]}>
                     {/* User Details Accordion */}
@@ -626,7 +679,10 @@ export default function SettingsScreen() {
                                     <ActivityIndicator color={Colors[theme].tint} />
                                 ) : (
                                     <ThemedText
-                                        style={[styles.buttonText, { color: Colors[theme].background, fontWeight: "bold" }]}
+                                        style={[
+                                            styles.buttonText,
+                                            { color: Colors[theme].background, fontWeight: "bold" },
+                                        ]}
                                     >
                                         {t("change_password")}
                                     </ThemedText>

@@ -7,9 +7,9 @@ import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { useTranslation } from "react-i18next";
 import { useNavigation } from "@react-navigation/native";
-import IconCard from '@/assets/icons/IconCardFill.svg';
-import IconCards from '@/assets/icons/IconCards.svg';
-import IconUser from '@/assets/icons/iconUser.svg';
+import IconCard from "@/assets/icons/IconCardFill.svg";
+import IconCards from "@/assets/icons/IconCards.svg";
+import IconUser from "@/assets/icons/iconUser.svg";
 
 export default function SearchMenu() {
     const router = useRouter();
@@ -19,19 +19,35 @@ export default function SearchMenu() {
 
     React.useEffect(() => {
         navigation.setOptions({
-            headerLeft: () => (
-                <TouchableOpacity onPress={() => router.back()} style={{ paddingLeft: 12 }}>
-                    <Ionicons name="arrow-back" size={24} color={Colors[theme].text} />
-                </TouchableOpacity>
+            header: () => (
+                <View
+                    style={{
+                        backgroundColor: Colors[theme].background,
+                        height: 98,
+                        flexDirection: "row",
+                        alignItems: "flex-end",
+                        paddingBottom: 16,
+                        paddingHorizontal: 8,
+                        elevation: 4,
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.25,
+                        shadowRadius: 8,
+                        borderBottomWidth: 0.5,
+                        borderBottomColor: Colors[theme].TabBarBackground,
+                    }}
+                >
+                    <TouchableOpacity onPress={() => router.back()} style={{ paddingLeft: 10, paddingBottom: 2 }}>
+                        <Ionicons name="arrow-back" size={28} color={Colors[theme].text} />
+                    </TouchableOpacity>
+                    {/* Puedes añadir aquí un título si lo deseas */}
+                </View>
             ),
-            headerTitle: "",
-            headerShadowVisible: false,
-            headerStyle: { backgroundColor: Colors[theme].background },
         });
     }, [navigation, theme]);
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: Colors[theme].background }]}>
             {/* 🟦 Nueva fila de dos botones */}
             <View style={styles.row}>
                 <TouchableOpacity
@@ -44,8 +60,10 @@ export default function SearchMenu() {
                     ]}
                     onPress={() => router.push("/deckSearcher")}
                 >
-                    <IconCards style={{ color: Colors[theme].info, width: 80, height: 80, marginBottom:-10}} />
-                    <ThemedText style={[styles.buttonText, { color: Colors[theme].text, marginBottom:10 }]}>{t("decks")}</ThemedText>
+                    <IconCards style={{ color: Colors[theme].info, width: 80, height: 80, marginBottom: -10 }} />
+                    <ThemedText style={[styles.buttonText, { color: Colors[theme].text, marginBottom: 10 }]}>
+                        {t("decks")}
+                    </ThemedText>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -58,7 +76,7 @@ export default function SearchMenu() {
                     ]}
                     onPress={() => router.push({ pathname: "/deckSearcher", params: { showUsers: "true" } })}
                 >
-                    <IconUser style={{ color: Colors[theme].success, width: 60, height: 60}} />
+                    <IconUser style={{ color: Colors[theme].success, width: 60, height: 60 }} />
                     <ThemedText style={[styles.buttonText, { color: Colors[theme].text }]}>{t("users")}</ThemedText>
                 </TouchableOpacity>
             </View>
