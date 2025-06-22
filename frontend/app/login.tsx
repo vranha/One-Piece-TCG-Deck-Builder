@@ -62,6 +62,12 @@ export default function LoginScreen() {
 
     return (
         <View style={[styles.container, { backgroundColor: Colors[theme].background }]}>
+            {/* Mostrar el redirectUri en pantalla para debug OAuth */}
+            <View style={{ marginBottom: 10, alignItems: "center" }}>
+                <ThemedText style={{ fontSize: 12, color: Colors[theme].tabIconDefault, textAlign: "center" }}>
+                    redirectUri: {redirectUri}
+                </ThemedText>
+            </View>
             <ThemedText type="title" style={[styles.title, { color: Colors[theme].tint }]}>
                 {t("welcome_to")}
             </ThemedText>
