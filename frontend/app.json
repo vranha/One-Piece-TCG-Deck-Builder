@@ -1,73 +1,79 @@
 {
-  "expo": {
-    "name": "OP Lab",
-    "slug": "frontend",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon_margin.png",
-    "scheme": "oplab",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "notification": {
-      "icon": "./assets/images/favicon.png",
-      "color": "#ffffff"
-    },
-    "splash": {
-      "image": "./assets/images/OPLAB-logo.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "ios": {
-      "bundleIdentifier": "com.oplab.frontend",
-      "supportsTablet": true,
-      "infoPlist": {
-        "NSCameraUsageDescription": "We need your camera to scan OP TGC cards.",
-        "NSUserNotificationUsageDescription": "We want to send you notifications to keep you updated( new cards, friendship requests..."
-      }
-    },
-    "androidStatusBar": {
-      "barStyle": "light-content",
-      "backgroundColor": "#121212"
-    },
-    "android": {
-      "permissions": [
-        "CAMERA",
-        "NOTIFICATIONS"
-      ],
-      "package": "com.oplab.frontend",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon_margin.png",
-        "backgroundColor": "#ffffff"
-      }
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
-    },
-    "plugins": [
-      "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/OPLAB-logo.png",
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+    "expo": {
+        "name": "OP Lab",
+        "slug": "frontend",
+        "version": "1.0.0",
+        "orientation": "portrait",
+        "icon": "./assets/images/icon_margin.png",
+        "scheme": "oplab",
+        "userInterfaceStyle": "automatic",
+        "newArchEnabled": true,
+        "linking": {
+            "prefixes": ["oplab://", "exp://", "https://auth.expo.io/@vranha/frontend"],
+            "config": {
+                "screens": {
+                    "auth/callback": "auth/callback",
+                    "(tabs)": ""
+                }
+            }
+        },
+        "notification": {
+            "icon": "./assets/images/favicon.png",
+            "color": "#ffffff"
+        },
+        "splash": {
+            "image": "./assets/images/OPLAB-logo.png",
+            "resizeMode": "contain",
+            "backgroundColor": "#ffffff"
+        },
+        "ios": {
+            "bundleIdentifier": "com.oplab.frontend",
+            "supportsTablet": true,
+            "infoPlist": {
+                "NSCameraUsageDescription": "We need your camera to scan OP TGC cards.",
+                "NSUserNotificationUsageDescription": "We want to send you notifications to keep you updated( new cards, friendship requests..."
+            }
+        },
+        "androidStatusBar": {
+            "barStyle": "light-content",
+            "backgroundColor": "#121212"
+        },
+        "android": {
+            "permissions": ["CAMERA", "NOTIFICATIONS"],
+            "package": "com.oplab.frontend",
+            "adaptiveIcon": {
+                "foregroundImage": "./assets/images/icon_margin.png",
+                "backgroundColor": "#ffffff"
+            }
+        },
+        "web": {
+            "bundler": "metro",
+            "output": "static",
+            "favicon": "./assets/images/favicon.png"
+        },
+        "plugins": [
+            "expo-router",
+            [
+                "expo-splash-screen",
+                {
+                    "image": "./assets/images/OPLAB-logo.png",
+                    "resizeMode": "contain",
+                    "backgroundColor": "#ffffff"
+                }
+            ],
+            "expo-font",
+            "expo-asset"
+        ],
+        "experiments": {
+            "typedRoutes": true
+        },
+        "extra": {
+            "router": {
+                "origin": false
+            },
+            "eas": {
+                "projectId": "0dd23133-57cc-4963-a38f-6c52fa4a4834"
+            }
         }
-      ],
-      "expo-font",
-      "expo-asset"
-    ],
-    "experiments": {
-      "typedRoutes": true
-    },
-    "extra": {
-      "router": {
-        "origin": false
-      },
-      "eas": {
-        "projectId": "0dd23133-57cc-4963-a38f-6c52fa4a4834"
-      }
     }
-  }
 }

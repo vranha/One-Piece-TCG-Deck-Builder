@@ -8,8 +8,8 @@ import { Colors } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import * as WebBrowser from "expo-web-browser";
-import * as AuthSession from "expo-auth-session";
 import { useFocusEffect } from "@react-navigation/native";
+import { getRedirectUri } from "@/utils/authUtils";
 
 export default function LoginScreen() {
     const [email, setEmail] = useState("");
@@ -21,9 +21,7 @@ export default function LoginScreen() {
     const router = useRouter();
     const { theme } = useTheme();
     const { t } = useTranslation();
-
-    // redirectUri seguro para todos los entornos
-    const redirectUri = AuthSession.makeRedirectUri({ native: "oplab://auth/callback" });
+    const redirectUri = getRedirectUri();
 
     // Cierra la sesión automáticamente al entrar en la pantalla de login
     useFocusEffect(
@@ -31,6 +29,23 @@ export default function LoginScreen() {
             supabase.auth.signOut();
         }, [])
     );
+
+    // Escuchar cambios de autenticación
+    React.useEffect(() => {
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === "SIGNED_IN" && session) {
+                setGoogleLoading(false);
+                router.replace("/(tabs)");
+            } else if (event === "SIGNED_OUT") {
+                setGoogleLoading(false);
+            }
+        });
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, [router]);
 
     const handleLogin = async () => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -40,7 +55,6 @@ export default function LoginScreen() {
             router.push("/(tabs)");
         }
     };
-
     const handleGoogleLogin = async () => {
         setGoogleLoading(true);
         try {
@@ -48,6 +62,10 @@ export default function LoginScreen() {
                 provider: "google",
                 options: {
                     redirectTo: redirectUri,
+                    queryParams: {
+                        access_type: "offline",
+                        prompt: "consent",
+                    },
                 },
             });
             if (error) {
@@ -56,17 +74,49 @@ export default function LoginScreen() {
                 return;
             }
             if (data?.url) {
-                const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUri);
-                // Si el usuario cancela el login en el navegador
-                if (result.type === "cancel" || result.type === "dismiss") {
+                const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUri, {
+                    dismissButtonStyle: "cancel",
+                    readerMode: false,
+                    enableBarCollapsing: false,
+                    showInRecents: false,
+                });
+                if (result.type === "success") {
+                    if (result.url) {
+                        try {
+                            const url = new URL(result.url);
+                            let callbackUrl = "/auth/callback";
+                            if (url.searchParams.toString()) {
+                                callbackUrl += `?${url.searchParams.toString()}`;
+                            }
+                            if (url.hash) {
+                                const hashParams = url.hash.substring(1);
+                                if (hashParams) {
+                                    callbackUrl += url.searchParams.toString() ? `&${hashParams}` : `?${hashParams}`;
+                                }
+                            }
+                            // Solución de tipado para rutas dinámicas
+                            router.replace(callbackUrl as any);
+                        } catch (e) {
+                            router.replace("/auth/callback");
+                        }
+                    } else {
+                        router.replace("/auth/callback");
+                    }
+                } else if (result.type === "cancel" || result.type === "dismiss") {
                     Alert.alert(t("login_cancelled", "Inicio de sesión cancelado"));
+                    setGoogleLoading(false);
+                } else {
+                    setGoogleLoading(false);
                 }
+            } else {
+                Alert.alert("Error", "No se pudo iniciar el proceso de autenticación");
+                setGoogleLoading(false);
             }
         } catch (err: any) {
             Alert.alert("Error", err.message || "Google login failed");
-        } finally {
             setGoogleLoading(false);
         }
+        // No establecer setGoogleLoading(false) aquí para "success" ya que esperamos ser redirigidos
     };
 
     const handleKeyPress = (e: any) => {
@@ -75,15 +125,8 @@ export default function LoginScreen() {
             handleLogin();
         }
     };
-
     return (
         <View style={[styles.container, { backgroundColor: Colors[theme].background }]}>
-            {/* Mostrar el redirectUri en pantalla para debug OAuth */}
-            {/* <View style={{ marginBottom: 10, alignItems: "center" }}>
-                <ThemedText style={{ fontSize: 12, color: Colors[theme].tabIconDefault, textAlign: "center" }}>
-                    redirectUri: {redirectUri}
-                </ThemedText>
-            </View> */}
             <ThemedText type="title" style={[styles.title, { color: Colors[theme].tint }]}>
                 {t("welcome_to")}
             </ThemedText>
@@ -111,7 +154,6 @@ export default function LoginScreen() {
                 onBlur={() => setIsEmailFocused(false)}
                 autoComplete="email" // Habilita el autocompletado para el email
             />
-
             <View
                 style={[
                     styles.input,
@@ -144,11 +186,9 @@ export default function LoginScreen() {
                     <Ionicons name={showPassword ? "eye-off" : "eye"} size={24} color={Colors[theme].tabIconDefault} />
                 </TouchableOpacity>
             </View>
-
             <TouchableOpacity style={[styles.button, { backgroundColor: Colors[theme].tint }]} onPress={handleLogin}>
                 <ThemedText style={styles.buttonText}>{t("sign_in")}</ThemedText>
             </TouchableOpacity>
-
             <TouchableOpacity
                 style={[
                     styles.buttonOutline,
@@ -158,7 +198,6 @@ export default function LoginScreen() {
             >
                 <ThemedText style={[styles.buttonText, { color: Colors[theme].tint }]}>{t(`register`)}</ThemedText>
             </TouchableOpacity>
-
             <ThemedText
                 style={{
                     color: Colors[theme].tabIconDefault,
@@ -170,7 +209,6 @@ export default function LoginScreen() {
             >
                 {t("or_continue_with")}
             </ThemedText>
-
             <View style={styles.othersContainer}>
                 <TouchableOpacity
                     style={[
@@ -190,11 +228,12 @@ export default function LoginScreen() {
                         <Ionicons name="logo-google" size={24} color={Colors[theme].TabBarBackground} />
                     )}
                 </TouchableOpacity>
-            </View>
+            </View>{" "}
             <Image
                 source={require("@/assets/images/cards_5.png")}
                 style={[styles.cardsLogo, { tintColor: Colors[theme].TabBarBackground }]}
             />
+            {/* Debugger de autenticación eliminado para producción */}
         </View>
     );
 }

@@ -15,52 +15,71 @@ export default function AuthCallbackScreen() {
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [retry, setRetry] = useState(0);
-
     useEffect(() => {
         let cancelled = false;
-        const refreshSessionAndRedirect = async () => {
+        let timeoutId: NodeJS.Timeout;
+        const handleAuthCallback = async () => {
             setLoading(true);
             setError(null);
-            let tries = 0;
-            let session = null;
-            // Intentar refrescar la sesión explícitamente
             try {
-                await supabase.auth.refreshSession();
-            } catch (e) {
-                // Ignorar error, seguimos intentando getSession
-            }
-            while (tries < 20 && !cancelled) {
-                try {
-                    const { data, error: sessionError } = await supabase.auth.getSession();
-                    session = data.session;
-                    if (session && session.user) break;
+                // Intentar establecer la sesión si hay tokens en los parámetros
+                const urlParams = params as { [key: string]: string };
+                let access_token = urlParams.access_token;
+                let refresh_token = urlParams.refresh_token;
+                if (access_token && refresh_token) {
+                    const { error: sessionError } = await supabase.auth.setSession({
+                        access_token,
+                        refresh_token,
+                    });
                     if (sessionError) {
-                        setError(sessionError.message);
-                        break;
+                        throw new Error(sessionError.message);
                     }
-                } catch (e: any) {
-                    setError(e.message || "Unknown error");
-                    break;
                 }
-                await new Promise((res) => setTimeout(res, 500));
-                tries++;
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+                const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+                if (sessionData.session && sessionData.session.user) {
+                    setLoading(false);
+                    router.replace("/(tabs)");
+                    return;
+                }
+                if (sessionError) {
+                    throw new Error(sessionError.message);
+                }
+                // Configurar timeout de 30 segundos
+                timeoutId = setTimeout(() => {
+                    if (!cancelled) {
+                        setError(t("auth_timeout", "La autenticación ha tardado demasiado. Intenta de nuevo."));
+                        setLoading(false);
+                    }
+                }, 30000);
+            } catch (error: any) {
+                if (!cancelled) {
+                    setError(error.message || "Error de autenticación");
+                    setLoading(false);
+                }
             }
-            if (cancelled) return;
-            if (session && session.user) {
+        };
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === "SIGNED_IN" && session && !cancelled) {
+                if (timeoutId) clearTimeout(timeoutId);
                 setLoading(false);
                 setError(null);
                 router.replace("/(tabs)");
-            } else {
+            } else if (event === "SIGNED_OUT" && !cancelled) {
+                if (timeoutId) clearTimeout(timeoutId);
+                setError(t("auth_failed", "La autenticación falló. Intenta de nuevo."));
                 setLoading(false);
-                setError(t("login_session_error", "No se pudo obtener la sesión. Intenta de nuevo o vuelve al login."));
             }
-        };
-        refreshSessionAndRedirect();
+        });
+        handleAuthCallback();
         return () => {
             cancelled = true;
+            if (timeoutId) clearTimeout(timeoutId);
+            subscription.unsubscribe();
         };
-    }, [router, retry, t]);
-
+    }, [router, retry, t, params]);
     return (
         <View style={[styles.container, { backgroundColor: Colors[theme].background }]}>
             <View style={styles.centerContent}>
@@ -115,14 +134,6 @@ export default function AuthCallbackScreen() {
                             </ThemedText>
                         </TouchableOpacity>
                     </>
-                )}
-                {/* Debug: mostrar parámetros del callback si existen */}
-                {Object.keys(params).length > 0 && (
-                    <View style={{ marginTop: 20 }}>
-                        <ThemedText style={{ fontSize: 12, color: Colors[theme].tint, textAlign: "center" }}>
-                            Params: {JSON.stringify(params)}
-                        </ThemedText>
-                    </View>
                 )}
             </View>
         </View>
