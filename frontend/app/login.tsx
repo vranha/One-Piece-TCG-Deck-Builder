@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, TextInput, StyleSheet, Alert, Image, TouchableOpacity, Keyboard } from "react-native";
+import { View, TextInput, StyleSheet, Alert, Image, TouchableOpacity, Keyboard, ActivityIndicator } from "react-native";
 import { supabase } from "@/supabaseClient";
 import { useRouter } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
@@ -17,13 +17,13 @@ export default function LoginScreen() {
     const [isEmailFocused, setIsEmailFocused] = useState(false);
     const [isPasswordFocused, setIsPasswordFocused] = useState(false);
     const [showPassword, setShowPassword] = useState(false); // Add state for toggling password visibility
+    const [googleLoading, setGoogleLoading] = useState(false); // Estado para feedback visual
     const router = useRouter();
     const { theme } = useTheme();
     const { t } = useTranslation();
 
-    // Usa un redirectUri dinámico que funciona tanto en desarrollo como en producción
+    // redirectUri seguro para todos los entornos
     const redirectUri = AuthSession.makeRedirectUri({ native: "oplab://auth/callback" });
-    console.log("[SUPABASE OAUTH] redirectUri:", redirectUri); // <--- Imprime el redirectUri en consola
 
     // Cierra la sesión automáticamente al entrar en la pantalla de login
     useFocusEffect(
@@ -42,6 +42,7 @@ export default function LoginScreen() {
     };
 
     const handleGoogleLogin = async () => {
+        setGoogleLoading(true);
         try {
             const { data, error } = await supabase.auth.signInWithOAuth({
                 provider: "google",
@@ -51,13 +52,20 @@ export default function LoginScreen() {
             });
             if (error) {
                 Alert.alert("Error", error.message);
+                setGoogleLoading(false);
                 return;
             }
             if (data?.url) {
-                await WebBrowser.openAuthSessionAsync(data.url, redirectUri);
+                const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUri);
+                // Si el usuario cancela el login en el navegador
+                if (result.type === "cancel" || result.type === "dismiss") {
+                    Alert.alert(t("login_cancelled", "Inicio de sesión cancelado"));
+                }
             }
         } catch (err: any) {
             Alert.alert("Error", err.message || "Google login failed");
+        } finally {
+            setGoogleLoading(false);
         }
     };
 
@@ -167,11 +175,20 @@ export default function LoginScreen() {
                 <TouchableOpacity
                     style={[
                         styles.googleButton,
-                        { borderColor: Colors[theme].background, backgroundColor: Colors[theme].highlight },
+                        {
+                            borderColor: Colors[theme].background,
+                            backgroundColor: Colors[theme].highlight,
+                            opacity: googleLoading ? 0.6 : 1,
+                        },
                     ]}
                     onPress={handleGoogleLogin}
+                    disabled={googleLoading}
                 >
-                    <Ionicons name="logo-google" size={24} color={Colors[theme].TabBarBackground} />
+                    {googleLoading ? (
+                        <ActivityIndicator color={Colors[theme].TabBarBackground} />
+                    ) : (
+                        <Ionicons name="logo-google" size={24} color={Colors[theme].TabBarBackground} />
+                    )}
                 </TouchableOpacity>
             </View>
             <Image
