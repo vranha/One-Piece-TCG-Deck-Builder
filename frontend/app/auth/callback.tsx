@@ -16,11 +16,22 @@ export default function AuthCallbackScreen() {
     useEffect(() => {
         // Refresca la sesión de Supabase tras el login OAuth
         const refreshSessionAndRedirect = async () => {
-            await supabase.auth.getSession(); // fuerza refresco de sesión
-            // Si tienes un contexto de usuario, aquí deberías refrescarlo
-            setTimeout(() => {
+            let tries = 0;
+            let session = null;
+            // Espera hasta que la sesión esté disponible o se agoten los intentos
+            while (tries < 10) {
+                const { data } = await supabase.auth.getSession();
+                session = data.session;
+                if (session && session.user) break;
+                await new Promise((res) => setTimeout(res, 300));
+                tries++;
+            }
+            // Si hay sesión, redirige; si no, muestra error o reintenta
+            if (session && session.user) {
                 router.replace("/(tabs)");
-            }, 800);
+            } else {
+                // Puedes mostrar un error o reintentar
+            }
         };
         refreshSessionAndRedirect();
     }, [router]);
@@ -29,7 +40,15 @@ export default function AuthCallbackScreen() {
         <View style={[styles.container, { backgroundColor: Colors[theme].background }]}>
             <View style={styles.centerContent}>
                 <ActivityIndicator size="large" />
-                <ThemedText style={{ marginTop: 20, textAlign: "center", fontWeight: "bold", fontSize: 18, color: Colors[theme].text }}>
+                <ThemedText
+                    style={{
+                        marginTop: 20,
+                        textAlign: "center",
+                        fontWeight: "bold",
+                        fontSize: 18,
+                        color: Colors[theme].text,
+                    }}
+                >
                     {t("processing_login", "Procesando login...")}
                 </ThemedText>
                 {/* Debug: mostrar parámetros del callback si existen */}
