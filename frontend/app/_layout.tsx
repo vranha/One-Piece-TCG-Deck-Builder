@@ -7,12 +7,13 @@ import { useEffect } from "react";
 import "react-native-reanimated";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ThemeProvider, useTheme } from "@/hooks/ThemeContext";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { Provider as PaperProvider } from "react-native-paper";
 import "../i18n"; // Configuración de i18n
 import * as Notifications from "expo-notifications";
 import Toast from "react-native-toast-message";
 import toastConfig from "../config/toastConfig";
+import useChatRealtime from "@/hooks/useChatRealtime";
 
 // Evitamos que el splash se oculte automáticamente
 SplashScreen.preventAutoHideAsync();
@@ -25,6 +26,12 @@ Notifications.setNotificationHandler({
         shouldSetBadge: false,
     }),
 });
+
+function GlobalRealtimeListener() {
+    const { session } = useAuth();
+    useChatRealtime(session?.user?.id);
+    return null;
+}
 
 export default function RootLayout() {
     const [loaded] = useFonts({
@@ -39,9 +46,9 @@ export default function RootLayout() {
     }, [loaded]);
 
     if (!loaded) return null;
-
     return (
         <AuthProvider>
+            <GlobalRealtimeListener />
             <ThemeProvider>
                 <PaperProvider>
                     <GestureHandlerRootView style={{ flex: 1 }}>

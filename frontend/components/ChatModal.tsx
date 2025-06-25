@@ -32,10 +32,11 @@ import { FlashList } from "@shopify/flash-list";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import DeckSelectModal from "./DeckSelectModal";
 import CollectionSelectModal from "./CollectionSelectModal";
-import IconCard from '@/assets/icons/IconCardFill.svg';
-import IconCards from '@/assets/icons/IconCards.svg';
-import IconPeople from '@/assets/icons/IconPeople.svg';
+import IconCard from "@/assets/icons/IconCardFill.svg";
+import IconCards from "@/assets/icons/IconCards.svg";
+import IconPeople from "@/assets/icons/IconPeople.svg";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import Toast from "react-native-toast-message";
 
 // Utilidad para obtener el ref real de Modalize
 function getModalizeRef(modalizeRef: any) {
@@ -106,6 +107,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
     const api = useApi();
     const { session } = useAuth();
     const setHasUnreadChats = useStore((state) => state.setHasUnreadChats || (() => {}));
+    const setCurrentOpenChatId = useStore((state) => state.setCurrentOpenChatId);
     const router = useRouter();
 
     // Estados principales
@@ -201,6 +203,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
         // Limpiar mensajes y chat seleccionado antes de cargar el nuevo chat
         setMessages([]);
         setSelectedChat(null);
+        setCurrentOpenChatId(null); // Limpia antes de abrir otro chat
         try {
             let chat: Chat | null = null;
             if (isUser(chatOrUser)) {
@@ -242,6 +245,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
             if (chat) {
                 setMessagesLoading(true);
                 fetchMessages(chat.id);
+                setCurrentOpenChatId(chat.id); // Setea el chat abierto
             }
             // Quitar el rojo del icono si ya no hay chats no leídos
             setHasUnreadChats(false);
@@ -312,46 +316,76 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
         } catch (e) {
             // Puedes mostrar un toast de error aquí si quieres
         }
-    };
-
-    // Suscripción realtime a nuevos mensajes
+    }; // Suscripción realtime a nuevos mensajes SOLO del chat seleccionado
     useEffect(() => {
-        if (view !== "messages" || !selectedChat) return;
-        // Suscribirse solo a mensajes nuevos de este chat
-        const channel = supabase
-            .channel(`chat-messages-${selectedChat.id}`)
+        // QUITAR LA CONDICIÓN PARA FORZAR DEPURACIÓN
+        // if (view !== "messages" || !selectedChat) return;
+        if (!selectedChat) return;
+
+        // LOG DE DEPURACIÓN ANTES DE CREAR EL CANAL
+        // console.log("[DEBUG] Creando canal realtime para chat:", selectedChat.id, "view:", view);
+        // Toast.show({
+        //     type: "info",
+        //     text1: "[DEBUG] Creando canal",
+        //     text2: `Chat ID: ${selectedChat.id}, View: ${view}`,
+        // });
+
+        // USAR EL MISMO CANAL QUE EL GLOBAL PARA DESCARTAR CONFLICTOS
+        const chatChannel = supabase
+            .channel(`chat-local-${Date.now()}`) // Nombre único con timestamp
             .on(
                 "postgres_changes",
                 {
                     event: "INSERT",
                     schema: "public",
                     table: "messages",
-                    filter: `chat_id=eq.${selectedChat.id}`,
+                    // SIN FILTRO PARA VER TODOS LOS MENSAJES
                 },
                 async (payload) => {
-                    // Asegura que el payload tiene la forma de Message
                     const newMsg = payload.new as Message;
-                    setMessages((prev) => {
-                        if (prev.some((m) => m.id === newMsg.id)) return prev;
-                        return [...prev, newMsg];
-                    });
-                    // Marcar como leído automáticamente si estamos en el chat
-                    try {
-                        await api.post(`/chats/${selectedChat.id}/read`, { userId: session?.user.id });
-                    } catch (e) {
-                        // No bloquear la UI si falla
+                    // DEPURACIÓN: Log y Toast
+                    console.log("[Realtime][LOCAL] Recibido mensaje:", newMsg, "selectedChat.id:", selectedChat.id);
+                    // Solo mostrar Toast si el mensaje NO es mío
+                    if (newMsg.sender_id !== session?.user.id) {
+                        Toast.show({
+                            type: "info", // Cambio a success para diferenciarlo
+                            text1: t("new_message", "Nuevo mensaje recibido"),
+                            text2: `${newMsg.content}`,
+                        });
+                    }
+                    // Solo agregar si es del chat actual
+                    if (newMsg.chat_id === selectedChat.id) {
+                        setMessages((prev) => {
+                            if (prev.some((m) => m.id === newMsg.id)) return prev;
+                            return [...prev, newMsg];
+                        });
+                        // Marcar como leído automáticamente si estamos en el chat
+                        try {
+                            await api.post(`/chats/${selectedChat.id}/read`, { userId: session?.user.id });
+                        } catch (e) {}
                     }
                 }
             )
-            .subscribe();
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [view, selectedChat]);
+            .subscribe((status) => {
+                console.log("[DEBUG] Estado de suscripción:", status);
+                // Toast.show({
+                //     type: "info",
+                //     text1: "[DEBUG] Suscripción",
+                //     text2: `Estado: ${status}`,
+                // });
+            });
 
-    // Suscripción realtime a cambios en la tabla de chats (para previews y último mensaje)
+        // LOG DE DEPURACIÓN DESPUÉS DE SUSCRIBIRSE
+        console.log("[DEBUG] Canal suscrito:", chatChannel);
+
+        // Cleanup SOLO del canal local
+        return () => {
+            console.log("[DEBUG] Limpiando canal:", chatChannel);
+            supabase.removeChannel(chatChannel);
+        };
+    }, [selectedChat]); // SOLO DEPENDE DE selectedChat    // Suscripción realtime a cambios en la tabla de chats (para actualizar la lista de chats en tiempo real)
     useEffect(() => {
-        if (view !== "chats" || !session?.user.id) return;
+        if (!session?.user.id) return;
         // Suscribirse a INSERT y UPDATE en la tabla chats donde el usuario es user1 o user2
         const channel = supabase
             .channel(`user-chats-${session.user.id}`)
@@ -383,7 +417,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [view, session?.user.id]);
+    }, [session?.user.id]);
 
     // Actualiza el estado global de chats sin leer cada vez que se actualizan los chats
     useEffect(() => {
@@ -395,6 +429,13 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                 (chat.user2_id === session.user.id && chat.user2_read === false)
         );
         setHasUnreadChats(hasUnread);
+        // Mostrar Toast solo si hay chats no leídos
+        if (hasUnread) {
+            Toast.show({
+                type: "info",
+                text1: "Hay chats no leídos",
+            });
+        }
     }, [chats, setHasUnreadChats, session?.user.id]);
 
     // Scroll automático SOLO al abrir el chat
@@ -434,6 +475,8 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
         if (modalRefObj && modalRefObj.current && modalRefObj.current.setModalHeight) {
             modalRefObj.current.setModalHeight(600);
         }
+        // Fetch de chats al abrir el modal
+        if (session?.user.id) fetchChats();
     };
 
     // Header para la lista de chats
@@ -587,7 +630,14 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
 
                                     <View style={{ flexDirection: "row", alignItems: "center" }}>
                                         {item.last_message_type === "deck" && (
-<IconCards style={{ color: Colors[theme].deckBar, width: 18, height: 18, opacity: 0.2 }} />
+                                            <IconCards
+                                                style={{
+                                                    color: Colors[theme].deckBar,
+                                                    width: 18,
+                                                    height: 18,
+                                                    opacity: 0.2,
+                                                }}
+                                            />
                                         )}
                                         {item.last_message_type === "card" && (
                                             // <MaterialIcons
@@ -596,7 +646,14 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                             //     color={Colors[theme].cardBar}
                                             //     styles={{ opacity: 0.2 }}
                                             // />
-                                            <IconCard style={{ color: Colors[theme].cardBar, width: 18, height: 18, opacity: 0.2 }} />
+                                            <IconCard
+                                                style={{
+                                                    color: Colors[theme].cardBar,
+                                                    width: 18,
+                                                    height: 18,
+                                                    opacity: 0.2,
+                                                }}
+                                            />
                                         )}
                                         {item.last_message_type === "collection" && (
                                             <Ionicons
@@ -702,7 +759,9 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                 </View>
                                 {item.isFriend && (
                                     <View style={[styles.friendBadge, { backgroundColor: Colors[theme].tint }]}>
-                                        <IconPeople style={{ color: Colors[theme].background, width: 20, height: 20 }} />
+                                        <IconPeople
+                                            style={{ color: Colors[theme].background, width: 20, height: 20 }}
+                                        />
                                     </View>
                                 )}
                             </TouchableOpacity>
@@ -974,7 +1033,10 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                     disableScrollIfPossible={true}
                     modalStyle={{ backgroundColor: Colors[theme].TabBarBackground }}
                     onOpen={handleModalOpen}
-                    onClose={() => setView("chats")}
+                    onClose={() => {
+                        setView("chats");
+                        setCurrentOpenChatId(null); // Al cerrar el chat, limpiar el estado global
+                    }}
                     HeaderComponent={
                         <View
                             style={{
@@ -1290,7 +1352,9 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                 activeOpacity={0.8}
                                             >
                                                 {/* <MaterialIcons name="style" size={28} color={Colors[theme].tint} /> */}
-                                                <IconCard style={{ color: Colors[theme].tint, width: 30, height: 30 }} />
+                                                <IconCard
+                                                    style={{ color: Colors[theme].tint, width: 30, height: 30 }}
+                                                />
                                             </TouchableOpacity>
                                             <ThemedText
                                                 style={{
@@ -1321,7 +1385,9 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                 }}
                                                 activeOpacity={0.8}
                                             >
-                                                <IconCards style={{ color: Colors[theme].tint, width: 40, height: 40 }} />
+                                                <IconCards
+                                                    style={{ color: Colors[theme].tint, width: 40, height: 40 }}
+                                                />
                                             </TouchableOpacity>
                                             <ThemedText
                                                 style={{
@@ -1333,7 +1399,7 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                                                 {t("deck")}
                                             </ThemedText>
                                         </View>
-                                        <View style={{ alignItems: "center", marginLeft:-9 }}>
+                                        <View style={{ alignItems: "center", marginLeft: -9 }}>
                                             <TouchableOpacity
                                                 style={{
                                                     borderColor: Colors[theme].tint,
@@ -2168,81 +2234,81 @@ const ChatModal = React.forwardRef<unknown, ChatModalProps>((props, ref) => {
                     t={t}
                 />
                 <GestureHandlerRootView style={{ flex: 1 }}>
-                 <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          backgroundColor: "#f5f5f5",
-          borderTopWidth: 1,
-          borderColor: "#ddd",
-          paddingBottom: 10,
-          paddingHorizontal: 12,
-          paddingTop: 8,
-          flexDirection: "row",
-          alignItems: "center",
-          zIndex: 9999999,
-        }}
-      >
-        {/* Botón de adjuntar */}
-        <TouchableOpacity
-          onPress={() => {
-            if (showAttachMenu) closeAttachMenu();
-            else openAttachMenu();
-          }}
-          style={{
-            marginRight: 8,
-            backgroundColor: showAttachMenu ? "#007AFF" : "#e5e5e5",
-            borderRadius: 20,
-            padding: 10,
-          }}
-        >
-          <Ionicons
-            name={showAttachMenu ? "close" : "add-circle-outline"}
-            size={22}
-            color={showAttachMenu ? "#fff" : "#007AFF"}
-          />
-        </TouchableOpacity>
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === "ios" ? "padding" : undefined}
+                        keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+                        style={{
+                            position: "absolute",
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            backgroundColor: "#f5f5f5",
+                            borderTopWidth: 1,
+                            borderColor: "#ddd",
+                            paddingBottom: 10,
+                            paddingHorizontal: 12,
+                            paddingTop: 8,
+                            flexDirection: "row",
+                            alignItems: "center",
+                            zIndex: 9999999,
+                        }}
+                    >
+                        {/* Botón de adjuntar */}
+                        <TouchableOpacity
+                            onPress={() => {
+                                if (showAttachMenu) closeAttachMenu();
+                                else openAttachMenu();
+                            }}
+                            style={{
+                                marginRight: 8,
+                                backgroundColor: showAttachMenu ? "#007AFF" : "#e5e5e5",
+                                borderRadius: 20,
+                                padding: 10,
+                            }}
+                        >
+                            <Ionicons
+                                name={showAttachMenu ? "close" : "add-circle-outline"}
+                                size={22}
+                                color={showAttachMenu ? "#fff" : "#007AFF"}
+                            />
+                        </TouchableOpacity>
 
-        {/* Input de texto */}
-        <TextInput
-          style={{
-            flex: 1,
-            backgroundColor: "#fff",
-            borderRadius: 20,
-            paddingVertical: 10,
-            paddingHorizontal: 16,
-            borderWidth: 1,
-            borderColor: "#ccc",
-            color: "#333",
-          }}
-          value={newMessage}
-          onChangeText={setNewMessage}
-          onSubmitEditing={handleSendMessage}
-          placeholder="Escribe un mensaje..."
-          returnKeyType="send"
-          multiline
-          selectTextOnFocus={false}
-contextMenuHidden={false} 
-        />
+                        {/* Input de texto */}
+                        <TextInput
+                            style={{
+                                flex: 1,
+                                backgroundColor: "#fff",
+                                borderRadius: 20,
+                                paddingVertical: 10,
+                                paddingHorizontal: 16,
+                                borderWidth: 1,
+                                borderColor: "#ccc",
+                                color: "#333",
+                            }}
+                            value={newMessage}
+                            onChangeText={setNewMessage}
+                            onSubmitEditing={handleSendMessage}
+                            placeholder="Escribe un mensaje..."
+                            returnKeyType="send"
+                            multiline
+                            selectTextOnFocus={false}
+                            contextMenuHidden={false}
+                        />
 
-        {/* Botón de enviar */}
-        <TouchableOpacity
-          onPress={handleSendMessage}
-          style={{
-            marginLeft: 8,
-            backgroundColor: "#007AFF",
-            padding: 10,
-            borderRadius: 20,
-          }}
-        >
-          <Ionicons name="send" size={20} color="#fff" />
-        </TouchableOpacity>
-      </KeyboardAvoidingView>
-      </GestureHandlerRootView>
+                        {/* Botón de enviar */}
+                        <TouchableOpacity
+                            onPress={handleSendMessage}
+                            style={{
+                                marginLeft: 8,
+                                backgroundColor: "#007AFF",
+                                padding: 10,
+                                borderRadius: 20,
+                            }}
+                        >
+                            <Ionicons name="send" size={20} color="#fff" />
+                        </TouchableOpacity>
+                    </KeyboardAvoidingView>
+                </GestureHandlerRootView>
             </>
         );
     }

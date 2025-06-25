@@ -228,7 +228,7 @@ export default function LoginScreen() {
                         <Ionicons name="logo-google" size={24} color={Colors[theme].TabBarBackground} />
                     )}
                 </TouchableOpacity>
-            </View>{" "}
+            </View>
             <Image
                 source={require("@/assets/images/cards_5.png")}
                 style={[styles.cardsLogo, { tintColor: Colors[theme].TabBarBackground }]}

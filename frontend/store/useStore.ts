@@ -48,6 +48,8 @@ interface StoreState {
     setOpenChatUser: (user: { id: string; username: string; avatar_url?: string } | null) => void;
     avatarUrl: string;
     setAvatarUrl: (url: string) => void;
+    currentOpenChatId: string | null;
+    setCurrentOpenChatId: (id: string | null) => void;
 }
 
 const useStore = create<StoreState>((set) => ({
@@ -187,6 +189,8 @@ const useStore = create<StoreState>((set) => ({
     setOpenChatUser: (user) => set({ openChatUser: user }),
     avatarUrl: "",
     setAvatarUrl: (url) => set({ avatarUrl: url }),
+    currentOpenChatId: null,
+    setCurrentOpenChatId: (id) => set({ currentOpenChatId: id }),
 }));
 
 export default useStore;
